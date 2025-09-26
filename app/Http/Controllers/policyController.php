@@ -203,32 +203,7 @@ class policyController extends Controller
                         //life
                         $unitId = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'UnitName');
                         $positionId = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'CurrentManagerLevel');
-                        /*$sql = "DECLARE @columnNames NVARCHAR(MAX)
-                        SELECT @columnNames = COALESCE(@columnNames + ', ', '') + 'mob_prop_info.' + COLUMN_NAME
-                        FROM (SELECT DISTINCT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'mob_prop_info' AND COLUMN_NAME NOT IN ('ClientSignature','ClientPassportPhoto','IdFrontPage','IdLastPage','PayslipCopy')) AS subquery
                         
-                        DECLARE @sql NVARCHAR(MAX)
-                        SET @sql = 'SELECT ' + @columnNames + ',null as StatusName,
-                        null as Status,proposalinfo.UwCode,uwcodesinfo.uw_name,
-                        AppraisalHistory.Observation AS uw_reason,
-                        CONCAT(CAST(agents_info.AgentNoCode AS NVARCHAR), ''-'', agents_info.name) AS agent_name
-                        FROM mob_prop_info 
-                        LEFT JOIN proposalinfo ON proposalinfo.MproposalNumber=mob_prop_info.ID
-                        LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
-                        LEFT JOIN AppraisalHistory ON AppraisalHistory.proposal_no = proposalinfo.proposal_no
-                        LEFT JOIN agents_info ON agents_info.id=mob_prop_info.agent_code 
-                        WHERE mob_prop_info.agent_code = (SELECT t2.id  FROM agents_info t2 WHERE t2.UnitName=$unitId) 
-                        ORDER BY AppraisalHistory.id DESC,mob_prop_info.ID DESC'
-                        
-                        EXEC (@sql)";*/
-
-                        //get_position
-
-                        //$UnitNameId = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'UnitName');
-
-                        //$sql .= " LEFT JOIN agents_info recruiter ON g.RecruitedBy = $agentId WHERE T1.agent_no = $agentId";
-                        //
-                        //
 
                         $sql = $sql_generic . " 
                         ,null as StatusName,
@@ -275,19 +250,7 @@ class policyController extends Controller
 
                             $sql .= " WHERE derived.agent_code IN 
                             (SELECT t2.id  FROM agents_info t2 WHERE t2.RecruitedBy=$agentId OR t2.id=$agentId) ";
-
-                            // $sql .= " WHERE 
-                            // (
-                            //     t1.agent_codeSecond IS NULL AND t1.agent_code IN (
-                            //         SELECT t2.id FROM agents_info t2 WHERE t2.RecruitedBy = $agentId OR t2.id = $agentId
-                            //     )
-                            // ) 
-                            // OR 
-                            // (
-                            //     t1.agent_codeSecond IS NOT NULL AND t1.agent_codeSecond IN (
-                            //         SELECT t2.id FROM agents_info t2 WHERE t2.RecruitedBy = $agentId OR t2.id = $agentId
-                            //     )
-                            // ) ";                                                                            
+                                                                          
                         }
 
                         $sql .= " ORDER BY derived.ID DESC";
@@ -308,9 +271,6 @@ class policyController extends Controller
                     //pos_type:0-Admin;1-Individual;2-Micro;3-Group;4-Pension;5-Medical;
                     if ($pos_type == 2) {
                         //micro
-                        /*$qry = $this->smartlife_db->table('mob_prop_info')
-                        ->join('agents_info', 'mob_prop_info.agent_code', '=', 'agents_info.id')
-                        ->select('*')->where('agents_info.BusinessChannel', '=', 5);*/
                         $sql = "DECLARE @columnNames NVARCHAR(MAX)
 
                             SELECT @columnNames = COALESCE(@columnNames + ', ', '') + 'mob_prop_info.' + COLUMN_NAME
@@ -335,11 +295,8 @@ class policyController extends Controller
                             EXEC (@sql)
                             ";
                     } else {
-                        //life,bancassuarance and group
-                        /*$qry = $this->smartlife_db->table('mob_prop_info')
-                        ->join('agents_info', 'mob_prop_info.agent_code', '=', 'agents_info.id')
-                        ->select('*')->where('agents_info.BusinessChannel', '!=', 5);*/
-                        $sql = "DECLARE @columnNames NVARCHAR(MAX)
+                        //life,bancassuarance 
+                        /*$sql = "DECLARE @columnNames NVARCHAR(MAX)
                             SELECT @columnNames = COALESCE(@columnNames + ', ', '') + 'mob_prop_info.' + COLUMN_NAME
                             FROM (SELECT DISTINCT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'mob_prop_info' AND COLUMN_NAME NOT IN ('ClientSignature','ClientPassportPhoto','IdFrontPage','IdLastPage')) AS subquery
                             DECLARE @sql NVARCHAR(MAX)
@@ -349,7 +306,7 @@ class policyController extends Controller
                             null AS agent_name
                             FROM mob_prop_info 
                             INNER JOIN agents_info ON agents_info.id = mob_prop_info.agent_code 
-                            INNER JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code " . $sql_inject . "
+                            INNER JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code " .$sql_inject."
                             LEFT JOIN proposalinfo ON proposalinfo.MproposalNumber=mob_prop_info.ID
                             LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
                             LEFT JOIN AppraisalHistory ON AppraisalHistory.proposal_no = proposalinfo.proposal_no
@@ -357,44 +314,25 @@ class policyController extends Controller
                             (mob_prop_info.HasBeenPicked=0 OR mob_prop_info.isWebCompleted=0) OR 
                             (mob_prop_info.HasBeenPicked = 1 AND mob_prop_info.isWebCompleted = 0) 
                             ORDER BY AppraisalHistory.id DESC,mob_prop_info.ID DESC'
+                            EXEC (@sql)";*/
+                        $sql = "DECLARE @columnNames NVARCHAR(MAX)
+                            SELECT @columnNames = COALESCE(@columnNames + ', ', '') + 'mob_prop_info.' + COLUMN_NAME
+                            FROM (SELECT DISTINCT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'mob_prop_info' AND COLUMN_NAME NOT IN ('ClientSignature','ClientPassportPhoto','IdFrontPage','IdLastPage')) AS subquery
+                            DECLARE @sql NVARCHAR(MAX)
+                            SET @sql = 'SELECT ' + @columnNames + ',null as StatusName,null as Status,
+                            proposalinfo.UwCode,uwcodesinfo.uw_name,
+                            null AS agent_name
+                            FROM mob_prop_info 
+                            LEFT JOIN agents_info ON agents_info.id = mob_prop_info.agent_code 
+                            LEFT  JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code " .$sql_inject."
+                            LEFT JOIN proposalinfo ON proposalinfo.MproposalNumber=mob_prop_info.ID
+                            LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
+                            ORDER BY mob_prop_info.ID DESC'
                             EXEC (@sql)";
                     }
                     $row_arr = DbHelper::getTableRawData($sql);
-                } else { //, NULLIF(column5, column5) as column5
-                    //$qry = $this->smartlife_db->table('mob_prop_info')->select('*');
-                    /*$sql = "SELECT *
-                    FROM mob_prop_info
-                    EXCEPT
-                    SELECT ClientPassportPhoto, ClientSignature
-                    FROM mob_prop_info";*/
-                    /*$sql = "SELECT [ID], [EntryCategory], [proposal_date], [plan_code], [rpt_delivery_mode], 
-                    [InsuranceType], [UwCodes], [AppraisedBy], [DateAppraised], [AppraisalDecision], [isApproved],
-                     [ApprovedBy], [dateApproved], [isRejected], [RejectedBy], [dateRejected], [rejectionreason], 
-                     [DependantPremium], [mobile_id], [title], [surname], [other_name], [email], [postal_address],
-                      [mobile], [MobileSecondary], [marital_status], [gender], [good_health], [health_condition], 
-                      [business_name], [address_type], [country], [city], [region], [occupation], 
-                      [client_class_code], [hobbies_pastimes], [home_town], [business_location], [name_doctor],
-                       [smoke_pol], [cigarettes_day], [date_start_smoking], [alcohol_pol], [average_alcohol], 
-                       [Date_Start_Drinking], [pop_height], [pop_weight], [pay_code], [paymode_code], [employer], 
-                       [employer_transfer_rate], [employee_no], [momo_no], [bank_code], [bank_branch],
-                        [bank_account_no], [id_type], [IdNumber], [passportNo], [life_assuarance], 
-                        [existing_policy], [existing_pol_no], [previousClaimCheck], [claim_pol_no], 
-                        [Doyouhavesecondaryincome], [secondary_income], [IsPep], [politicaly_affiliated_person], 
-                        [bo_inc], [anidaso_pol], [anidaso_premium_amount], [is_top_up], [topup_policyno], [term],
-                         [deduction_date], [Prem_rate], [inv_premium], [basic_premium], [modal_premium], 
-                         [transfer_charge], [rider_premium], [CostOfProperty], [annual_premium], [TotalPremium], 
-                         [pol_fee], [cepa], [tot_protection], [prem_escalator], [escalator_rate], [second_l_name], 
-                         [second_l_address], [second_gender_code], [second_class_code], [second_dob], [second_age],
-                          [agent_code], [agent_codeSecond], [date_synced], [tin_no], [edwa_nkoso_policy],
-                           [residential_address], [proposal_no], [ProposalNumberLink], [DiscAmt], [SurgeryBenefit],
-                            [DailyHciBenefit], [Dob], [anb], [Date_Saved], [Sum_Assured], [No_Of_Children], 
-                            [Date_Last_Consult], [Life_Premium], [ProcessedOn], [HasBeenPicked], [GuarantorBank], 
-                            [currency], [DateFrom], [DateTo], [DurationDays], [ClaimDefaultPay_method], 
-                            [ClaimDefaultTelcoCompany], [ClaimDefaultMobileWallet], [ClaimDefaultEFTBank_code], 
-                            [ClaimDefaultEFTBankBranchCode], [ClaimDefaultEFTBank_account], [ClaimDefaultEftBankaccountName], 
-                            [BloodPressure], [PulsePressure], [PulseRate], [SpecifciGravityOfUrine], [ChestMeasurement], [AbdominalGirth],
-                             [is_med_uw_req], [created_by], [created_on], [altered_by], [dola]
-                    FROM mob_prop_info";*/
+                } else { 
+                    //If there is no parameters
                     $sql = "DECLARE @columnNames NVARCHAR(MAX)
                             SELECT @columnNames = COALESCE(@columnNames + ', ', '') + 'mob_prop_info.' + COLUMN_NAME
                             FROM (SELECT DISTINCT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'mob_prop_info' AND COLUMN_NAME NOT IN ('ClientSignature','ClientPassportPhoto','IdFrontPage','IdLastPage','PayslipCopy')) AS subquery
@@ -434,12 +372,12 @@ class policyController extends Controller
                         'ID' => $results->ID,
                         //,
                         'HasBeenPicked' => $results->HasBeenPicked,
-                        'isWebCompleted' => $results->isWebCompleted,
-                        'MicroProposal' => $results->MicroProposal,
+                        //'isWebCompleted' => $results->isWebCompleted,
+                        //'MicroProposal' => $results->MicroProposal,
                         'ProposalNumberLink' => $results->ProposalNumberLink,
                         'UwCode' => $results->UwCode,
                         'uw_name' => $results->uw_name,
-                        'uw_reason' => $results->uw_reason,
+                        //'uw_reason' => $results->uw_reason,
                         'Status' => $results->Status,
                         'StatusName' => $results->StatusName,
 
@@ -461,33 +399,33 @@ class policyController extends Controller
                         'plan_code' => $results->plan_code,
                         'good_health' => (bool) $results->good_health,
                         'health_condition' => $results->health_condition,
-                        'business_name' => $results->business_name,
+                        //'business_name' => $results->business_name,
                         //'address_type' => $request->input('FirstName,
-                        'country_code' => $results->country,
+                        //'country_code' => $results->country,
                         'city' => $results->city,
-                        'region' => $results->region,
+                        //'region' => $results->region,
                         'occupation_code' => $results->occupation,
-                        'hobbies_pastimes' => $results->hobbies_pastimes,
-                        'client_class_code' => $results->client_class_code,
+                        //'hobbies_pastimes' => $results->hobbies_pastimes,
+                        //'client_class_code' => $results->client_class_code,
                         //'second_class_code' => $request->input('FirstName,
                         'dob' => $results->Dob,
                         'anb' => $results->anb,
                         'home_town' => $results->home_town,
-                        'business_location' => $results->business_location,
+                        //'business_location' => $results->business_location,
                         //'sig' => $request->input('FirstName,
                         //'pregnant' => $request->input('FirstName,
-                        'name_doctor' => $results->name_doctor,
-                        'smoke_pol' => (bool) $results->smoke_pol,
-                        'cigarettes_day' => $results->cigarettes_day,
-                        'start_smoking' => $results->date_start_smoking,
-                        'alcohol_pol' => (bool) $results->alcohol_pol,
-                        'average_alcohol' => $results->average_alcohol,
-                        'pop_height' => $results->pop_height,
-                        'pop_weight' => $results->pop_weight,
+                        //'name_doctor' => $results->name_doctor,
+                        //'smoke_pol' => (bool) $results->smoke_pol,
+                        //'cigarettes_day' => $results->cigarettes_day,
+                        //'start_smoking' => $results->date_start_smoking,
+                        //'alcohol_pol' => (bool) $results->alcohol_pol,
+                        //'average_alcohol' => $results->average_alcohol,
+                        //'pop_height' => $results->pop_height,
+                        //'pop_weight' => $results->pop_weight,
                         'date_synced' => $results->date_synced,
 
-                        'BloodPressure' => $results->BloodPressure,
-                        'PulsePressure' => $results->PulsePressure,
+                        //'BloodPressure' => $results->BloodPressure,
+                        //'PulsePressure' => $results->PulsePressure,
 
                         'pay_method_code' => $results->pay_code,
                         'bank_code' => $results->bank_code,
@@ -502,11 +440,11 @@ class policyController extends Controller
                         //'investment' => $results->investment,
                         //'bo_inc' => $results->bo_inc,
                         //'percentage_increase' => $results->percentage_increase,
-                        'anidaso_pol' => $results->anidaso_pol,
-                        'anidaso_premium_amount' => $results->anidaso_premium_amount,
+                        //'anidaso_pol' => $results->anidaso_pol,
+                        //'anidaso_premium_amount' => $results->anidaso_premium_amount,
 
-                        'topup_policyno' => $results->topup_policyno,
-                        'is_top_up' => $results->is_top_up,
+                        //'topup_policyno' => $results->topup_policyno,
+                        //'is_top_up' => $results->is_top_up,
                         'term' => $results->term,
                         'employer_no' => $results->employee_no,
                         'paymode_code' => $results->paymode_code,
@@ -525,21 +463,8 @@ class policyController extends Controller
                         //'tot_protection' => $results->tot_protection,
                         'transfer_charge' => $results->transfer_charge,
 
-                        //'second_l_name' => $results->second_l_name,
-                        //'second_l_address' => $results->second_l_address,
-                        //'second_gender_code' => $results->second_gender_code,
-                        //'agent_code' => $request->input('agent_code,
-                        //'second_agent_code' => $request->input('second_agent_code,
-                        //'employer_transfer_rate' => $request->input('employer_transfer_rate,
-                        //'rpt_name' => $results->rpt_name,
-                        //'ach_file' => $request->input('ach_file,
-                        //'mandate_form' => $request->input('mandate_form,
-                        //'id_file' => $request->input('id_file,
                         'proposal_date' => $results->proposal_date,
-                        //'propsalNoGenerated' => $request->input('propsalNoGenerated,
-                        'doc_delivery_mode' => $results->rpt_delivery_mode,
-                        'tin_no' => $results->tin_no,
-                        'edwa_nkoso_policy' => $results->edwa_nkoso_policy,
+
                         'postal_address' => $results->postal_address,
                         'residential_address' => $results->residential_address,
                         'Doyouhavesecondaryincome' => (bool) $results->Doyouhavesecondaryincome,
@@ -548,17 +473,9 @@ class policyController extends Controller
                         'politicaly_affiliated_person' => $results->politicaly_affiliated_person,
                         'policy_no' => $results->proposal_no,
                         'proposal_no' => $results->proposal_no,
-                        //'policy_no' => $results->policy_no,
-
-                        //'DiscAmt' => $request->input('DiscAmt,
-                        //'No_Of_Children' => $request->input('No_Of_Children,
-                        'last_consult' => $results->Date_Last_Consult,
-                        'start_drinking' => $results->Date_Start_Drinking,
                         'life_premium' => $results->Life_Premium,
 
-                        //'created_by' => "MPROPOSAL",
                         'Date_Saved' => $results->Date_Saved,
-                        //'date_synced' => $results->date_synced
                         ////bank,bank_acc_no,telco,momo_no
                         //'bank' => $results->bank,
                         //'bank_acc_no' => $results->bank_acc_no,
@@ -568,7 +485,7 @@ class policyController extends Controller
                         'IdNumber' => $results->IdNumber,
                         'title' => $results->title,
                         'MobileSecondary' => $results->MobileSecondary,
-                        'InsuranceType' => $results->InsuranceType,
+                        //'InsuranceType' => $results->InsuranceType,
 
                         'GuarantorBank' => $results->GuarantorBank,
                         'currency' => $results->currency,
