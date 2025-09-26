@@ -1,0 +1,26 @@
+//TODO
+1. Write program to detect duplicate mob_prop_info - done
+
+//TODO..
+1. return the manager thing
+
+//TODO...27th May
+1. The surrender for old geep and esb change
+2. Query for agent to include second agent
+
+//TODO ... 5th June..
+1. Convert the macd c# code to laravel...
+//TODO .... 6th June
+1. Complete the 5 remaining functions conversion to laravel
+//TODO .... 2nd July
+//Algorithim to detect micro duplicates and assign them new policy_nos
+1. Search mob_prop_info between dates order by id asc
+2. for each record search again id desc if there exist another with that proposal policy_nos
+3. If there is and the id is greator than current, flag as duplicate and generate new policy policy_nos
+4. else its okay..
+
+//TODO - 12th August 2024... Dashboard
+1. finish with home screen completely:
+    - put the right headers
+    - bring agents data appropriately
+2. finish with sales both individual life and micro
