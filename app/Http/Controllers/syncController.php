@@ -19,24 +19,13 @@ class syncController extends Controller
             ->select('p.policy_serial', 'p.PlanOldName', 'p.PlanDesc')
             ->where(array('p.plan_code' => $plan_code));
         $results = $qry->first();
-        //generate policy no
         //BusinessChannel
         $BusinessChannel = DbHelper::getColumnValue('agents_info', 'id', $agent_code, 'BusinessChannel');
-        /*if ($BusinessChannel == 4) { //bancassurance
-            $name = DbHelper::getColumnValue('agents_info', 'id', $agent_code, 'name');
-            $policy_no = explode("-", $name)[0] . '-' . $results->PlanDesc . '/' . date("Y") . '/' . str_pad($results->policy_serial, 5, 0, STR_PAD_LEFT);
-        } else {
-            $policy_no = $results->PlanDesc . '/' . date("Y") . '/' . str_pad($results->policy_serial, 5, 0, STR_PAD_LEFT);
-        }*/
+        
 
         $policy_no = $results->PlanDesc . '-' . date("Y") . '-' . str_pad($results->policy_serial, 5, 0, STR_PAD_LEFT);
 
         //update policy serial...
-        /*$qry = $this->smartlife_db->table('planinfo as p')
-                            ->select('p.policy_serial')
-                            ->where(array('p.plan_code' => $plan_code));
-        $results = $qry->first();*/
-        //generate policy no
         $policy_serial = $results->policy_serial;
         //update policy serial here
         $this->smartlife_db->table('planinfo')
@@ -316,12 +305,11 @@ class syncController extends Controller
                 if (!isset($plan_code)) {
                     $plan_code = $request->input('plan_code');
                 }
-                $IsMicro = DbHelper::getColumnValue('planinfo', 'plan_code', $plan_code, 'microassurance');
                 $term = $request->input('term');
 
                 //////////validations///////////////////
                 //exclude from the web and also exclude from micro
-                if (!isset($isWebCompleted) && ($IsMicro == "0" || $IsMicro == 0)) {
+                if (!isset($isWebCompleted)) {
                     $dependants_arr = array();
                     $dependants_arr = json_decode($request->input('dependants'));
                     $beneficiaries_arr = array();
@@ -517,16 +505,13 @@ class syncController extends Controller
                 if (isset($record_id) && (int)$record_id > 0) {
                     //do nothing...
                     $proposal_no = DbHelper::getColumnValue('mob_prop_info', 'ID', $record_id, 'proposal_no');
-                    //$current_status = DbHelper::getColumnValue('proposalinfo', 'proposal_no', $proposal_no, 'UwCode');
-                    //$current_status = DbHelper::getColumnValue('mob_prop_info', 'ID', $record_id, 'AllowMproposalEdit');
-                    //if($current_status)
                 } else {
-                    $proposal_no = $this->generate_policyno($plan_code, $agent_code);
+                    $proposal_no = null;
+                    if(isset($plan_code)){
+                        $proposal_no = $this->generate_policyno($plan_code, $agent_code);
+                    }
+                    
                 }
-
-                //} 
-                $add_edwa_nkosuo = $request->input('add_edwa_nkosuo');
-                $edwa_nkoso_premium = $request->input('edwa_nkoso_premium');
 
                 //set total premium 
                 $total_premium = $request->input('total_premium');
@@ -550,10 +535,10 @@ class syncController extends Controller
                     return response()->json($res);
                 }
 
-                $EntryCategory = $request->input('EntryCategory');
-                if (!isset($EntryCategory)) {
-                    $EntryCategory = 1;
-                }
+                $EntryCategory = null;//$request->input('EntryCategory');
+                //if (!isset($EntryCategory)) {
+                    //$EntryCategory = 1;
+                //}
                 $annual_premium = $request->input('annual_premium');;
                 if (!isset($annual_premium)) {
                     $annual_premium = 0;
@@ -682,39 +667,28 @@ class syncController extends Controller
 
 
                 $table_data = array(
-                    'confirmed_otp_date' => $confirmed_otp_date,
-                    'confirmed_otp' => $confirmed_otp,
+                    //'confirmed_otp_date' => $confirmed_otp_date,
+                    //'confirmed_otp' => $confirmed_otp,
                     'mobile_id' => $request->input('mobile_id'),
                     'surname' => $request->input('surname'),
                     'other_name' => $request->input('other_name'),
                     'employer' => $employer_code,
-                    //'paysource_br' => $request->input('FirstName'),
-                    //'paysource_br_code' => $request->input('paysource_br_code'),
-                    //'sort_code' => $request->input('sort_code'),
                     'email' => $request->input('email'),
-                    //'tel_no' => $request->input('tel_no'),
                     'mobile' => $request->input('mobile'),
                     'marital_status' => $request->input('marital_status_code'),
                     'gender' => $request->input('gender_code'),
-                    //'plan_code' => $plan_code,
                     'good_health' => (bool) $request->input('good_health'),
                     'health_condition' => $request->input('health_condition'),
-                    'business_name' => $request->input('business_name'),
-                    //'address_type' => $request->input('FirstName'),
-                    'country' => $country_code, //$request->input('country_code'),
+                    'country' => $country_code,
                     'city' => $request->input('city'),
-                    'region' => $request->input('region'),
                     'occupation' => $request->input('occupation_code'),
-                    'hobbies_pastimes' => $request->input('hobbies_pastimes'),
-                    'client_class_code' => $request->input('client_class_code'),
-                    //'second_class_code' => $request->input('FirstName'),
                     'Dob' => $request->input('dob'),
                     'anb' => $anb,
                     'home_town' => $request->input('home_town'),
                     'business_location' => $request->input('business_location'),
-                    //'sig' => "id three.jpg",//'$request->input('FirstName'),
-                    //'id_file' => "1444765676_sig_m2gGQ1.png",
-                    //'pregnant' => $request->input('FirstName'),
+                    'sig' => "id three.jpg",//'$request->input('FirstName'),
+                    'id_file' => "1444765676_sig_m2gGQ1.png",
+                    'pregnant' => $request->input('FirstName'),
                     'name_doctor' => $request->input('name_doctor'),
                     'smoke_pol' => (bool) $request->input('smoke_pol'),
                     'cigarettes_day' => $request->input('cigarettes_day'),
@@ -731,21 +705,18 @@ class syncController extends Controller
                     'bank_account_no' => $request->input('bank_account_no'),
                     'BankaccountName' => $request->input('BankaccountName'),
                     'bank_branch' => $request->input('bank_branch'),
-                    //'bank_account_name' => $request->input('bank_account_name'),
                     'life_assuarance' => (bool) $request->input('life_assuarance'),
                     'previousClaimCheck' => (bool) $request->input('previousClaimCheck'),
                     'existing_pol_no' => $request->input('existing_pol_no'),
                     'claim_pol_no' => $request->input('claim_pol_no'),
-                    //'protection' => $request->input('protection'),
-                    //'investment' => $request->input('investment'),
+                    'protection' => $request->input('protection'),
+                    'investment' => $request->input('investment'),
                     'bo_inc' => $prem_escalator,
                     'prem_escalator' => $prem_escalator,
                     'escalator_rate' => $escalator_rate,
                     'anidaso_pol' => (bool) $request->input('anidaso_pol'),
                     'anidaso_premium_amount' => $request->input('anidaso_premium_amount'),
 
-                    'topup_policyno' => $topup_policyno,
-                    'is_top_up' => (bool) $request->input('is_top_up'),
                     'term' => $term,
                     'employee_no' => $request->input('employer_no'),
                     'paymode_code' => $paymode_code,
@@ -769,38 +740,22 @@ class syncController extends Controller
                     'second_gender_code' => $request->input('second_gender_code'),
                     'second_dob' => $request->input('second_dob'),
                     'second_age' => $request->input('second_age'),
-                    //'agent_code' => $request->input('agent_code'),
-                    //'second_agent_code' => $request->input('second_agent_code'),
-                    //'employer_transfer_rate' => $request->input('employer_transfer_rate'),
-                    //'rpt_name' => $request->input('rpt_name'),
-                    //'ach_file' => $request->input('ach_file'),
-                    //'mandate_form' => $request->input('mandate_form'),
-                    //'id_file' => $request->input('id_file'),
+
                     'proposal_date' => Carbon::now(),
-                    //'propsalNoGenerated' => $request->input('propsalNoGenerated'),
-                    'rpt_delivery_mode' => $doc_delivery_mode,
-                    'tin_no' => $request->input('tin_no'),
-                    'edwa_nkoso_policy' => $request->input('edwa_nkoso_policy'),
                     'postal_address' => $request->input('postal_address'),
                     'residential_address' => $request->input('residential_address'), //IsPep
                     'Doyouhavesecondaryincome' => (bool)$request->input('Doyouhavesecondaryincome'),
                     'secondary_income' => (bool)$request->input('secondary_income'),
                     'IsPep' => (bool)$IsPep,
                     'politicaly_affiliated_person' => $request->input('politicaly_affiliated_person'),
-                    //'proposal_no' => $request->input('proposal_no'),
-                    //'policy_no' => $request->input('policy_no'),
-
-                    //'DiscAmt' => $request->input('DiscAmt'),
-                    //'No_Of_Children' => $request->input('No_Of_Children'),
-                    'Date_Last_Consult' => $last_consult,
-                    'Date_Start_Drinking' => $start_drinking,
+                    
                     'Life_Premium' => $request->input('life_Premium'),
 
-                    //'created_by' => "MPROPOSAL",
+                   
                     'Date_Saved' => Carbon::now(),
                     'date_synced' => Carbon::now(),
                     'proposal_no' => $proposal_no,
-                    //'policy_no' => $proposal_no,
+                    
                     'plan_code' => $plan_code, //
                     'EntryCategory' => $EntryCategory,
                     'PackageCode' => $request->input('InsuranceType'),
@@ -829,27 +784,20 @@ class syncController extends Controller
                     'ClaimDefaultEFTBank_account' => $request->input('ClaimDefaultEFTBank_account'),
                     'ClaimDefaultEftBankaccountName' => $request->input('ClaimDefaultEftBankaccountName'),
                     'DependantPremium' => $DependantPremium,
-
+ 
                     'is_med_uw_req' => $is_med_uw_req,
                     'HasBeenPicked' => $HasBeenPicked,
 
                     'IsSavingsAccount' => $IsSavingsAccount,
                     'IsCurrentAccount' => $IsCurrentAccount,
                     'extra_premium' => $request->input('extra_premium'),
-                    'isWebCompleted' => $isWebCompleted
+                    //'isWebCompleted' => $isWebCompleted
                 );
 
                 //do a search on the mobile_no, plan_code, total_premium
                 $MobProposalsArr = array();
                 $mobile_number = $request->input('mobile');
-                $is_microassurance = DbHelper::getColumnValue('planinfo', 'plan_code', $plan_code, 'microassurance');
-                if ($is_microassurance === 0 && !empty($total_premium) && !empty($mobile_number)) {
-                    // $sql = "SELECT TOP 1 p.ID,p.plan_code,p.proposal_no FROM mob_prop_info p 
-                    // WHERE p.plan_code=$plan_code AND p.mobile='$mobile_number' AND 
-                    // p.second_l_name='$second_l_name' AND p.TotalPremium=$total_premium AND
-                    // p.IsDuplicate IS NULL";
-                    // $MobProposalsArr = DbHelper::getTableRawData($sql);
-
+                if (!empty($total_premium) && !empty($mobile_number)) {
                     $MobProposalsArr = $this->smartlife_db->table('mob_prop_info')
                         ->select('ID', 'plan_code', 'proposal_no')
                         ->where('plan_code', $plan_code)
@@ -860,7 +808,6 @@ class syncController extends Controller
                         ->orderBy('ID', 'asc')
                         ->limit(1)
                         ->get();
-                    //$MobProposalsArr = $qry->get();
                 }
 
                 if (isset($record_id) && $record_id > 0) {
@@ -888,65 +835,11 @@ class syncController extends Controller
                     } else {
                         //insert
                         $record_id = $this->smartlife_db->table('mob_prop_info')->insertGetId($table_data);
-                        //$sql = $query->toSql();
-                        //fsadfl
-                        //get the policy_serial
-                        //just check if add edwa nkosuo is 1 and if edwa nkosuo premim has value
-                        if (
-                            (isset($add_edwa_nkosuo) && (float) $add_edwa_nkosuo > 0) &&
-                            (isset($edwa_nkoso_premium) && (float) $edwa_nkoso_premium > 0)
-                        ) {
-                            //insert again
-                            $edwa_proposal_no = $this->generate_policyno("13", $agent_code);
-                            $table_data['proposal_no'] = $edwa_proposal_no;
-                            //$table_data['policy_no'] = $edwa_proposal_no;//PlanID,plan_code,paymode_code
-                            $table_data['plan_code'] = "13";
-                            //$table_data['plan_code'] = "18";
-                            $table_data['paymode_code'] = 98;
-                            $table_data['term'] = 1;
-                            $table_data['TotalPremium'] = $edwa_nkoso_premium;
-
-                            $table_data['inv_premium'] = null;
-                            $table_data['basic_premium'] = null;
-                            $table_data['modal_premium'] = $edwa_nkoso_premium;
-                            $table_data['rider_premium'] = null;
-                            $table_data['pol_fee'] = null;
-                            //$table_data['total_premium'] = null;
-                            $table_data['Sum_Assured'] = null;
-                            //LinkedProposal
-                            $table_data['LinkedProposal'] = $proposal_no;
-
-                            $edwa_nkoso_id = $this->smartlife_db->table('mob_prop_info')->insertGetId($table_data);
-                            //update LinkedProposal on the Anidaso
-                            $this->smartlife_db->table('mob_prop_info')
-                                ->where(
-                                    array(
-                                        "proposal_no" => $proposal_no
-                                    )
-                                )->update(array('LinkedProposal' => $edwa_proposal_no));
-
-                            $qry = $this->smartlife_db->table('planinfo as p')
-                                ->select('p.policy_serial')
-                                ->where(array('p.PlanOldName' => "18"));
-                            $results = $qry->first();
-                            //generate policy no
-                            // $policy_serial = $results->policy_serial;
-                            // //update policy serial here
-                            // $this->smartlife_db->table('planinfo')
-                            //     ->where(
-                            //         array(
-                            //             "PlanOldName" => "18"
-                            //         )
-                            //     )->update(array('policy_serial' => $policy_serial + 1));
-
-                            //$this->syncImage($request,$edwa_nkoso_id,$edwa_proposal_no);
-                        }
                     }
                 }
 
 
                 //insert into the respective tables
-                //rider
                 $rider_array = array();
                 $rider_arr = json_decode($riders_input);
                 if (isset($rider_arr)) {
@@ -1099,30 +992,6 @@ class syncController extends Controller
                         $mob_health_intermediary[$i]['IsFromMproposal'] = 1;
                         $mob_health_intermediary[$i]['created_on'] = Carbon::now();
                         $mob_health_intermediary_id = $this->smartlife_db->table('mob_health_intermediary')->insertGetId($mob_health_intermediary[$i]);
-
-                        ///insert into mob_health_conditions - intermediary_id
-                        if ($mob_health_intermediary[$i]['answer'] == "YES") {
-                            for ($z = 0; $z < sizeof($health_history_arr); $z++) {
-                                if (
-                                    $health_history_arr[$z]->DependantName == $dp_uid &&
-                                    (int) $health_history_arr[$z]->intermediary_id == ((int) $dp_id - 1)
-                                ) {
-                                    //insert into mob_health_conditions
-                                    $mob_health_conditions[$z]['intermediary_id'] = $mob_health_intermediary_id;
-                                    $mob_health_conditions[$z]['disease_id'] = $health_history_arr[$z]->disease_id;
-                                    $mob_health_conditions[$z]['disease_injury'] = $health_history_arr[$z]->disease_injury;
-                                    $mob_health_conditions[$z]['disease_date'] = $health_history_arr[$z]->disease_date;
-                                    if ($mob_health_conditions[$z]['disease_date'] == "null") {
-                                        $mob_health_conditions[$z]['disease_date'] = null;
-                                    }
-                                    $mob_health_conditions[$z]['disease_duration'] = $health_history_arr[$z]->disease_duration;
-                                    $mob_health_conditions[$z]['disease_result'] = $health_history_arr[$z]->disease_result;
-                                    $mob_health_conditions[$z]['disease_doc'] = $health_history_arr[$z]->disease_doc;
-                                    $mob_health_conditions[$z]['LoadingFactor'] = $health_history_arr[$z]->LoadingFactor;
-                                    $mob_health_conditions_id = $this->smartlife_db->table('mob_health_conditions')->insertGetId($mob_health_conditions[$z]);
-                                }
-                            }
-                        }
                     }
                 }
 
