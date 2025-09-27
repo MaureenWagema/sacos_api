@@ -369,7 +369,7 @@ class policyController extends Controller
                     //    $telco = $results->employer;
 
                     $organised_arr[] = array(
-                        'ID' => $results->ID,
+                        'ID' => (int)$results->ID,
                         //,
                         'HasBeenPicked' => $results->HasBeenPicked,
                         //'isWebCompleted' => $results->isWebCompleted,

@@ -298,7 +298,7 @@ class syncController extends Controller
                 }
                 $pay_method_code = $request->input('pay_method_code');
                 $staff_number = $request->input('employer_no');
-                $record_id = $request->input('ID'); //agent_code
+                $record_id = $request->input('ID'); 
                 $agent_code = $request->input('agent_code');
                 $isWebCompleted = $request->input('isWebCompleted');
                 $plan_code = $request->input('plan_id');
