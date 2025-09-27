@@ -685,20 +685,7 @@ class syncController extends Controller
                     'Dob' => $request->input('dob'),
                     'anb' => $anb,
                     'home_town' => $request->input('home_town'),
-                    'business_location' => $request->input('business_location'),
-                    'sig' => "id three.jpg",//'$request->input('FirstName'),
-                    'id_file' => "1444765676_sig_m2gGQ1.png",
-                    'pregnant' => $request->input('FirstName'),
-                    'name_doctor' => $request->input('name_doctor'),
-                    'smoke_pol' => (bool) $request->input('smoke_pol'),
-                    'cigarettes_day' => $request->input('cigarettes_day'),
-                    'date_start_smoking' => $start_smoking,
-                    'alcohol_pol' => (bool) $request->input('alcohol_pol'),
-                    'average_alcohol' => $request->input('average_alcohol'),
-                    'pop_height' => $request->input('pop_height'),
-                    'pop_weight' => $request->input('pop_weight'),
-                    'BloodPressure' => $request->input('BloodPressure'),
-                    'PulsePressure' => $request->input('PulsePressure'),
+                    
 
                     'pay_code' => $pay_method_code,
                     'bank_code' => $request->input('bank_code'),
@@ -709,13 +696,6 @@ class syncController extends Controller
                     'previousClaimCheck' => (bool) $request->input('previousClaimCheck'),
                     'existing_pol_no' => $request->input('existing_pol_no'),
                     'claim_pol_no' => $request->input('claim_pol_no'),
-                    'protection' => $request->input('protection'),
-                    'investment' => $request->input('investment'),
-                    'bo_inc' => $prem_escalator,
-                    'prem_escalator' => $prem_escalator,
-                    'escalator_rate' => $escalator_rate,
-                    'anidaso_pol' => (bool) $request->input('anidaso_pol'),
-                    'anidaso_premium_amount' => $request->input('anidaso_premium_amount'),
 
                     'term' => $term,
                     'employee_no' => $request->input('employer_no'),
@@ -892,7 +872,7 @@ class syncController extends Controller
                 $beneficiaries_array = array();
                 //beneficiaries
                 $beneficiaries_embb = $request->input('beneficiaries_embb');
-                $beneficiaries_arr = json_decode($request->input('beneficiaries'));
+                $beneficiaries_arr = $request->input('beneficiaries_embb');//json_decode($request->input('beneficiaries'));
                 if (isset($beneficiaries_embb)) {
                     $this->smartlife_db->table('mob_beneficiary_info')->where('prop_id', '=', $record_id)->delete();
                     for ($i = 0; $i < sizeof($beneficiaries_embb); $i++) {
@@ -966,7 +946,7 @@ class syncController extends Controller
                 //handle the new implementation here
                 //as you insert into mob_health_intermediary nest into table mob_health_conditions
                 $checklistIntermediary = array();
-                $checklistIntermediary = json_decode($request->input('checklistIntermediary')); //intermediary
+                $checklistIntermediary = $request->input('checklistIntermediary');//json_decode($request->input('checklistIntermediary')); //intermediary
                 $mob_health_intermediary = array();
                 $health_history_array = array();
                 $health_history_arr = json_decode($request->input('family_history')); //checklist

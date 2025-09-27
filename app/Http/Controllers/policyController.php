@@ -623,10 +623,6 @@ class policyController extends Controller
                     'family_health' => $family_health_arr,
                     'MobIntermediary' => $MobIntermediary,
                     'MobHealthConditions' => $MobHealthConditions,
-                    //'family_history' => $qn_health_arr,
-                    //'fm_health_intermediary' => [],//$health_history_arr,
-                    //'qn' => [],//$qn_arr,
-                    //'qn_intermediary' => [],//$qn_intermediary_arr,
                     'message' => 'Data Synced Successfully!!'
                 );
             }, 5);
