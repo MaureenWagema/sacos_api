@@ -58,6 +58,7 @@ class VerifyCsrfToken extends Middleware
         'calc/ComputePremiumCreditLife',
         'calc/ITCAnidaso',
         'calc/esb_manual_rider',
+        'calc/OrdinaryPolicies',
 
         'policy/getProposal',
         'policy/getPolicyDependants',

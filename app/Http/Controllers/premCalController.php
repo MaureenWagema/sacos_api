@@ -9,6 +9,63 @@ use Carbon\Carbon;
 
 class premCalController extends Controller
 {
+
+    //lets create function OrdinaryPolicies
+    public function OrdinaryPolicies(Request $request){
+        try {
+            $res = array();
+            $plan_code = $request->input('plan_code');
+            $sum_assured = $request->input('sum_assured');
+            $pay_mode_id = $request->input('pay_mode_id'); //id knows if its monthly, quarterly....
+            /*
+            Premium (Yearly) = (((rate/1000) * sum_assured) + 50) * 1.01
+
+            Premium (Quarterly) = ((((rate/1000) * sum_assured + 50)*0.26) *1.01
+
+            Premium (Half-Yearly) = ((((rate/1000) * sum_assured +50) * 0.51) *1.01
+
+            Premium (Monthly) = ((((rate/1000) * sum_assured + 50) * 0.0875) *1.01
+            50 is the policy fee in table planinfo
+            0.26 is the loading in table paymentmodeinfo
+            1.01 is the VAT in table planinfo
+            */
+            $basic_premium = 0;
+            $rate = DbHelper::getColumnValue('premium_rate_setup', 'plan_code', $plan_code, 'rate') ?? 0;
+            $rate_basis = DbHelper::getColumnValue('premium_rate_setup', 'plan_code', $plan_code, 'rate_basis') ?? 1;
+            $policyFee = DbHelper::getColumnValue('planinfo', 'plan_code', $plan_code, 'policyFee') ?? 50;
+            $loading = DbHelper::getColumnValue('paymentmodeinfo', 'id', $pay_mode_id, 'loadingfactor') ?? 1;
+            $vat = DbHelper::getColumnValue('planinfo', 'plan_code', $plan_code, 'TaxRate') ?? 1.01;
+
+            $basic_premium = (($rate / $rate_basis) * $sum_assured);
+            $premium = (($basic_premium + $policyFee) * $loading) * $vat;
+            $res = array(
+                'success' => true,
+                'premium' => (float)number_format((float) $premium, 2, '.', ''),
+                'basic_premium' => (float)number_format((float) $basic_premium, 2, '.', ''),
+                'policyFee' => (float)$policyFee,
+                'loading' => (float)$loading,
+                'vat' => (float)$vat,
+                'message' => 'Premium Calculated Successfully!!'
+            );
+
+
+            
+        } catch (\Exception $exception) {
+            $res = array(
+                'success' => false,
+                'message' => $exception->getMessage()
+            );
+            return response()->json($res);
+        } catch (\Throwable $throwable) {
+            $res = array(
+                'success' => false,
+                'message' => $throwable->getMessage()
+            );
+            return response()->json($res);
+        }
+        return response()->json($res);
+    }
+
     public function esb_manual_rider(Request $request)
     {
         try {

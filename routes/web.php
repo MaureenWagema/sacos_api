@@ -163,7 +163,7 @@ Route::post('group/saveQuoteGroup', [groupController::class, 'saveQuoteGroup']);
 Route::get('group/getMemberStatement', [groupController::class, 'getMemberStatement']);
 Route::post('group/syncClaimGroupImage', [groupController::class, 'syncClaimGroupImage']);
 
-//ComputePremiumCreditLife
+//ComputePremiumCreditLife, OrdinaryPolicies
 Route::post('calc/ESB', [premCalController::class, 'esbcalculation']);
 Route::post('calc/IdealFuneralPlan', [premCalController::class, 'IdealFuneralPlan']);
 Route::post('calc/PremiumFuneralPlan', [premCalController::class, 'PremiumFuneralPlan']);
@@ -177,6 +177,7 @@ Route::post('calc/FamilyComprehensionPlan', [premCalController::class, 'FamilyCo
 Route::post('calc/HCIPlan', [premCalController::class, 'HCIPlan']);
 Route::post('calc/ComputePremiumCreditLife', [premCalController::class, 'ComputePremiumCreditLife']);
 Route::post('calc/esb_manual_rider', [premCalController::class, 'esb_manual_rider']);
+Route::post('calc/OrdinaryPolicies', [premCalController::class, 'OrdinaryPolicies']);
 
 //
 Route::post('collections/getClientnPolicies', [collectionsController::class, 'getClientnPolicies']);
