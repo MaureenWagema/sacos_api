@@ -679,13 +679,30 @@ class syncController extends Controller
                     'gender' => $request->input('gender_code'),
                     'good_health' => (bool) $request->input('good_health'),
                     'health_condition' => $request->input('health_condition'),
-                    'country' => $country_code,
+                    'Country' => $country_code,
+
+                    'DualCitiizenship' => $request->input('DualCitiizenship'),
+                    'Country2' => $request->input('Country2'),
+                    'GpsCode' => $request->input('GpsCode'),
+                    'SRCNumber' => $request->input('SRCNumber'),
+
                     'city' => $request->input('city'),
                     'occupation' => $request->input('occupation_code'),
                     'Dob' => $request->input('dob'),
                     'anb' => $anb,
                     'home_town' => $request->input('home_town'),
+
+                    'SourceOfIncome' => $request->input('SourceOfIncome'),
+                    'SourceOfIncome2' => $request->input('SourceOfIncome2'),
+
+                    'TaxResidencyDeclared' => (bool)$request->input('TaxResidencyDeclared'),
+                    'AllowInformationSharing' => (bool)$request->input('AllowInformationSharing'),
+                    'DoNotAllowAllowInformationSharing' => (bool)$request->input('DoNotAllowAllowInformationSharing'),
                     
+                    'emp_code' => $request->input('emp_code'),
+                    'employee_noCode' => $request->input('employee_noCode'),
+                    'employee_noDisplay' => $request->input('employee_noDisplay'),
+                    'IncomeType' => $request->input('IncomeType'),
 
                     'pay_code' => $pay_method_code,
                     'bank_code' => $request->input('bank_code'),
@@ -792,6 +809,7 @@ class syncController extends Controller
 
                 if (isset($record_id) && $record_id > 0) {
                     //update
+                    //echo "Updating Record ID: " . $record_id;
                     $this->smartlife_db->table('mob_prop_info')
                         ->where(
                             array(

@@ -367,7 +367,6 @@ class policyController extends Controller
                         $telco = $results->employer;
                     //if (isset($momo_no))
                     //    $telco = $results->employer;
-
                     $organised_arr[] = array(
                         'ID' => (int)$results->ID,
                         //,
@@ -380,13 +379,18 @@ class policyController extends Controller
                         //'uw_reason' => $results->uw_reason,
                         'Status' => $results->Status,
                         'StatusName' => $results->StatusName,
+                        'IncomeType' => (int)$results->IncomeType ?? null,
 
                         'isApproved' => $results->isApproved,
                         'mobile_id' => $results->mobile_id,
                         'surname' => $results->surname,
                         'other_name' => $results->other_name,
                         'name' => $results->surname . " " . $results->other_name,
+
                         'employer_code' => $results->employer,
+                        'emp_code' => $results->emp_code,
+                        'employee_noCode' => $results->employee_noCode,
+                        'employee_noDisplay' => $results->employee_noDisplay,
                         //'policy_no' => $results->policy_no,
                         //'paysource_br' => $request->input('FirstName,
                         //'paysource_br_code' => $results->paysource_br,
@@ -399,68 +403,56 @@ class policyController extends Controller
                         'plan_code' => $results->plan_code,
                         'good_health' => (bool) $results->good_health,
                         'health_condition' => $results->health_condition,
-                        //'business_name' => $results->business_name,
-                        //'address_type' => $request->input('FirstName,
-                        //'country_code' => $results->country,
+                        
+                        'country_code' => $results->Country,
                         'city' => $results->city,
-                        //'region' => $results->region,
+                   
                         'occupation_code' => $results->occupation,
-                        //'hobbies_pastimes' => $results->hobbies_pastimes,
-                        //'client_class_code' => $results->client_class_code,
-                        //'second_class_code' => $request->input('FirstName,
+                        
                         'dob' => $results->Dob,
                         'anb' => $results->anb,
                         'home_town' => $results->home_town,
-                        //'business_location' => $results->business_location,
-                        //'sig' => $request->input('FirstName,
-                        //'pregnant' => $request->input('FirstName,
-                        //'name_doctor' => $results->name_doctor,
-                        //'smoke_pol' => (bool) $results->smoke_pol,
-                        //'cigarettes_day' => $results->cigarettes_day,
-                        //'start_smoking' => $results->date_start_smoking,
-                        //'alcohol_pol' => (bool) $results->alcohol_pol,
-                        //'average_alcohol' => $results->average_alcohol,
-                        //'pop_height' => $results->pop_height,
-                        //'pop_weight' => $results->pop_weight,
-                        'date_synced' => $results->date_synced,
 
-                        //'BloodPressure' => $results->BloodPressure,
-                        //'PulsePressure' => $results->PulsePressure,
+                        'DualCitiizenship' => $results->DualCitiizenship ? 1 : 0,
+                        'Country2' => $results->Country2,
+
+                        'GpsCode' => $results->GpsCode,
+                        'SRCNumber' => $results->SRCNumber,
+
+                        'SourceOfIncome' => $results->SourceOfIncome,
+                        'SourceOfIncome2' => $results->SourceOfIncome2,
+                        
+                        'date_synced' => $results->date_synced,
+                        //p.TaxResidencyDeclared,p.AllowInformationSharing,p.DoNotAllowAllowInformationSharing,p.TaxResidencyDeclared
+                        'TaxResidencyDeclared' => $results->TaxResidencyDeclared ? 1 : 0,
+                        'AllowInformationSharing' => $results->AllowInformationSharing ? 1 : 0,
+                        'DoNotAllowAllowInformationSharing' => $results->DoNotAllowAllowInformationSharing ? 1 : 0,
 
                         'pay_method_code' => $results->pay_code,
                         'bank_code' => $results->bank_code,
                         'bank_branch' => $results->bank_branch,
                         'bank_account_no' => $results->bank_account_no,
-                        //'bank_account_name' => $request->input('bank_account_name,
+                        
                         'life_assuarance' => $results->life_assuarance,
                         'existing_policy' => $results->existing_policy,
                         'existing_pol_no' => $results->existing_pol_no,
                         'claim_pol_no' => $results->claim_pol_no,
-                        //'protection' => $results->protection,
-                        //'investment' => $results->investment,
-                        //'bo_inc' => $results->bo_inc,
-                        //'percentage_increase' => $results->percentage_increase,
-                        //'anidaso_pol' => $results->anidaso_pol,
-                        //'anidaso_premium_amount' => $results->anidaso_premium_amount,
-
-                        //'topup_policyno' => $results->topup_policyno,
-                        //'is_top_up' => $results->is_top_up,
+                        
                         'term' => $results->term,
                         'employer_no' => $results->employee_no,
                         'paymode_code' => $results->paymode_code,
                         'deduction_date' => $results->deduction_date,
-                        //'Prem_rate' => $results->Prem_rate,
+                        
                         'sum_assured' => $results->Sum_Assured,
                         'inv_premium' => $results->inv_premium,
                         'basic_premium' => $results->basic_premium,
                         'modal_premium' => $results->modal_premium,
                         'TotalPremium' => $results->TotalPremium,
                         'rider_premium' => $results->rider_premium,
-                        //'annual_premium' => $results->annual_premium,
-                        //'total_premium' => $results->total_premium,
+                        
                         'pol_fee' => $results->pol_fee,
                         'cepa' => $results->cepa,
-                        //'tot_protection' => $results->tot_protection,
+                        
                         'transfer_charge' => $results->transfer_charge,
 
                         'proposal_date' => $results->proposal_date,
@@ -469,7 +461,7 @@ class policyController extends Controller
                         'residential_address' => $results->residential_address,
                         'Doyouhavesecondaryincome' => (bool) $results->Doyouhavesecondaryincome,
                         'secondary_income' => $results->secondary_income,
-                        'IsPep' => (bool) $results->IsPep,
+                        'IsPep' => $results->IsPep ? 1 : 0,
                         'politicaly_affiliated_person' => $results->politicaly_affiliated_person,
                         'policy_no' => $results->proposal_no,
                         'proposal_no' => $results->proposal_no,
@@ -493,9 +485,7 @@ class policyController extends Controller
                         'DateTo' => $results->DateTo,
                         'DurationDays' => $results->DurationDays,
                         'CostOfProperty' => $results->CostOfProperty,
-                        //ClaimDefaultPay_method, ClaimDefaultTelcoCompany, ClaimDefaultMobileWallet, 
-                        //ClaimDefaultEFTBank_code, ClaimDefaultEFTBankBranchCode, ClaimDefaultEFTBank_account, 
-                        //ClaimDefaultEftBankaccountName,
+                        
                         'ClaimDefaultPay_method' => $results->ClaimDefaultPay_method,
                         'ClaimDefaultTelcoCompany' => $results->ClaimDefaultTelcoCompany,
                         'ClaimDefaultMobileWallet' => $results->ClaimDefaultMobileWallet,
