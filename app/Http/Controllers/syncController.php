@@ -791,6 +791,8 @@ class syncController extends Controller
                     //'isWebCompleted' => $isWebCompleted
                 );
 
+                
+
                 //do a search on the mobile_no, plan_code, total_premium
                 $MobProposalsArr = array();
                 $mobile_number = $request->input('mobile');
@@ -834,6 +836,19 @@ class syncController extends Controller
                         //insert
                         $record_id = $this->smartlife_db->table('mob_prop_info')->insertGetId($table_data);
                     }
+                }
+
+                //lets save to table PEPDetails
+                $reasons_for_exposure = $request->input('reasons_for_exposure');
+                //data for reasons_for_exposure looks like this: [1,2,,3,4,5] 
+                foreach ($reasons_for_exposure as $reason) {
+                    $table_data = array(
+                        'prop_id' => $record_id,
+                        'ReasonsForExposure' => $reason,
+                        'created_on' => Carbon::now()
+                    );
+                    $this->smartlife_db->table('PEPDetails')
+                        ->insert($table_data);
                 }
 
 

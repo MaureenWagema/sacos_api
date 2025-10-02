@@ -339,6 +339,12 @@ class parametersController extends Controller
                 $sql = "SELECT * FROM POSComplaintType WHERE [description] IS NOT NULL";
                 $POSComplaintType = [];//DbHelper::getTableRawData($sql);
 
+                $sql = "SELECT * FROM AMLSourceOfIncomeInfo WHERE [Description] IS NOT NULL";
+                $AMLSourceOfIncomeInfo = DbHelper::getTableRawData($sql);
+
+                $sql = "SELECT * FROM ReasonsForExposure WHERE [description] IS NOT NULL";
+                $ReasonsForExposure = DbHelper::getTableRawData($sql);
+
                 return response()->json(
                     array(
                         "success" => true,
@@ -405,7 +411,9 @@ class parametersController extends Controller
                         "GLOccup" => $GLOccup,
                         "GLTravelCat" => $GLTravelCat,
                         "PyPayrollCategory" => $PyPayrollCategory,
-                        "POSComplaintType" => $POSComplaintType
+                        "POSComplaintType" => $POSComplaintType,
+                        "AMLSourceOfIncomeInfo" => $AMLSourceOfIncomeInfo,
+                        "ReasonsForExposure" => $ReasonsForExposure
                     )
                 );
 

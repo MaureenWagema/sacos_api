@@ -19,7 +19,7 @@ class policyController extends Controller
             $sql = "SELECT p.id FROM polinfo p WHERE p.policy_no='$policy_no' ";
 
             $MicroProducts = DbHelper::getTableRawData($sql);
-            if(isset($MicroProducts) && sizeof($MicroProducts) > 0){
+            if (isset($MicroProducts) && sizeof($MicroProducts) > 0) {
                 $isValid = true;
             }
 
@@ -203,7 +203,7 @@ class policyController extends Controller
                         //life
                         $unitId = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'UnitName');
                         $positionId = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'CurrentManagerLevel');
-                        
+
 
                         $sql = $sql_generic . " 
                         ,null as StatusName,
@@ -250,7 +250,6 @@ class policyController extends Controller
 
                             $sql .= " WHERE derived.agent_code IN 
                             (SELECT t2.id  FROM agents_info t2 WHERE t2.RecruitedBy=$agentId OR t2.id=$agentId) ";
-                                                                          
                         }
 
                         $sql .= " ORDER BY derived.ID DESC";
@@ -324,14 +323,14 @@ class policyController extends Controller
                             null AS agent_name
                             FROM mob_prop_info 
                             LEFT JOIN agents_info ON agents_info.id = mob_prop_info.agent_code 
-                            LEFT  JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code " .$sql_inject."
+                            LEFT  JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code " . $sql_inject . "
                             LEFT JOIN proposalinfo ON proposalinfo.MproposalNumber=mob_prop_info.ID
                             LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
                             ORDER BY mob_prop_info.ID DESC'
                             EXEC (@sql)";
                     }
                     $row_arr = DbHelper::getTableRawData($sql);
-                } else { 
+                } else {
                     //If there is no parameters
                     $sql = "DECLARE @columnNames NVARCHAR(MAX)
                             SELECT @columnNames = COALESCE(@columnNames + ', ', '') + 'mob_prop_info.' + COLUMN_NAME
@@ -365,8 +364,19 @@ class policyController extends Controller
                     //$Status = null;
                     if (isset($momo_no))
                         $telco = $results->employer;
-                    //if (isset($momo_no))
-                    //    $telco = $results->employer;
+
+                    $qry = $this->smartlife_db->table('PEPDetails')->select('*')
+                        ->where(
+                            array(
+                                'prop_id' => $results->ID
+                            )
+                        );
+
+                    $row_arr = $qry->get();
+
+                    for ($i = 0; $i < sizeof($row_arr); $i++) {
+                        $pep_details[] = $row_arr[$i]->ReasonsForExposure;
+                    }
                     $organised_arr[] = array(
                         'ID' => (int)$results->ID,
                         //,
@@ -403,12 +413,12 @@ class policyController extends Controller
                         'plan_code' => $results->plan_code,
                         'good_health' => (bool) $results->good_health,
                         'health_condition' => $results->health_condition,
-                        
+
                         'country_code' => $results->Country,
                         'city' => $results->city,
-                   
+
                         'occupation_code' => $results->occupation,
-                        
+
                         'dob' => $results->Dob,
                         'anb' => $results->anb,
                         'home_town' => $results->home_town,
@@ -421,7 +431,7 @@ class policyController extends Controller
 
                         'SourceOfIncome' => $results->SourceOfIncome,
                         'SourceOfIncome2' => $results->SourceOfIncome2,
-                        
+
                         'date_synced' => $results->date_synced,
                         //p.TaxResidencyDeclared,p.AllowInformationSharing,p.DoNotAllowAllowInformationSharing,p.TaxResidencyDeclared
                         'TaxResidencyDeclared' => $results->TaxResidencyDeclared ? 1 : 0,
@@ -432,27 +442,27 @@ class policyController extends Controller
                         'bank_code' => $results->bank_code,
                         'bank_branch' => $results->bank_branch,
                         'bank_account_no' => $results->bank_account_no,
-                        
+
                         'life_assuarance' => $results->life_assuarance,
                         'existing_policy' => $results->existing_policy,
                         'existing_pol_no' => $results->existing_pol_no,
                         'claim_pol_no' => $results->claim_pol_no,
-                        
+
                         'term' => $results->term,
                         'employer_no' => $results->employee_no,
                         'paymode_code' => $results->paymode_code,
                         'deduction_date' => $results->deduction_date,
-                        
+
                         'sum_assured' => $results->Sum_Assured,
                         'inv_premium' => $results->inv_premium,
                         'basic_premium' => $results->basic_premium,
                         'modal_premium' => $results->modal_premium,
                         'TotalPremium' => $results->TotalPremium,
                         'rider_premium' => $results->rider_premium,
-                        
+
                         'pol_fee' => $results->pol_fee,
                         'cepa' => $results->cepa,
-                        
+
                         'transfer_charge' => $results->transfer_charge,
 
                         'proposal_date' => $results->proposal_date,
@@ -485,7 +495,7 @@ class policyController extends Controller
                         'DateTo' => $results->DateTo,
                         'DurationDays' => $results->DurationDays,
                         'CostOfProperty' => $results->CostOfProperty,
-                        
+
                         'ClaimDefaultPay_method' => $results->ClaimDefaultPay_method,
                         'ClaimDefaultTelcoCompany' => $results->ClaimDefaultTelcoCompany,
                         'ClaimDefaultMobileWallet' => $results->ClaimDefaultMobileWallet,
@@ -503,7 +513,8 @@ class policyController extends Controller
                         'DependantPremium' => $results->DependantPremium,
 
                         'agent_code' => $results->agent_code,
-                        'agent_name' => $results->agent_name
+                        'agent_name' => $results->agent_name,
+                        'reasons_for_exposure' => $pep_details
                     );
                 }
 
@@ -515,6 +526,7 @@ class policyController extends Controller
                 $family_health_arr = array();
 
                 if (isset($record_id) && $record_id > 0) {
+
                     $qry = $this->smartlife_db->table('mob_rider_info')->select('*')
                         ->where(
                             array(
@@ -2886,10 +2898,10 @@ class policyController extends Controller
             $PaySourceRawData = DbHelper::getTableRawData($sql);
             $DeductRawData = [];
             $client_number = null;
-            if($is_wrongful !== "1"){
+            if ($is_wrongful !== "1") {
                 $client_number = $PaySourceRawData[0]->client_number;
             }
-            
+
 
             if ($is_wrongful !== "1" && isset($client_number)) {
                 //$clientNo = DbHelper::getColumnValue('Deduct', 'id', $BranchId, 'AgentsRegionIdKey');
