@@ -514,7 +514,7 @@ class syncController extends Controller
                 }
 
                 //set total premium 
-                $total_premium = $request->input('total_premium');
+                $total_premium = $request->input('TotalPremium');
                 if (!isset($total_premium)) {
                     $total_premium = $request->input('TotalPremium');
                     if (!isset($total_premium)) {
@@ -725,6 +725,7 @@ class syncController extends Controller
                     'modal_premium' => $modal_premium,
                     'rider_premium' => $rider_prem,
                     'annual_premium' => $annual_premium,
+                    'Vat' => $request->input('Vat'),
                     'TotalPremium' => $total_premium,
                     'Sum_Assured' => $sum_assured,
                     'pol_fee' => $policy_fee,
@@ -803,7 +804,6 @@ class syncController extends Controller
                         ->where('mobile', $mobile_number)
                         ->where('second_l_name', $second_l_name)
                         ->where('TotalPremium', $total_premium)
-                        ->whereNull('IsDuplicate')
                         ->orderBy('ID', 'asc')
                         ->limit(1)
                         ->get();
@@ -841,6 +841,10 @@ class syncController extends Controller
                 //lets save to table PEPDetails
                 $reasons_for_exposure = $request->input('reasons_for_exposure');
                 //data for reasons_for_exposure looks like this: [1,2,,3,4,5] 
+                //delete then insert
+                if(isset($reasons_for_exposure) && sizeof($reasons_for_exposure) > 0){
+                    $this->smartlife_db->table('PEPDetails')->where('prop_id', '=', $record_id)->delete();
+                }
                 foreach ($reasons_for_exposure as $reason) {
                     $table_data = array(
                         'prop_id' => $record_id,

@@ -459,6 +459,7 @@ class policyController extends Controller
                         'modal_premium' => $results->modal_premium,
                         'TotalPremium' => $results->TotalPremium,
                         'rider_premium' => $results->rider_premium,
+                        'Vat' => $results->Vat,
 
                         'pol_fee' => $results->pol_fee,
                         'cepa' => $results->cepa,
