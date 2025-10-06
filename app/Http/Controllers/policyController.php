@@ -168,7 +168,7 @@ class policyController extends Controller
                 //TODO get data from mob_prop_info...  ,'' AS uw_reason
                 if (isset($record_id) && $record_id > 0) {
                     $qry = $this->smartlife_db->table('mob_prop_info')
-                        ->select('*', \DB::raw('NULL AS UwCode'), \DB::raw('\'\' AS uw_name'), \DB::raw('NULL AS Status'), \DB::raw('\'\' AS StatusName'), \DB::raw('\'\' AS uw_reason'), \DB::raw('\'\' AS agent_name'))
+                        ->select('*', DB::raw('NULL AS UwCode'), DB::raw('\'\' AS uw_name'), DB::raw('NULL AS Status'), DB::raw('\'\' AS StatusName'), DB::raw('\'\' AS uw_reason'), DB::raw('\'\' AS agent_name'))
                         ->where(
                             array(
                                 'ID' => $record_id
@@ -381,7 +381,7 @@ class policyController extends Controller
                         'ID' => (int)$results->ID,
                         //,
                         'HasBeenPicked' => $results->HasBeenPicked,
-                        //'isWebCompleted' => $results->isWebCompleted,
+                        'IsWebComplete' => $results->IsWebComplete,
                         //'MicroProposal' => $results->MicroProposal,
                         'ProposalNumberLink' => $results->ProposalNumberLink,
                         'UwCode' => $results->UwCode,
@@ -422,6 +422,7 @@ class policyController extends Controller
                         'dob' => $results->Dob,
                         'anb' => $results->anb,
                         'home_town' => $results->home_town,
+                        'ExpiryDate' => $results->ExpiryDate,
 
                         'DualCitiizenship' => $results->DualCitiizenship ? 1 : 0,
                         'Country2' => $results->Country2,
@@ -601,15 +602,27 @@ class policyController extends Controller
                     if (isset($record_id)) {
                         //TODO-
                         //1.Just query mob_health_intermediary
-                        $sql = "SELECT p.id,p.disease_id,p.DependantName,p.answer FROM mob_health_intermediary p WHERE p.prop_id=$record_id";
+                        $sql = "SELECT p.id,p.disease_id,p.DependantName,p.answer FROM mob_health_intermediary p 
+                        WHERE p.prop_id=$record_id";
                         $MobIntermediary = DbHelper::getTableRawData($sql);
                         //2.Just query mob_health_conditions
                         $sql = "SELECT p.intermediary_id,p.disease_id,p.LoadingFactor,p.disease_injury,
-                    p.disease_date,p.disease_duration,p.disease_result,p.disease_doc FROM mob_health_conditions p 
-                    inner join mob_health_intermediary d ON p.intermediary_id=d.id 
-                    WHERE d.prop_id=$record_id";
+                        p.disease_date,p.disease_duration,p.disease_result,p.disease_doc FROM mob_health_conditions p 
+                        inner join mob_health_intermediary d ON p.intermediary_id=d.id 
+                        WHERE d.prop_id=$record_id";
                         $MobHealthConditions = DbHelper::getTableRawData($sql);
                         //as they are...they'll bind perfectly
+                        if(empty($MobIntermediary) || sizeof($MobIntermediary) == 0){
+                            //query mob_health_info
+                            $MobIntermediary = $this->smartlife_db->table('mob_health_info as p')
+                            ->select(
+                                'p.id as disease_id',
+                                DB::raw('CAST(0 AS bit) as isYesChecked'),
+                                DB::raw('CAST(0 AS bit) as isNoChecked'),
+                                DB::raw("'' as comments")
+                            )
+                            ->get();
+                        }
                     }
                 }
 

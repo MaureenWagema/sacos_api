@@ -300,7 +300,7 @@ class syncController extends Controller
                 $staff_number = $request->input('employer_no');
                 $record_id = $request->input('ID'); 
                 $agent_code = $request->input('agent_code');
-                $isWebCompleted = $request->input('isWebCompleted');
+                $IsWebComplete = $request->input('IsWebComplete');
                 $plan_code = $request->input('plan_id');
                 if (!isset($plan_code)) {
                     $plan_code = $request->input('plan_code');
@@ -309,7 +309,7 @@ class syncController extends Controller
 
                 //////////validations///////////////////
                 //exclude from the web and also exclude from micro
-                if (!isset($isWebCompleted)) {
+                if (!isset($IsWebComplete)) {
                     $dependants_arr = array();
                     $dependants_arr = json_decode($request->input('dependants'));
                     $beneficiaries_arr = array();
@@ -691,6 +691,7 @@ class syncController extends Controller
                     'Dob' => $request->input('dob'),
                     'anb' => $anb,
                     'home_town' => $request->input('home_town'),
+                    'ExpiryDate' => $request->input('ExpiryDate'),
 
                     'SourceOfIncome' => $request->input('SourceOfIncome'),
                     'SourceOfIncome2' => $request->input('SourceOfIncome2'),
@@ -789,7 +790,17 @@ class syncController extends Controller
                     'IsSavingsAccount' => $IsSavingsAccount,
                     'IsCurrentAccount' => $IsCurrentAccount,
                     'extra_premium' => $request->input('extra_premium'),
-                    //'isWebCompleted' => $isWebCompleted
+                    'IsWebComplete' => $IsWebComplete,
+
+                    //Height,Weight,Systolic,diastolic,ChestMeasurement,PulsePressure,PulseRate, AbdominalGirth
+                    'Height' => $request->input('Height'),
+                    'Weight' => $request->input('Weight'),
+                    'Systolic' => $request->input('Systolic'),
+                    'diastolic' => $request->input('diastolic'),
+                    'ChestMeasurement' => $request->input('ChestMeasurement'),
+                    'PulsePressure' => $request->input('PulsePressure'),
+                    'PulseRate' => $request->input('PulseRate'),
+                    'AbdominalGirth' => $request->input('AbdominalGirth')
                 );
 
                 
@@ -989,22 +1000,13 @@ class syncController extends Controller
                 $health_history_arr = json_decode($request->input('family_history')); //checklist
                 $mob_health_conditions = array();
                 if (isset($checklistIntermediary) && sizeof($checklistIntermediary) > 0) {
-
                     for ($i = 0; $i < sizeof($checklistIntermediary); $i++) {
                         //insert into table mob_health_intermediary
-                        $dp_id = $checklistIntermediary[$i]->id;
                         $mob_health_intermediary[$i]['prop_id'] = $record_id;
-                        $mob_health_intermediary[$i]['disease_id'] = $checklistIntermediary[$i]->disease_id;
-                        $mob_health_intermediary[$i]['answer'] = "NO";
-                        $dp_uid = null;
-                        if (!empty($checklistIntermediary[$i]->answer)) {
-                            $mob_health_intermediary[$i]['answer'] = $checklistIntermediary[$i]->answer;
-                            $dp_uid = $checklistIntermediary[$i]->DependantName;
-                        }
-
-                        if (!empty($dp_uid)) {
-                            $DependantName = DbHelper::getColumnValue('mob_funeralmembers', 'dp_uid', $dp_uid, 'id');
-                            $mob_health_intermediary[$i]['DependantName'] = $DependantName;
+                        $mob_health_intermediary[$i]['disease_id'] = $checklistIntermediary[$i]['disease_id'];
+                        $mob_health_intermediary[$i]['answer'] = "N";
+                        if ($checklistIntermediary[$i]['isYesChecked']) {
+                            $mob_health_intermediary[$i]['answer'] = "Y";
                         }
                         $mob_health_intermediary[$i]['IsFromMproposal'] = 1;
                         $mob_health_intermediary[$i]['created_on'] = Carbon::now();
