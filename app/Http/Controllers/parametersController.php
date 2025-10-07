@@ -345,6 +345,16 @@ class parametersController extends Controller
                 $sql = "SELECT * FROM ReasonsForExposure WHERE [description] IS NOT NULL";
                 $ReasonsForExposure = DbHelper::getTableRawData($sql);
 
+                //query mob_health_info
+                $MobIntermediary = $this->smartlife_db->table('mob_health_info as p')
+                ->select(
+                    'p.id as disease_id',
+                    DB::raw('CAST(0 AS bit) as isYesChecked'),
+                    DB::raw('CAST(0 AS bit) as isNoChecked'),
+                    DB::raw("'' as comments")
+                )
+                ->get();
+
                 return response()->json(
                     array(
                         "success" => true,
