@@ -355,6 +355,12 @@ class parametersController extends Controller
                 )
                 ->get();
 
+                $sql = "SELECT * FROM mob_HazardQuestions WHERE [description] IS NOT NULL";
+                $HazardQuestions = DbHelper::getTableRawData($sql);
+
+                $sql = "SELECT * FROM mob_HazardQuestionsSub WHERE [description] IS NOT NULL";
+                $HazardQuestionsSub = DbHelper::getTableRawData($sql);
+
                 return response()->json(
                     array(
                         "success" => true,
@@ -423,7 +429,9 @@ class parametersController extends Controller
                         "PyPayrollCategory" => $PyPayrollCategory,
                         "POSComplaintType" => $POSComplaintType,
                         "AMLSourceOfIncomeInfo" => $AMLSourceOfIncomeInfo,
-                        "ReasonsForExposure" => $ReasonsForExposure
+                        "ReasonsForExposure" => $ReasonsForExposure,
+                        "HazardQuestions" => $HazardQuestions,
+                        "HazardQuestionsSub" => $HazardQuestionsSub
                     )
                 );
 

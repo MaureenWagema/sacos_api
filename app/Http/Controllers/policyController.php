@@ -516,7 +516,16 @@ class policyController extends Controller
 
                         'agent_code' => $results->agent_code,
                         'agent_name' => $results->agent_name,
-                        'reasons_for_exposure' => $pep_details
+                        'reasons_for_exposure' => $pep_details,
+
+                        'Height' => $results->Height,
+                        'Weight' => $results->Weight,
+                        'Systolic' => $results->Systolic,
+                        'diastolic' => $results->diastolic,
+                        'ChestMeasurement' => $results->ChestMeasurement,
+                        'PulsePressure' => $results->PulsePressure,
+                        'PulseRate' => $results->PulseRate,
+                        'AbdominalGirth' => $results->AbdominalGirth,
                     );
                 }
 
