@@ -598,10 +598,10 @@ class policyController extends Controller
                     $row_arr = $qry->get();
 
                     for ($i = 0; $i < sizeof($row_arr); $i++) {
-                        $family_health_arr[$i]['fh_family'] = $row_arr[$i]->Relationship;
-                        $family_health_arr[$i]['fh_state'] = $row_arr[$i]->state;
-                        $family_health_arr[$i]['fh_age'] = $row_arr[$i]->age;
-                        $family_health_arr[$i]['fh_state_health'] = $row_arr[$i]->state_health;
+                        $family_health_arr[$i]['Relationship'] = $row_arr[$i]->Relationship;
+                        $family_health_arr[$i]['state'] = $row_arr[$i]->state;
+                        $family_health_arr[$i]['age'] = $row_arr[$i]->age;
+                        $family_health_arr[$i]['state_health'] = $row_arr[$i]->state_health;
                     }
 
 

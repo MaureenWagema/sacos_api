@@ -755,7 +755,7 @@ class syncController extends Controller
                     'date_synced' => Carbon::now(),
                     'proposal_no' => $proposal_no,
                     
-                    'plan_code' => $plan_code, //
+                    'plan_code' => $plan_code, 
                     'EntryCategory' => $EntryCategory,
                     'PackageCode' => $request->input('InsuranceType'),
                     'agent_code' => $agent_code,
@@ -942,37 +942,19 @@ class syncController extends Controller
                     }
                 }
 
-                if (isset($beneficiaries_arr)) {
-                    $this->smartlife_db->table('mob_beneficiary_info')->where('prop_id', '=', $record_id)->delete();
-                    for ($i = 0; $i < sizeof($beneficiaries_arr); $i++) {
-                        $beneficiaries_array[$i]['prop_id'] = $record_id;
-                        $beneficiaries_array[$i]['Names'] = $beneficiaries_arr[$i]->b_name;
-                        $beneficiaries_array[$i]['relationship'] = $beneficiaries_arr[$i]->b_relationship;
-                        $beneficiaries_array[$i]['birth_date'] = $beneficiaries_arr[$i]->b_dob;
-                        if ($beneficiaries_array[$i]['birth_date'] == "null") {
-                            $beneficiaries_array[$i]['birth_date'] = null;
-                        }
-                        $beneficiaries_array[$i]['perc_alloc'] = $beneficiaries_arr[$i]->b_percentage_allocated;
-                        $beneficiaries_array[$i]['telephone'] = $beneficiaries_arr[$i]->b_mobile_no;
-                        if (empty($beneficiaries_array[$i]['relationship'])) {
-                            $beneficiaries_array[$i]['relationship'] = null;
-                        }
-                        $beneficiaries_id = $this->smartlife_db->table('mob_beneficiary_info')->insertGetId($beneficiaries_array[$i]);
-                    }
-                }
-
 
                 //family health
                 $family_health_array = array();
-                $family_health_arr = json_decode($request->input('family_health'));
+                //$family_health_arr = json_decode($request->input('family_health'));
+                $family_health_arr = $request->input('family_health');
                 if (isset($family_health_arr)) {
                     $this->smartlife_db->table('mob_family_healthinfo')->where('prop_id', '=', $record_id)->delete();
                     for ($i = 0; $i < sizeof($family_health_arr); $i++) {
                         $family_health_array[$i]['prop_id'] = $record_id;
-                        $family_health_array[$i]['Relationship'] = $family_health_arr[$i]->fh_family;
-                        $family_health_array[$i]['state'] = $family_health_arr[$i]->fh_state;
-                        $family_health_array[$i]['age'] = $family_health_arr[$i]->fh_age;
-                        $family_health_array[$i]['state_health'] = $family_health_arr[$i]->fh_state_health;
+                        $family_health_array[$i]['Relationship'] = $family_health_arr[$i]['Relationship'];
+                        $family_health_array[$i]['state'] = $family_health_arr[$i]['state'];
+                        $family_health_array[$i]['age'] = $family_health_arr[$i]['age'] ?? null;
+                        $family_health_array[$i]['state_health'] = $family_health_arr[$i]['state_health'];
                         $family_health_id = $this->smartlife_db->table('mob_family_healthinfo')->insertGetId($family_health_array[$i]);
                     }
                 }
