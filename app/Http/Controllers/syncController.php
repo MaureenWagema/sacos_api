@@ -959,6 +959,38 @@ class syncController extends Controller
                     }
                 }
 
+                //hazard_questions
+                $hazard_questions_array = array();
+                $hazard_questions_arr = $request->input('hazard_questions');
+                if (isset($hazard_questions_arr)) {
+                    $this->smartlife_db->table('Hazard_History')->where('prop_id', '=', $record_id)->delete();
+                    
+                    for ($i = 0; $i < sizeof($hazard_questions_arr); $i++) {
+                        $hazard_questions_array[$i]['prop_id'] = $record_id;
+                        $hazard_questions_array[$i]['Question'] = $hazard_questions_arr[$i]['Question'];
+                        $hazard_questions_array[$i]['IsYes'] = $hazard_questions_arr[$i]['IsYes'];
+                        $hazard_questions_array[$i]['IsNo'] = $hazard_questions_arr[$i]['IsNo'];
+                        $hazard_questions_array[$i]['created_on'] = Carbon::now();
+                        $hazard_questions_id = $this->smartlife_db->table('Hazard_History')->insertGetId($hazard_questions_array[$i]);
+
+                        //lets handle the subquestions here...
+                        
+                        $sub_questions_arr = $hazard_questions_arr[$i]['SubQuestions'];
+                        $this->smartlife_db->table('Hazard_HistoryDetails')->where('Question', '=', $hazard_questions_id)->delete();
+                        if($hazard_questions_array[$i]['IsYes'] == 1 || $hazard_questions_array[$i]['IsYes'] == "1"){
+                            if (isset($sub_questions_arr)) {
+                                for ($j = 0; $j < sizeof($sub_questions_arr); $j++) {
+                                    $sub_questions_array[$j]['Question'] = $hazard_questions_id;
+                                    $sub_questions_array[$j]['SubQuestion'] = $sub_questions_arr[$j]['SubQuestion'];
+                                    $sub_questions_array[$j]['MoreDetails'] = $sub_questions_arr[$j]['MoreDetails'];
+                                    $sub_questions_array[$j]['created_on'] = Carbon::now();
+                                    $sub_questions_id = $this->smartlife_db->table('Hazard_HistoryDetails')->insertGetId($sub_questions_array[$j]);
+                                }
+                            }
+                        }
+                    }
+                }
+
 
                 //TODO...delete first b4 inserting...mob_health_conditions && mob_health_intermediary
                 $sql = "SELECT * FROM mob_health_intermediary p WHERE p.prop_id=$record_id";

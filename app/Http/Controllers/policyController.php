@@ -535,6 +535,9 @@ class policyController extends Controller
                 $MobIntermediary = array();
                 $MobHealthConditions = array();
                 $family_health_arr = array();
+                $hazard_details = array();
+                
+
 
                 if (isset($record_id) && $record_id > 0) {
 
@@ -605,6 +608,38 @@ class policyController extends Controller
                     }
 
 
+                    //lets fetch from Hazard_History
+                    $qry = $this->smartlife_db->table('Hazard_History')->select('*')
+                        ->where(
+                            array(
+                                'prop_id' => $record_id
+                            )
+                        );
+                    $row_arr = $qry->get();
+
+                    for ($i = 0; $i < sizeof($row_arr); $i++) {
+                        $hazard_details[$i]['Question'] = $row_arr[$i]->Question;
+                        $hazard_details[$i]['IsYes'] = (bool)$row_arr[$i]->IsYes;
+                        $hazard_details[$i]['IsNo'] = (bool)$row_arr[$i]->IsNo;
+
+                        $hazars_sub_details = array();
+                        //lets fetch from Hazard_History Sub Details
+                        $qry = $this->smartlife_db->table('Hazard_HistoryDetails')->select('*')
+                            ->where(
+                                array(
+                                    'Question' => $row_arr[$i]->id
+                                )
+                            );
+
+                        $row_sub_arr = $qry->get();
+                        for ($j = 0; $j < sizeof($row_sub_arr); $j++) {
+                            $hazars_sub_details[$j]['Question'] = $row_sub_arr[$j]->Question;
+                            $hazars_sub_details[$j]['SubQuestion'] = $row_sub_arr[$j]->SubQuestion;
+                            $hazars_sub_details[$j]['MoreDetails'] = $row_sub_arr[$j]->MoreDetails;
+                        }
+                        $hazard_details[$i]['SubQuestions'] = $hazars_sub_details;
+                    }
+
 
 
 
@@ -621,16 +656,16 @@ class policyController extends Controller
                         WHERE d.prop_id=$record_id";
                         $MobHealthConditions = DbHelper::getTableRawData($sql);
                         //as they are...they'll bind perfectly
-                        if(empty($MobIntermediary) || sizeof($MobIntermediary) == 0){
+                        if (empty($MobIntermediary) || sizeof($MobIntermediary) == 0) {
                             //query mob_health_info
                             $MobIntermediary = $this->smartlife_db->table('mob_health_info as p')
-                            ->select(
-                                'p.id as disease_id',
-                                DB::raw('CAST(0 AS bit) as isYesChecked'),
-                                DB::raw('CAST(0 AS bit) as isNoChecked'),
-                                DB::raw("'' as comments")
-                            )
-                            ->get();
+                                ->select(
+                                    'p.id as disease_id',
+                                    DB::raw('CAST(0 AS bit) as isYesChecked'),
+                                    DB::raw('CAST(0 AS bit) as isNoChecked'),
+                                    DB::raw("'' as comments")
+                                )
+                                ->get();
                         }
                     }
                 }
@@ -648,6 +683,7 @@ class policyController extends Controller
                     'family_health' => $family_health_arr,
                     'MobIntermediary' => $MobIntermediary,
                     'MobHealthConditions' => $MobHealthConditions,
+                    'hazard_details' => $hazard_details,
                     'message' => 'Data Synced Successfully!!'
                 );
             }, 5);
