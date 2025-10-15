@@ -800,7 +800,10 @@ class syncController extends Controller
                     'ChestMeasurement' => $request->input('ChestMeasurement'),
                     'PulsePressure' => $request->input('PulsePressure'),
                     'PulseRate' => $request->input('PulseRate'),
-                    'AbdominalGirth' => $request->input('AbdominalGirth')
+                    'AbdominalGirth' => $request->input('AbdominalGirth'),
+
+                    'Relationship' => $request->input('Relationship'),
+                    'RelatedProposal' => $request->input('RelatedProposal')
                 );
 
                 

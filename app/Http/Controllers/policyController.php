@@ -526,6 +526,9 @@ class policyController extends Controller
                         'PulsePressure' => $results->PulsePressure,
                         'PulseRate' => $results->PulseRate,
                         'AbdominalGirth' => $results->AbdominalGirth,
+
+                        'Relationship' => $results->Relationship,
+                        'RelatedProposal' => $results->RelatedProposal
                     );
                 }
 
