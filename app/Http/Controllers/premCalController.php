@@ -9,6 +9,52 @@ use Carbon\Carbon;
 
 class premCalController extends Controller
 {
+    //lets create function FuneralPolicies
+    public function FuneralPolicies(Request $request){
+        try{
+            $res = array();
+            //we pass: plan_code, age & sum_assured
+            $plan_code = $request->input('plan_code');
+            $age = $request->input('age');
+            $sum_assured = $request->input('sum_assured');
+
+            //we using table: funeralratesinfo
+            //for age we search where greater or equal than Min_age & less than Max_age
+            //we match plan_code & SumAssured
+            $qry = $this->smartlife_db->table('funeralratesinfo as p')
+            ->select('*')
+            ->where('p.Min_age', '<=', $age)
+            ->where('p.Max_age', '>=', $age)
+            ->where(array('p.plan_code' => $plan_code, 'p.Min_sa' => $sum_assured));
+            $results = $qry->first();
+            if($results){
+                $premium = $results->Rate;
+                $res = array(
+                    'success' => true,
+                    'premium' => $premium,
+                    'message' => 'Premium Calculated Successfully!!'
+                );
+            }else{
+                $res = array(
+                    'success' => false,
+                    'message' => 'Premium Not Found!!'
+                );
+            }
+        } catch (\Exception $exception) {
+            $res = array(
+                'success' => false,
+                'message' => $exception->getMessage()
+            );
+            return response()->json($res);
+        } catch (\Throwable $throwable) {
+            $res = array(
+                'success' => false,
+                'message' => $throwable->getMessage()
+            );
+            return response()->json($res);
+        }
+        return response()->json($res);
+    }
 
     //lets create function OrdinaryPolicies
     public function OrdinaryPolicies(Request $request){

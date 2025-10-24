@@ -21,7 +21,7 @@ class syncController extends Controller
         $results = $qry->first();
         //BusinessChannel
         $BusinessChannel = DbHelper::getColumnValue('agents_info', 'id', $agent_code, 'BusinessChannel');
-        
+
 
         $policy_no = $results->PlanDesc . '-' . date("Y") . '-' . str_pad($results->policy_serial, 5, 0, STR_PAD_LEFT);
 
@@ -298,7 +298,7 @@ class syncController extends Controller
                 }
                 $pay_method_code = $request->input('pay_method_code');
                 $staff_number = $request->input('employer_no');
-                $record_id = $request->input('ID'); 
+                $record_id = $request->input('ID');
                 $agent_code = $request->input('agent_code');
                 $IsWebComplete = $request->input('IsWebComplete');
                 $plan_code = $request->input('plan_id');
@@ -325,7 +325,7 @@ class syncController extends Controller
                         }
                         $sql = "SELECT p.ID FROM mob_prop_info p WHERE p.mobile='$mobile' AND p.plan_code='$plan_code'";
                         $polinfo = DbHelper::getTableRawData($sql);
-                        if(isset($polinfo) && sizeof($polinfo) > 0){
+                        if (isset($polinfo) && sizeof($polinfo) > 0) {
                             return $res = array(
                                 'success' => false,
                                 'message' => 'Proposal already exists therefore cannot be resubmitted!!'
@@ -507,10 +507,9 @@ class syncController extends Controller
                     $proposal_no = DbHelper::getColumnValue('mob_prop_info', 'ID', $record_id, 'proposal_no');
                 } else {
                     $proposal_no = null;
-                    if(isset($plan_code)){
+                    if (isset($plan_code)) {
                         $proposal_no = $this->generate_policyno($plan_code, $agent_code);
                     }
-                    
                 }
 
                 //set total premium 
@@ -535,9 +534,9 @@ class syncController extends Controller
                     return response()->json($res);
                 }
 
-                $EntryCategory = null;//$request->input('EntryCategory');
+                $EntryCategory = null; //$request->input('EntryCategory');
                 //if (!isset($EntryCategory)) {
-                    //$EntryCategory = 1;
+                //$EntryCategory = 1;
                 //}
                 $annual_premium = $request->input('annual_premium');;
                 if (!isset($annual_premium)) {
@@ -697,9 +696,9 @@ class syncController extends Controller
                     'SourceOfIncome2' => $request->input('SourceOfIncome2'),
 
                     'TaxResidencyDeclared' => (bool)$request->input('TaxResidencyDeclared'),
-                    'AllowInformationSharing' => (bool)$request->input('AllowInformationSharing'),
-                    'DoNotAllowAllowInformationSharing' => (bool)$request->input('DoNotAllowAllowInformationSharing'),
-                    
+                    'AllowInformationSharing' => $request->input('AllowInformationSharing') == 1,
+                    'DoNotAllowAllowInformationSharing' => $request->input('AllowInformationSharing') == 0,
+
                     'emp_code' => $request->input('emp_code'),
                     'employee_noCode' => $request->input('employee_noCode'),
                     'employee_noDisplay' => $request->input('employee_noDisplay'),
@@ -747,15 +746,15 @@ class syncController extends Controller
                     'secondary_income' => (bool)$request->input('secondary_income'),
                     'IsPep' => (bool)$IsPep,
                     'politicaly_affiliated_person' => $request->input('politicaly_affiliated_person'),
-                    
+
                     'Life_Premium' => $request->input('life_Premium'),
 
-                   
+
                     'Date_Saved' => Carbon::now(),
                     'date_synced' => Carbon::now(),
                     'proposal_no' => $proposal_no,
-                    
-                    'plan_code' => $plan_code, 
+
+                    'plan_code' => $plan_code,
                     'EntryCategory' => $EntryCategory,
                     'PackageCode' => $request->input('InsuranceType'),
                     'agent_code' => $agent_code,
@@ -783,7 +782,7 @@ class syncController extends Controller
                     'ClaimDefaultEFTBank_account' => $request->input('ClaimDefaultEFTBank_account'),
                     'ClaimDefaultEftBankaccountName' => $request->input('ClaimDefaultEftBankaccountName'),
                     'DependantPremium' => $DependantPremium,
- 
+
                     'is_med_uw_req' => $is_med_uw_req,
                     'HasBeenPicked' => $HasBeenPicked,
 
@@ -806,7 +805,7 @@ class syncController extends Controller
                     'RelatedProposal' => $request->input('RelatedProposal')
                 );
 
-                
+
 
                 //do a search on the mobile_no, plan_code, total_premium
                 $MobProposalsArr = array();
@@ -856,19 +855,20 @@ class syncController extends Controller
                 $reasons_for_exposure = $request->input('reasons_for_exposure');
                 //data for reasons_for_exposure looks like this: [1,2,,3,4,5] 
                 //delete then insert
-                if(isset($reasons_for_exposure) && sizeof($reasons_for_exposure) > 0){
+                if (isset($reasons_for_exposure) && sizeof($reasons_for_exposure) > 0) {
                     $this->smartlife_db->table('PEPDetails')->where('prop_id', '=', $record_id)->delete();
                 }
-                foreach ($reasons_for_exposure as $reason) {
-                    $table_data = array(
-                        'prop_id' => $record_id,
-                        'ReasonsForExposure' => $reason,
-                        'created_on' => Carbon::now()
-                    );
-                    $this->smartlife_db->table('PEPDetails')
-                        ->insert($table_data);
+                if (isset($reasons_for_exposure) && sizeof($reasons_for_exposure) > 0) {
+                    foreach ($reasons_for_exposure as $reason) {
+                        $table_data = array(
+                            'prop_id' => $record_id,
+                            'ReasonsForExposure' => $reason,
+                            'created_on' => Carbon::now()
+                        );
+                        $this->smartlife_db->table('PEPDetails')
+                            ->insert($table_data);
+                    }
                 }
-
 
                 //insert into the respective tables
                 $rider_array = array();
@@ -923,7 +923,7 @@ class syncController extends Controller
                 $beneficiaries_array = array();
                 //beneficiaries
                 $beneficiaries_embb = $request->input('beneficiaries_embb');
-                $beneficiaries_arr = $request->input('beneficiaries_embb');//json_decode($request->input('beneficiaries'));
+                $beneficiaries_arr = $request->input('beneficiaries_embb'); //json_decode($request->input('beneficiaries'));
                 if (isset($beneficiaries_embb)) {
                     $this->smartlife_db->table('mob_beneficiary_info')->where('prop_id', '=', $record_id)->delete();
                     for ($i = 0; $i < sizeof($beneficiaries_embb); $i++) {
@@ -967,7 +967,7 @@ class syncController extends Controller
                 $hazard_questions_arr = $request->input('hazard_questions');
                 if (isset($hazard_questions_arr)) {
                     $this->smartlife_db->table('Hazard_History')->where('prop_id', '=', $record_id)->delete();
-                    
+
                     for ($i = 0; $i < sizeof($hazard_questions_arr); $i++) {
                         $hazard_questions_array[$i]['prop_id'] = $record_id;
                         $hazard_questions_array[$i]['Question'] = $hazard_questions_arr[$i]['Question'];
@@ -977,10 +977,10 @@ class syncController extends Controller
                         $hazard_questions_id = $this->smartlife_db->table('Hazard_History')->insertGetId($hazard_questions_array[$i]);
 
                         //lets handle the subquestions here...
-                        
+
                         $sub_questions_arr = $hazard_questions_arr[$i]['SubQuestions'];
                         $this->smartlife_db->table('Hazard_HistoryDetails')->where('Question', '=', $hazard_questions_id)->delete();
-                        if($hazard_questions_array[$i]['IsYes'] == 1 || $hazard_questions_array[$i]['IsYes'] == "1"){
+                        if ($hazard_questions_array[$i]['IsYes'] == 1 || $hazard_questions_array[$i]['IsYes'] == "1") {
                             if (isset($sub_questions_arr)) {
                                 for ($j = 0; $j < sizeof($sub_questions_arr); $j++) {
                                     $sub_questions_array[$j]['Question'] = $hazard_questions_id;
@@ -1011,7 +1011,7 @@ class syncController extends Controller
                 //handle the new implementation here
                 //as you insert into mob_health_intermediary nest into table mob_health_conditions
                 $checklistIntermediary = array();
-                $checklistIntermediary = $request->input('checklistIntermediary');//json_decode($request->input('checklistIntermediary')); //intermediary
+                $checklistIntermediary = $request->input('checklistIntermediary'); //json_decode($request->input('checklistIntermediary')); //intermediary
                 $mob_health_intermediary = array();
                 $health_history_array = array();
                 $health_history_arr = json_decode($request->input('family_history')); //checklist

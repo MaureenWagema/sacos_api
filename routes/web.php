@@ -178,6 +178,7 @@ Route::post('calc/HCIPlan', [premCalController::class, 'HCIPlan']);
 Route::post('calc/ComputePremiumCreditLife', [premCalController::class, 'ComputePremiumCreditLife']);
 Route::post('calc/esb_manual_rider', [premCalController::class, 'esb_manual_rider']);
 Route::post('calc/OrdinaryPolicies', [premCalController::class, 'OrdinaryPolicies']);
+Route::post('calc/FuneralPolicies', [premCalController::class, 'FuneralPolicies']);
 
 //
 Route::post('collections/getClientnPolicies', [collectionsController::class, 'getClientnPolicies']);
