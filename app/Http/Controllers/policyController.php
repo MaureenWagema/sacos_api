@@ -10,21 +10,30 @@ use Ramsey\Uuid\Uuid;
 
 class policyController extends Controller
 {
-    public function validatePolicyNumber(Request $request)
+
+    //relatedProposals
+    public function relatedProposals(Request $request)
     {
         try {
-            $isValid = false;
-            $policy_no = $request->input('policy_no');
+            $plan_code = $request->input('plan_code');
 
-            $sql = "SELECT p.id FROM polinfo p WHERE p.policy_no='$policy_no' ";
-
-            $MicroProducts = DbHelper::getTableRawData($sql);
-            if (isset($MicroProducts) && sizeof($MicroProducts) > 0) {
-                $isValid = true;
-            }
+            //query from mob_prop_info
+            //concantenate column surname and other_name and proposal_no
+            $qry = $this->smartlife_db->table('mob_prop_info')
+                ->select(
+                    'plan_code',
+                    'surname',
+                    'other_name',
+                    'proposal_no',
+                    DB::raw("CONCAT(proposal_no, ' - ', surname, ' - ', other_name) AS proposal")
+                )
+                ->where('plan_code', $plan_code);
+            $results = $qry->get();
 
             $res = array(
-                'isValid' => $isValid
+                'success' => true,
+                'message' => "Successfully Validated",
+                'proposals' => $results
             );
         } catch (\Exception $exception) {
             $res = array(
@@ -356,6 +365,7 @@ class policyController extends Controller
 
 
                 $organised_arr = array();
+                $pep_details = array();
 
                 foreach ($row_arr as $results) {
                     //print_r($results);
@@ -528,7 +538,16 @@ class policyController extends Controller
                         'AbdominalGirth' => $results->AbdominalGirth,
 
                         'Relationship' => $results->Relationship,
-                        'RelatedProposal' => $results->RelatedProposal
+                        'RelatedProposal' => $results->RelatedProposal,
+
+                        'NatureOfBusiness' => $results->NatureOfBusiness,
+                        'BusinessAddress' => $results->BusinessAddress,
+                        'JobTitle' => $results->JobTitle,
+                        'ApproximateAnnualincome' => $results->ApproximateAnnualincome,
+
+                        'IslandDetails' => $results->IslandDetails,
+                        'RegionName' => $results->RegionName,
+                        'Branchdetails' => $results->Branchdetails,
                     );
                 }
 
@@ -539,7 +558,7 @@ class policyController extends Controller
                 $MobHealthConditions = array();
                 $family_health_arr = array();
                 $hazard_details = array();
-                
+
 
 
                 if (isset($record_id) && $record_id > 0) {
@@ -3653,7 +3672,7 @@ class policyController extends Controller
             //get files for eClaim
             $rcd_id = $request->input('rcd_id');
 
-            $sql = "SELECT p.* from mob_proposalFileAttachment p WHERE p.MobileProposal=$rcd_id";
+            $sql = "SELECT p.*,p.Doc_id as doc_id from mob_proposalFileAttachment p WHERE p.MobileProposal=$rcd_id";
             $Files = DbHelper::getTableRawData($sql);
 
             $res = array(

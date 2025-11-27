@@ -14,47 +14,19 @@ class clientController extends Controller
     public function getClientDetails(Request $request)
     {
         try{
-            $client_no = $request->input('client_no');
-            $mobile_no = $request->input('mobile_no');
-            $is_micro = $request->input('is_micro');
-
-            if(isset($mobile_no)){
-                $sql = "SELECT p.Surname AS surname, p.OtherNames AS other_name,p.Address AS residential_address,p.Mobile AS mobile,
-                p.Email AS email,p.BirthDate AS dob,p.Sex AS gender_code,p.Occupation AS occupation_code,p.Country AS country_code,
-                p.Region AS region, p.MaritalStatus AS marital_status_code  FROM MicroClientInfo p 
-                WHERE p.Mobile ='$mobile_no'";
-            }else{
-                $sql = "SELECT p.Surname AS surname, p.OtherNames AS other_name,p.Address AS residential_address,p.Mobile AS mobile,
-                p.Email AS email,p.BirthDate AS dob,p.Sex AS gender_code,p.Occupation AS occupation_code,p.Country AS country_code,
-                p.Region AS region, p.MaritalStatus AS marital_status_code  FROM MicroClientInfo p 
-                WHERE p.ClientNumber ='$client_no'";
-            }
-
             
-            
-            //$client_id = DbHelper::getColumnValue('clientinfo', 'client_number',$client_no,'id');
-            // put in a transaction the whole process of syncing data...
-            
-            $Client = DbHelper::getTableRawData($sql);
-            if(sizeof($Client) < 1){
-                if(isset($mobile_no)){
-                    $sql = "SELECT p.surname,p.other_name,p.address AS postal_address,p.Address2 AS residential_address,p.mobile,
-                    p.birthdate AS dob,p.sex AS gender_code,p.marital_status AS marital_status_code,p.email,p.Country AS country_code,
-                    p.occupation_code,p.occup_class AS client_class_code,p.pin_no as tin_no,p.Height as pop_height ,p.Weight as pop_weight   
-                    FROM clientinfo p WHERE p.mobile='$mobile_no'";
-                }else{
-                    $sql = "SELECT p.surname,p.other_name,p.address AS postal_address,p.Address2 AS residential_address,p.mobile,
-                    p.birthdate AS dob,p.sex AS gender_code,p.marital_status AS marital_status_code,p.email,p.Country AS country_code,
-                    p.occupation_code,p.occup_class AS client_class_code,p.pin_no as tin_no,p.Height as pop_height ,p.Weight as pop_weight   
-                    FROM clientinfo p WHERE p.client_number='$client_no'";
-                    
-                }
-				$Client = DbHelper::getTableRawData($sql);
-            }
+            //querry clientinfo - select to client_number, name , nin number
+            $Client = $this->smartlife_db->table('clientinfo')
+            ->select(
+                'client_number', 
+                'name', 
+                'IdNumber',
+                'birthdate',
+                DB::raw("CONCAT(name, ' - ', IdNumber) AS clientNameIdNumber"))
+            ->get();
 
             $res = array(
                 'success' => true,
-                'client_no' => $client_no,
                 'Client' => $Client
             );
         } catch (\Exception $exception) {

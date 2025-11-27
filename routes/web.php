@@ -148,6 +148,8 @@ Route::get('policy/getAgentPaySourceData', [policyController::class, 'getAgentPa
 Route::get('policy/validatePWDLoan', [policyController::class, 'validatePWDLoan']);
 //validatePolicyNumber
 Route::post('policy/validatePolicyNumber', [policyController::class, 'validatePolicyNumber']);
+//relatedProposals
+Route::get('proposal/relatedProposals', [policyController::class, 'relatedProposals']);
 
 //migrateMproposal,migratProposalFiles,migrateMissedFiles validatePWDLoan
 Route::post('migrate/migrateMproposal', [policyController::class, 'migrateMproposal']);

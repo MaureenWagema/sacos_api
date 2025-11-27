@@ -802,7 +802,16 @@ class syncController extends Controller
                     'AbdominalGirth' => $request->input('AbdominalGirth'),
 
                     'Relationship' => $request->input('Relationship'),
-                    'RelatedProposal' => $request->input('RelatedProposal')
+                    'RelatedProposal' => $request->input('RelatedProposal'),
+
+                    'NatureOfBusiness' => $request->input('NatureOfBusiness'),
+                    'BusinessAddress' => $request->input('BusinessAddress'),
+                    'JobTitle' => $request->input('JobTitle'),
+                    'ApproximateAnnualincome' => $request->input('ApproximateAnnualincome'),
+
+                    'IslandDetails' => $request->input('IslandDetails'),
+                    'RegionName' => $request->input('RegionName'),
+                    'Branchdetails' => $request->input('Branchdetails'),
                 );
 
 
@@ -1196,7 +1205,7 @@ class syncController extends Controller
                                             'File' => $uuid,
                                             'proposal_no' => $policy_no,
                                             'Description' => $propFileAttachments[$x]->Description,
-                                            'doc_id' => $propFileAttachments[$x]->doc_id
+                                            'Doc_id' => $propFileAttachments[$x]->Doc_id
                                         );
                                         $this->smartlife_db->table('mob_proposalFileAttachment')->insertGetId($table_data);
 
@@ -1258,6 +1267,7 @@ class syncController extends Controller
                 $signature = $request->file('signature');
                 $is_file = true;
             }
+            //$category_id = 3;
             $category_id = 1;
             $policy_no = $proposal_no; //;
             $proposal_id = $record_id;
@@ -1282,7 +1292,7 @@ class syncController extends Controller
                         p.PayslipCopy FROM mob_prop_info p 
                         WHERE (p.IdLastPage IS NOT NULL AND p.IdFrontPage IS NOT NULL AND p.ClientSignature IS NOT NULL
                         AND p.ClientPassportPhoto IS NOT NULL) AND p.IdNumber='$ghana_card' AND P.ID != $proposal_id 
-                        AND p.MicroProposal IS NULL AND p.plan_code<>45";
+                        ";
                 $propAttachments = DbHelper::getTableRawData($sql_files);
             }
 
@@ -1319,7 +1329,7 @@ class syncController extends Controller
                                     'File' => $uuid,
                                     'proposal_no' => $policy_no,
                                     'Description' => $propFileAttachments[$x]->Description,
-                                    'doc_id' => $propFileAttachments[$x]->doc_id
+                                    'Doc_id' => $propFileAttachments[$x]->Doc_id
                                 );
                                 $this->smartlife_db->table('mob_proposalFileAttachment')->insertGetId($table_data);
 
@@ -1369,7 +1379,7 @@ class syncController extends Controller
                                     'File' => $uuid,
                                     'proposal_no' => $policy_no,
                                     'Description' => $propFileAttachments[$x]->Description,
-                                    'doc_id' => $propFileAttachments[$x]->doc_id
+                                    'Doc_id' => $propFileAttachments[$x]->Doc_id
                                 );
                                 $this->smartlife_db->table('mob_proposalFileAttachment')->insertGetId($table_data);
 
@@ -1419,7 +1429,7 @@ class syncController extends Controller
                                     'File' => $uuid,
                                     'proposal_no' => $policy_no,
                                     'Description' => $propFileAttachments[$x]->Description,
-                                    'doc_id' => $propFileAttachments[$x]->doc_id
+                                    'Doc_id' => $propFileAttachments[$x]->Doc_id
                                 );
                                 $this->smartlife_db->table('mob_proposalFileAttachment')->insertGetId($table_data);
 
@@ -1484,20 +1494,20 @@ class syncController extends Controller
         $file->getMimeType();
         //Move Uploaded File
         //FileCategoriesStore
-        //$destinationPath = 'C:\Users\User\Documents\SmartLife\PolicyDocuments';
-        $destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', 1, 'FileStoreLocationPath');
+        $destinationPath = 'C:\xampp\htdocs\SmartLifeDocuments\PolicyDocuments';
+        //$destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', 1, 'FileStoreLocationPath');
         $file->move($destinationPath, $file->getClientOriginalName());
         $uuid = Uuid::uuid4();
         $uuid = $uuid->toString();
 
-        $doc_id = "";
-        if ($file_type == 0) $doc_id = "medical_rpt";
-        if ($file_type == 1) $doc_id = "photo";
-        if ($file_type == 2) $doc_id = "id_front";
-        if ($file_type == 3) $doc_id = "id_back";
-        if ($file_type == 4) $doc_id = "signature";
-        if ($file_type == 5) $doc_id = "facility_letter";
-        if ($file_type == 6) $doc_id = "payslip_path";
+        $Doc_id = "";
+        if ($file_type == 0) $Doc_id = "medical_rpt";
+        if ($file_type == 1) $Doc_id = "photo";
+        if ($file_type == 2) $Doc_id = "id_front";
+        if ($file_type == 3) $Doc_id = "id_back";
+        if ($file_type == 4) $Doc_id = "signature";
+        if ($file_type == 5) $Doc_id = "facility_letter";
+        if ($file_type == 6) $Doc_id = "payslip_path";
 
 
         //insert into mob_proposalFileAttachment
@@ -1507,7 +1517,7 @@ class syncController extends Controller
             'DocumentType' => $category_id,
             'File' => $uuid,
             'Description' => $fileName,
-            'doc_id' => $doc_id
+            'Doc_id' => $Doc_id
         );
         $record_id = $this->smartlife_db->table('mob_proposalFileAttachment')->insertGetId($table_data);
         //insert into Mob_ProposalStoreObject
@@ -1623,7 +1633,7 @@ class syncController extends Controller
             'DocumentType' => $category_id,
             'File' => $uuid,
             'Description' => $fileName,
-            'doc_id' => "signature"
+            'Doc_id' => "signature"
         );
         $record_id = $this->smartlife_db->table('mob_proposalFileAttachment')->insertGetId($table_data);
         //insert into Mob_ProposalStoreObject

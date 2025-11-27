@@ -25,7 +25,7 @@ class premCalController extends Controller
             ->select('*')
             ->where('p.Min_age', '<=', $age)
             ->where('p.Max_age', '>=', $age)
-            ->where(array('p.plan_code' => $plan_code, 'p.Min_sa' => $sum_assured));
+            ->where(array('p.plan_code' => $plan_code, 'p.SumAssured' => $sum_assured));
             $results = $qry->first();
             if($results){
                 $premium = $results->Rate;

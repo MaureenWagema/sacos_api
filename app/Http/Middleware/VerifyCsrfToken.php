@@ -94,6 +94,8 @@ class VerifyCsrfToken extends Middleware
 
         'policy/validatePolicyNumber',
 
+        'proposal/relatedProposals',
+
         'migrate/migrateMproposal',
         'migrate/migratProposalFiles',
         'migrate/migrateDeleteFiles',

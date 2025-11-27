@@ -361,6 +361,21 @@ class parametersController extends Controller
                 $sql = "SELECT * FROM mob_HazardQuestionsSub WHERE [description] IS NOT NULL";
                 $HazardQuestionsSub = DbHelper::getTableRawData($sql);
 
+                $sql = "SELECT * FROM MortgageOptions WHERE [Description] IS NOT NULL";
+                $MortgageOptions = DbHelper::getTableRawData($sql);
+
+                $sql = "SELECT * FROM IslandsDetails WHERE [Description] IS NOT NULL";
+                $IslandsDetails = DbHelper::getTableRawData($sql);
+
+                $sql = "SELECT * FROM ClientNatureOfBusiness WHERE [Description] IS NOT NULL";
+                $NatureOfBusiness = DbHelper::getTableRawData($sql);
+
+                $sql = "SELECT * FROM Towns WHERE [Description] IS NOT NULL";
+                $Towns = DbHelper::getTableRawData($sql);
+
+                $sql = "SELECT * FROM ClientBranch WHERE [Description] IS NOT NULL";
+                $ClientBranch = DbHelper::getTableRawData($sql);
+
                 return response()->json(
                     array(
                         "success" => true,
@@ -431,7 +446,12 @@ class parametersController extends Controller
                         "AMLSourceOfIncomeInfo" => $AMLSourceOfIncomeInfo,
                         "ReasonsForExposure" => $ReasonsForExposure,
                         "HazardQuestions" => $HazardQuestions,
-                        "HazardQuestionsSub" => $HazardQuestionsSub
+                        "HazardQuestionsSub" => $HazardQuestionsSub,
+                        "MortgageOptions" => $MortgageOptions,
+                        "IslandsDetails" => $IslandsDetails,
+                        "NatureOfBusiness" => $NatureOfBusiness,
+                        "Towns" => $Towns,
+                        "ClientBranch" => $ClientBranch
                     )
                 );
 
