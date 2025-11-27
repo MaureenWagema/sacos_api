@@ -807,7 +807,7 @@ class syncController extends Controller
                     'NatureOfBusiness' => $request->input('NatureOfBusiness'),
                     'BusinessAddress' => $request->input('BusinessAddress'),
                     'JobTitle' => $request->input('JobTitle'),
-                    'ApproximateAnnualincome' => $request->input('ApproximateAnnualincome'),
+                    'ApproximateMonthlyIncome' => $request->input('ApproximateMonthlyIncome'),
 
                     'IslandDetails' => $request->input('IslandDetails'),
                     'RegionName' => $request->input('RegionName'),

@@ -543,7 +543,7 @@ class policyController extends Controller
                         'NatureOfBusiness' => $results->NatureOfBusiness,
                         'BusinessAddress' => $results->BusinessAddress,
                         'JobTitle' => $results->JobTitle,
-                        'ApproximateAnnualincome' => $results->ApproximateAnnualincome,
+                        'ApproximateMonthlyIncome' => $results->ApproximateMonthlyIncome,
 
                         'IslandDetails' => $results->IslandDetails,
                         'RegionName' => $results->RegionName,
