@@ -60,6 +60,8 @@ class VerifyCsrfToken extends Middleware
         'calc/esb_manual_rider',
         'calc/OrdinaryPolicies',
         'calc/FuneralPolicies',
+        'calc/riderPremium',
+        'calc/ComputePremiumForProducts',
 
         'policy/getProposal',
         'policy/getPolicyDependants',

@@ -1012,7 +1012,7 @@ class loginController extends Controller
             }
 
             //2. Login with agent_no and password
-            $sql = "SELECT * FROM PortalUsers p WHERE p.agent_no='$agent_no' AND p.password='$password'";
+            $sql = "SELECT * FROM PortalUsers p WHERE p.AgentNo='$agent_no' AND p.password='$password'";
          
             $Agent = DbHelper::getTableRawData($sql);
 

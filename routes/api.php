@@ -36,6 +36,7 @@ Route::group(['middleware' => ['client']], function () {
     Route::get('client/getClientDetails', [clientController::class, 'getClientDetails']);
     Route::post('calc/LifeAnidaso', [premCalController::class, 'LifeAnidaso']);
     Route::post('calc/ITCAnidaso', [premCalController::class, 'ITCAnidaso']);
+    
     Route::post('sync/newProposal', [syncController::class, 'synProposal']);
     //Route::post('collections/makePremiumPayment', [collectionsController::class, 'updateHubtel']);
     Route::get('collections/getPaymentHistory', [collectionsController::class, 'getPaymentHistory']);

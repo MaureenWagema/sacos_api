@@ -434,25 +434,26 @@ class policyController extends Controller
                         'home_town' => $results->home_town,
                         'ExpiryDate' => $results->ExpiryDate,
 
-                        'DualCitiizenship' => $results->DualCitiizenship ? 1 : 0,
+                        'DualCitiizenship' => (string)($results->DualCitiizenship ? 1 : 2),
                         'Country2' => $results->Country2,
 
                         'GpsCode' => $results->GpsCode,
                         'SRCNumber' => $results->SRCNumber,
 
-                        'SourceOfIncome' => $results->SourceOfIncome,
-                        'SourceOfIncome2' => $results->SourceOfIncome2,
+                        'SourceOfIncome' => $results->AMLSourceOfIncome,
+                        'SourceOfIncome2' => $results->AMLSourceOfIncome2,
 
                         'date_synced' => $results->date_synced,
                         //p.TaxResidencyDeclared,p.AllowInformationSharing,p.DoNotAllowAllowInformationSharing,p.TaxResidencyDeclared
-                        'TaxResidencyDeclared' => $results->TaxResidencyDeclared ? 1 : 0,
-                        'AllowInformationSharing' => $results->AllowInformationSharing ? 1 : 0,
-                        'DoNotAllowAllowInformationSharing' => $results->DoNotAllowAllowInformationSharing ? 1 : 0,
+                        'TaxResidencyDeclared' => (string)$results->TaxResidencyDeclared,
+                        'AllowInformationSharing' => $results->AllowInformationSharing ? 1 : 2,
+                        'DoNotAllowAllowInformationSharing' => $results->DoNotAllowAllowInformationSharing ? 1 : 2,
 
                         'pay_method_code' => $results->pay_code,
                         'bank_code' => $results->bank_code,
                         'bank_branch' => $results->bank_branch,
                         'bank_account_no' => $results->bank_account_no,
+                        'BankaccountName' => $results->BankaccountName,
 
                         'life_assuarance' => $results->life_assuarance,
                         'existing_policy' => $results->existing_policy,
@@ -483,8 +484,8 @@ class policyController extends Controller
                         'residential_address' => $results->residential_address,
                         'Doyouhavesecondaryincome' => (bool) $results->Doyouhavesecondaryincome,
                         'secondary_income' => $results->secondary_income,
-                        'IsPep' => $results->IsPep ? 1 : 0,
-                        'politicaly_affiliated_person' => $results->politicaly_affiliated_person,
+                        //'IsPep' => $results->IsPep ? 1 : 0,
+                        //'politicaly_affiliated_person' => $results->politicaly_affiliated_person,
                         'policy_no' => $results->proposal_no,
                         'proposal_no' => $results->proposal_no,
                         'life_premium' => $results->Life_Premium,
@@ -548,6 +549,18 @@ class policyController extends Controller
                         'IslandDetails' => $results->IslandDetails,
                         'RegionName' => $results->RegionName,
                         'Branchdetails' => $results->Branchdetails,
+
+                        'PepStatus' => $results->PepStatus,
+                        'ClassificationDate' => $results->ClassificationDate,
+                        'TaxResidencyCountry' => $results->TaxResidencyCountry,
+                        'TaxIdentificationNumber' => $results->TIN,
+                        'TaxDateFrom' => $results->TaxDateFrom,
+                        'TaxDateTo' => $results->TaxDateTo,
+                        'TaxDeclarationDate' => $results->TaxDeclarationDate,
+                        'TaxDeclassificationDate' => $results->TaxDeclassificationDate,
+
+                        'RiskRating' => $results->RiskRating,
+
                     );
                 }
 
@@ -558,10 +571,55 @@ class policyController extends Controller
                 $MobHealthConditions = array();
                 $family_health_arr = array();
                 $hazard_details = array();
+                $PepClassifications = array();
+                $PepDefinitions = array();
+                $sourceOfFunds = array();
+                $ClientRiskTypeDetails = array();
 
 
 
                 if (isset($record_id) && $record_id > 0) {
+
+                    $qry = $this->smartlife_db->table('PEPclassDetails')->select('id','PepClassification as classification')
+                        ->where(
+                            array(
+                                'prop_id' => $record_id
+                            )
+                        );
+                    $PepClassifications = $qry->get();
+
+                    $qry = $this->smartlife_db->table('PEPDetails')->select('id','ReasonsForExposure as definition')
+                        ->where(
+                            array(
+                                'prop_id' => $record_id
+                            )
+                        );
+                    $PepDefinitions = $qry->get();
+
+                    $qry = $this->smartlife_db->table('ClientSourceOfFundDetails')->select('id','SourceOfFundsOption as sourceOfFunds')
+                        ->where(
+                            array(
+                                'prop_id' => $record_id
+                            )
+                        );
+                    $sourceOfFunds = $qry->get();
+
+                    //ClientRiskTypeDetails
+                    $qry = $this->smartlife_db->table('ClientRiskTypeDetails')->select('id','RiskType as riskType')
+                        ->where(
+                            array(
+                                'prop_id' => $record_id
+                            )
+                        );
+                    $ClientRiskTypeDetails = $qry->get();
+
+                    // $qry = $this->smartlife_db->table('PEPDetails')->select('*')
+                    //     ->where(
+                    //         array(
+                    //             'prop_id' => $record_id
+                    //         )
+                    //     );
+                    //$PepDefinitions = $qry->get();
 
                     $qry = $this->smartlife_db->table('mob_rider_info')->select('*')
                         ->where(
@@ -639,6 +697,7 @@ class policyController extends Controller
                         );
                     $row_arr = $qry->get();
 
+
                     for ($i = 0; $i < sizeof($row_arr); $i++) {
                         $hazard_details[$i]['Question'] = $row_arr[$i]->Question;
                         $hazard_details[$i]['IsYes'] = (bool)$row_arr[$i]->IsYes;
@@ -706,7 +765,11 @@ class policyController extends Controller
                     'MobIntermediary' => $MobIntermediary,
                     'MobHealthConditions' => $MobHealthConditions,
                     'hazard_details' => $hazard_details,
-                    'message' => 'Data Synced Successfully!!'
+                    'PepClassifications' => $PepClassifications,
+                    'PepDefinitions' => $PepDefinitions,
+                    'SourceOfFunds' => $sourceOfFunds,
+                    'ClientRiskTypeDetails' => $ClientRiskTypeDetails,
+                    'message' => 'Data Synced Successfully!!',
                 );
             }, 5);
         } catch (\Exception $exception) {
@@ -2480,7 +2543,7 @@ class policyController extends Controller
                 T4.other_name, T4.mobile, T4.email,T4.ClaimDefaultPay_method, T4.ClaimDefaultTelcoCompany, 
                 T4.ClaimDefaultMobileWallet, T4.ClaimDefaultEFTBank_code, T4.ClaimDefaultEFTBankBranchCode,
                 T4.ClaimDefaultEFTBank_account, T4.ClaimDefaultEftBankaccountName,g.AgentNoCode AS agent_no,
-                g.name AS agent_name,h.description AS agent_office,t3.description,t3.microassurance,t3.investment_plan
+                g.name AS agent_name,h.description AS agent_office,t3.description,t3.investment_plan
                 FROM polinfo p
                 INNER JOIN planinfo t3 ON t3.plan_code=p.plan_code
                 INNER JOIN statuscodeinfo c ON c.status_code=p.status_code
@@ -2514,7 +2577,7 @@ class policyController extends Controller
                 (DATEDIFF(month,t1.effective_date,GETDATE()) * T3.coverperiod * t1.modal_prem) AS expected_prem,
                 d.description AS [status], T3.description AS pay_mode, 
                 g.AgentNoCode AS agent_no,g.name AS agent_name,h.description AS agent_office,
-                g.RecruitedBy, t5.description 'Branch',t6.Description 'Sector',T2.microassurance  
+                g.RecruitedBy, t5.description 'Branch',t6.Description 'Sector'
                 FROM polinfo T1 
                 INNER JOIN planinfo T2 on T1.plan_code = T2.plan_code 
                 INNER JOIN paymentmodeinfo T3 on t1.plan_code = T3.plan_code and t1.pay_mode=T3.id 

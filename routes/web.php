@@ -181,6 +181,8 @@ Route::post('calc/ComputePremiumCreditLife', [premCalController::class, 'Compute
 Route::post('calc/esb_manual_rider', [premCalController::class, 'esb_manual_rider']);
 Route::post('calc/OrdinaryPolicies', [premCalController::class, 'OrdinaryPolicies']);
 Route::post('calc/FuneralPolicies', [premCalController::class, 'FuneralPolicies']);
+Route::post('calc/riderPremium', [premCalController::class, 'riderPremium']);
+Route::post('calc/ComputePremiumForProducts', [premCalController::class, 'ComputePremiumForProducts']);
 
 //
 Route::post('collections/getClientnPolicies', [collectionsController::class, 'getClientnPolicies']);

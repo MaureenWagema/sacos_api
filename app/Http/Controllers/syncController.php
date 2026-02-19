@@ -522,7 +522,7 @@ class syncController extends Controller
                 }
 
                 //check business channel and if its life then don't allow totalpremium of zero
-                if ((float)$total_premium > 0  || $HasBeenPicked == 1) {
+                /*if ((float)$total_premium > 0  || $HasBeenPicked == 1) {
                     //do nothing....
 
                 } else {
@@ -532,7 +532,7 @@ class syncController extends Controller
                         'msg' => 'Proposal Not Submited!!. Total Premium cannot be Zero!!. Kindly go to Policy Details and do the right thing'
                     );
                     return response()->json($res);
-                }
+                }*/
 
                 $EntryCategory = null; //$request->input('EntryCategory');
                 //if (!isset($EntryCategory)) {
@@ -680,7 +680,7 @@ class syncController extends Controller
                     'health_condition' => $request->input('health_condition'),
                     'Country' => $country_code,
 
-                    'DualCitiizenship' => $request->input('DualCitiizenship'),
+                    'DualCitiizenship' => $request->input('DualCitiizenship') == 1,
                     'Country2' => $request->input('Country2'),
                     'GpsCode' => $request->input('GpsCode'),
                     'SRCNumber' => $request->input('SRCNumber'),
@@ -692,10 +692,10 @@ class syncController extends Controller
                     'home_town' => $request->input('home_town'),
                     'ExpiryDate' => $request->input('ExpiryDate'),
 
-                    'SourceOfIncome' => $request->input('SourceOfIncome'),
-                    'SourceOfIncome2' => $request->input('SourceOfIncome2'),
+                    'AMLSourceOfIncome' => $request->input('SourceOfIncome'),
+                    'AMLSourceOfIncome2' => $request->input('SourceOfIncome2'),
 
-                    'TaxResidencyDeclared' => (bool)$request->input('TaxResidencyDeclared'),
+                    'TaxResidencyDeclared' => $request->input('TaxResidencyDeclared'),
                     'AllowInformationSharing' => $request->input('AllowInformationSharing') == 1,
                     'DoNotAllowAllowInformationSharing' => $request->input('AllowInformationSharing') == 0,
 
@@ -744,7 +744,7 @@ class syncController extends Controller
                     'residential_address' => $request->input('residential_address'), //IsPep
                     'Doyouhavesecondaryincome' => (bool)$request->input('Doyouhavesecondaryincome'),
                     'secondary_income' => (bool)$request->input('secondary_income'),
-                    'IsPep' => (bool)$IsPep,
+                    //'IsPep' => (bool)$IsPep,
                     'politicaly_affiliated_person' => $request->input('politicaly_affiliated_person'),
 
                     'Life_Premium' => $request->input('life_Premium'),
@@ -812,7 +812,23 @@ class syncController extends Controller
                     'IslandDetails' => $request->input('IslandDetails'),
                     'RegionName' => $request->input('RegionName'),
                     'Branchdetails' => $request->input('Branchdetails'),
+
+                    'PepStatus' => $request->input('PepStatus'),
+                    'ClassificationDate' => $request->input('ClassificationDate'),
+                    'TaxResidencyCountry' => $request->input('TaxResidencyCountry'),
+                    'TIN' => $request->input('TaxIdentificationNumber'),
+                    'TaxDateFrom' => $request->input('TaxDateFrom'),
+                    'TaxDateTo' => $request->input('TaxDateTo'),
+                    'TaxDeclarationDate' => $request->input('TaxDeclarationDate'),
+                    'TaxDeclassificationDate' => $request->input('TaxDeclassificationDate'),
+                    'RiskRating' => $request->input('RiskRating')
                 );
+
+                //PepClassifications?: PepClassificationType[];
+                //they are arrays just like riders
+                
+
+                //PepDefinitions?: PepDefinitionType[];
 
 
 
@@ -879,16 +895,85 @@ class syncController extends Controller
                     }
                 }
 
+                $pep_classifications = $request->input('PepClassifications');
+                if(isset($pep_classifications) && sizeof($pep_classifications) > 0){
+                    $this->smartlife_db->table('PEPclassDetails')->where('prop_id', '=', $record_id)->delete();
+                    //insert into table: PEPclassDetails
+                    for($i=0;$i<sizeof($pep_classifications);$i++){
+                        $table_data = array(
+                            'prop_id' => $record_id,
+                            'PepClassification' => $pep_classifications[$i]['classification'],
+                            'created_on' => Carbon::now()
+                        );
+                        $this->smartlife_db->table('PEPclassDetails')->insert($table_data);
+                    }
+                }
+
+                $SourceOfFunds = $request->input('SourceOfFunds');
+                if(isset($SourceOfFunds) && sizeof($SourceOfFunds) > 0){
+                    $this->smartlife_db->table('ClientSourceOfFundDetails')->where('prop_id', '=', $record_id)->delete();
+                    //insert into table: PEPclassDetails
+                    for($i=0;$i<sizeof($SourceOfFunds);$i++){
+                        $table_data = array(
+                            'prop_id' => $record_id,
+                            'SourceOfFundsOption' => $SourceOfFunds[$i]['sourceOfFunds'],
+                            'created_on' => Carbon::now()
+                        );
+                        $this->smartlife_db->table('ClientSourceOfFundDetails')->insert($table_data);
+                    }
+                }
+
+                $pep_definitions = $request->input('PepDefinitions');
+                if(isset($pep_definitions) && sizeof($pep_definitions) > 0){
+                    $this->smartlife_db->table('PEPDetails')->where('prop_id', '=', $record_id)->delete();
+                    //insert into table: PEPclassDetails
+                    for($i=0;$i<sizeof($pep_definitions);$i++){
+                        $table_data = array(
+                            'prop_id' => $record_id,
+                            'ReasonsForExposure' => $pep_definitions[$i]['definition'],
+                            'created_on' => Carbon::now()
+                        );
+                        $this->smartlife_db->table('PEPDetails')->insert($table_data);
+                    }
+                }
+
+
+                //Source of Funds - RiskRating
+                $ClientRiskTypeDetails = $request->input('ClientRiskTypeDetails');
+                if(isset($ClientRiskTypeDetails) && sizeof($ClientRiskTypeDetails) > 0){
+                    $this->smartlife_db->table('ClientRiskTypeDetails')->where('prop_id', '=', $record_id)->delete();
+                    //insert into table: PEPclassDetails
+                    for($i=0;$i<sizeof($ClientRiskTypeDetails);$i++){
+                        $table_data = array(
+                            'prop_id' => $record_id,
+                            'RiskType' => $ClientRiskTypeDetails[$i]['RiskType'],
+                            'created_on' => Carbon::now()
+                        );
+                        $this->smartlife_db->table('ClientRiskTypeDetails')->insert($table_data);
+                    }
+                }
+
+
+                /*$pep_definitions = json_decode($request->input('pep_definitions'));
+                if(isset($pep_definitions) && sizeof($pep_definitions) > 0){
+                    $this->smartlife_db->table('PEPDetails')->where('prop_id', '=', $record_id)->delete();
+                    //insert into table: PEPclassDetails
+                    for($i=0;$i<sizeof($pep_definitions);$i++){
+                        $pep_definitions[$i]['prop_id'] = $record_id;
+                        $this->smartlife_db->table('PEPDetails')->insert($pep_definitions[$i]);
+                    }
+                }*/
+
                 //insert into the respective tables
                 $rider_array = array();
-                $rider_arr = json_decode($riders_input);
+                $rider_arr = $riders_input;
                 if (isset($rider_arr)) {
                     $this->smartlife_db->table('mob_rider_info')->where('prop_id', '=', $record_id)->delete();
                     for ($i = 0; $i < sizeof($rider_arr); $i++) {
                         $rider_array[$i]['prop_id'] = $record_id;
-                        $rider_array[$i]['rider'] = $rider_arr[$i]->r_rider;
-                        $rider_array[$i]['sa'] = $rider_arr[$i]->r_sa;
-                        $rider_array[$i]['premium'] = $rider_arr[$i]->r_premium;
+                        $rider_array[$i]['rider'] = $rider_arr[$i]['r_rider'];
+                        $rider_array[$i]['sa'] = $rider_arr[$i]['r_sa'];
+                        $rider_array[$i]['premium'] = $rider_arr[$i]['r_premium'];
                         //delete then insert
                         $rider_id = $this->smartlife_db->table('mob_rider_info')->insertGetId($rider_array[$i]);
                     }
@@ -1187,7 +1272,7 @@ class syncController extends Controller
                                         'IdLastPage' => DB::raw("0x" . bin2hex($propAttachments[$i]->IdLastPage)),
                                         'ClientSignature' => DB::raw("0x" . bin2hex($propAttachments[$i]->ClientSignature)),
                                         //'PayslipCopy' => DB::raw("0x" . bin2hex($propAttachments[$i]->PayslipCopy)),
-                                        'IsDublicateFixed' => 1
+                                        //'IsDublicateFixed' => 1
                                     ]);
 
                                 $sql_files = "SELECT p.* FROM mob_proposalFileAttachment p 
@@ -1255,6 +1340,8 @@ class syncController extends Controller
             }
             //$record_id = 18;
             //facility_letter
+            $proposal_file = $request->file('proposal_file');
+            $doc_id = $request->input('doc_id');
             $facility_letter = $request->file('facility_letter');
             $photo = $request->file('photo');
             $id_front = $request->file('id_front');
@@ -1311,7 +1398,7 @@ class syncController extends Controller
                                 //'IdLastPage' => DB::raw("0x" . bin2hex($propAttachments[$i]->IdLastPage)),
                                 //'ClientSignature' => DB::raw("0x" . bin2hex($propAttachments[$i]->ClientSignature)),
                                 //'PayslipCopy' => DB::raw("0x" . bin2hex($propAttachments[$i]->PayslipCopy)),
-                                'IsDublicateFixed' => 1
+                                //'IsDublicateFixed' => 1
                             ]);
 
                         $sql_files = "SELECT p.* FROM mob_proposalFileAttachment p 
@@ -1361,7 +1448,7 @@ class syncController extends Controller
                                 'IdLastPage' => DB::raw("0x" . bin2hex($propAttachments[$i]->IdLastPage)),
                                 'ClientSignature' => DB::raw("0x" . bin2hex($propAttachments[$i]->ClientSignature)),
                                 //'PayslipCopy' => DB::raw("0x" . bin2hex($propAttachments[$i]->PayslipCopy)),
-                                'IsDublicateFixed' => 1
+                                //'IsDublicateFixed' => 1
                             ]);
 
                         $sql_files = "SELECT p.* FROM mob_proposalFileAttachment p 
@@ -1411,7 +1498,7 @@ class syncController extends Controller
                                 'IdLastPage' => DB::raw("0x" . bin2hex($propAttachments[$i]->IdLastPage)),
                                 'ClientSignature' => DB::raw("0x" . bin2hex($propAttachments[$i]->ClientSignature)),
                                 //'PayslipCopy' => DB::raw("0x" . bin2hex($propAttachments[$i]->PayslipCopy)),
-                                'IsDublicateFixed' => 1
+                                //'IsDublicateFixed' => 1
                             ]);
 
                         $sql_files = "SELECT p.* FROM mob_proposalFileAttachment p 
@@ -1457,7 +1544,8 @@ class syncController extends Controller
                 $this->savePhysicalFile($facility_letter, $category_id, $policy_no, $proposal_id, 5);
             if (isset($payslip_path))
                 $this->savePhysicalFile($payslip_path, $category_id, $policy_no, $proposal_id, 6);
-
+            if (isset($proposal_file))
+                $this->savePhysicalFile($proposal_file, $category_id, $policy_no, $proposal_id, $doc_id);
 
             $res = array(
                 'success' => true,
@@ -1500,14 +1588,14 @@ class syncController extends Controller
         $uuid = Uuid::uuid4();
         $uuid = $uuid->toString();
 
-        $Doc_id = "";
-        if ($file_type == 0) $Doc_id = "medical_rpt";
-        if ($file_type == 1) $Doc_id = "photo";
-        if ($file_type == 2) $Doc_id = "id_front";
-        if ($file_type == 3) $Doc_id = "id_back";
-        if ($file_type == 4) $Doc_id = "signature";
-        if ($file_type == 5) $Doc_id = "facility_letter";
-        if ($file_type == 6) $Doc_id = "payslip_path";
+        $Doc_id = $file_type;
+        // if ($file_type == 0) $Doc_id = "medical_rpt";
+        // if ($file_type == 1) $Doc_id = "photo";
+        // if ($file_type == 2) $Doc_id = "id_front";
+        // if ($file_type == 3) $Doc_id = "id_back";
+        // if ($file_type == 4) $Doc_id = "signature";
+        // if ($file_type == 5) $Doc_id = "facility_letter";
+        // if ($file_type == 6) $Doc_id = "payslip_path";
 
 
         //insert into mob_proposalFileAttachment
@@ -1517,7 +1605,8 @@ class syncController extends Controller
             'DocumentType' => $category_id,
             'File' => $uuid,
             'Description' => $fileName,
-            'Doc_id' => $Doc_id
+            'Doc_id' => $Doc_id,
+            'ClientDocumentType' => $Doc_id
         );
         $record_id = $this->smartlife_db->table('mob_proposalFileAttachment')->insertGetId($table_data);
         //insert into Mob_ProposalStoreObject

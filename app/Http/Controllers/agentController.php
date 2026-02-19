@@ -225,27 +225,42 @@ class agentController extends Controller
         }
         return response()->json($res);
     }
-
     //TODO---1.Get Agent Details....
     public function getAgentDetails(Request $request)
     {
         try {
-            $agent_no = $request->input('agent_no');
+            $agent_no = $request->input('agentNo');
             $agentId = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'id');
-            $sql = "SELECT * FROM agents_info p WHERE p.AgentNoCode='$agent_no'";
-            $AgentDetails = DbHelper::getTableRawData($sql);
+            
+            $AgentDetails = $this->smartlife_db->table('agents_info as p')
+                ->select(
+                    'p.AgentNoCode',
+                    'p.name',
+                    'd.description as CurrentManagerLevelName',
+                    'p.IsActive',
+                    'p.Isinstitution',
+                    'p.mobile',
+                    'e.description as UnitDescription'
+                )
+                ->leftJoin('ManagerPromotionLevel as d', 'd.id', '=', 'p.CurrentManagerLevel')
+                ->leftJoin('AgentsunitsInfo as e', 'e.id', '=', 'p.UnitName')
+                ->where('p.IsActive', 1)
+                ->where('p.BusinessChannel', 1)
+                ->where('p.AgentNoCode', $agent_no)
+                ->first();
 
             //get clawback details
-            $sql = "SELECT t1.*,t2.policy_no FROM AgentsClawBackDatainfo t1 
+            /*$sql = "SELECT t1.*,t2.policy_no FROM AgentsClawBackDatainfo t1 
             LEFT JOIN polinfo t2 ON t2.id=t1.PolicyIdKey
             WHERE t1.AgentIdKey='$agentId'";
             $AgentClawBack = DbHelper::getTableRawData($sql);
+            */
 
             //AgentDetails
             $res = array(
                 'success' => true,
                 'AgentDetails' => $AgentDetails,
-                'AgentClawBack' => $AgentClawBack
+                //'AgentClawBack' => $AgentClawBack
             );
         } catch (\Exception $exception) {
             $res = array(

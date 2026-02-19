@@ -376,6 +376,35 @@ class parametersController extends Controller
                 $sql = "SELECT * FROM ClientBranch WHERE [Description] IS NOT NULL";
                 $ClientBranch = DbHelper::getTableRawData($sql);
 
+                //PepStatus
+                $sql = "SELECT * FROM PepStatus WHERE [Description] IS NOT NULL";
+                $PepStatus = DbHelper::getTableRawData($sql);
+
+                $sql = "SELECT * FROM ClientAverageIncome WHERE [Description] IS NOT NULL";
+                $ClientAverageIncome = DbHelper::getTableRawData($sql);
+
+                $sql = "SELECT * FROM PEPClassification WHERE [Description] IS NOT NULL";
+                $PEPClassification = DbHelper::getTableRawData($sql);
+
+                $sql = "SELECT * FROM SourceOfFunds WHERE [Description] IS NOT NULL";
+                $SourceOfFunds = DbHelper::getTableRawData($sql);
+
+                //FamilyStateInfo
+                $sql = "SELECT * FROM FamilyStateInfo WHERE [Desc] IS NOT NULL";
+                $FamilyStateInfo = DbHelper::getTableRawData($sql);
+
+                //YesNoOptions
+                $sql = "SELECT * FROM YesNoOptions WHERE [Description] IS NOT NULL";
+                $YesNoOptions = DbHelper::getTableRawData($sql);
+
+                //clientDocuments
+                $sql = "SELECT id,Description as name,IsMandatory  FROM clientDocuments WHERE [Description] IS NOT NULL";
+                $clientDocuments = DbHelper::getTableRawData($sql);
+
+                //Client Risk Rating
+                $sql = "SELECT * FROM ClientRiskRating WHERE [Description] IS NOT NULL";
+                $ClientRiskRating = DbHelper::getTableRawData($sql);
+
                 return response()->json(
                     array(
                         "success" => true,
@@ -451,7 +480,15 @@ class parametersController extends Controller
                         "IslandsDetails" => $IslandsDetails,
                         "NatureOfBusiness" => $NatureOfBusiness,
                         "Towns" => $Towns,
-                        "ClientBranch" => $ClientBranch
+                        "ClientBranch" => $ClientBranch,
+                        "PepStatus" => $PepStatus,
+                        "ClientAverageIncome" => $ClientAverageIncome,
+                        "PEPClassification" => $PEPClassification,
+                        "SourceOfFunds" => $SourceOfFunds,
+                        "FamilyStateInfo" => $FamilyStateInfo,
+                        "YesNoOptions" => $YesNoOptions,
+                        "clientDocuments" => $clientDocuments,
+                        "ClientRiskRating" => $ClientRiskRating
                     )
                 );
 
