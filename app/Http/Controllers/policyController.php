@@ -184,37 +184,19 @@ class policyController extends Controller
                             )
                         );
                     $row_arr = $qry->get();
-                } else if ((isset($agent_code) && !empty($agent_code)) || (isset($is_dashboard) && $is_dashboard == "1")) {
+                } else if ((isset($agent_code) && !empty($agent_code))) {
                     $date_from = $request->input('date_from');
                     $date_to = $request->input('date_to');
                     //filter by agent
                     $agentId = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_code, 'id');
                     $BusinessChannel = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_code, 'BusinessChannel');
-                    //isolate the micro business as they need a different query...
-                    if ($BusinessChannel == 5 || $BusinessChannel == "5") {
-                        //micro
-                        $sql = "DECLARE @columnNames NVARCHAR(MAX)
-                        SELECT @columnNames = COALESCE(@columnNames + ', ', '') + 'mob_prop_info.' + COLUMN_NAME
-                        FROM (SELECT DISTINCT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'mob_prop_info' AND COLUMN_NAME NOT IN ('ClientSignature','ClientPassportPhoto','IdFrontPage','IdLastPage','PayslipCopy')) AS subquery
-                        
-                        DECLARE @sql NVARCHAR(MAX)
-                        SET @sql = 'SELECT ' + @columnNames + ',MicroProposalInfo.Status,statuscodeinfo.description as StatusName,NULL AS UwCode,'' AS uw_name,'' AS uw_reason 
-                        CONCAT(CAST(agents_info.AgentNoCode AS NVARCHAR), ''-'', agents_info.name) AS agent_name
-                        FROM mob_prop_info 
-                        LEFT JOIN MicroProposalInfo ON MicroProposalInfo.ProposalNumber=mob_prop_info.proposal_no
-                        LEFT JOIN statuscodeinfo ON statuscodeinfo.status_code = MicroProposalInfo.Status
-                        LEFT JOIN agents_info ON agents_info.id=mob_prop_info.agent_code 
-                        WHERE mob_prop_info.agent_code = $agentId
-                        ORDER BY mob_prop_info.ID DESC'
-                        
-                        EXEC (@sql)";
-                    } else {
-                        //life
-                        $unitId = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'UnitName');
-                        $positionId = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'CurrentManagerLevel');
+
+                    //life
+                    $unitId = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'UnitName');
+                    $positionId = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'CurrentManagerLevel');
 
 
-                        $sql = $sql_generic . " 
+                    /*$sql = $sql_generic . " 
                         ,null as StatusName,
                         null as Status,proposalinfo.UwCode,uwcodesinfo.uw_name,uwcodesinfo.AllowMproposalEdit,
                         AppraisalHistory.Observation AS uw_reason,
@@ -231,11 +213,29 @@ class policyController extends Controller
                                 t1.date_synced, t1.isApproved, t1.pay_code, t1.employer, 
                                 t1.employee_no, t1.bank_code, t1.bank_branch, 
                                 t1.bank_account_no, t1.BankaccountName, t1.momo_no 
-                            FROM mob_prop_info t1 WHERE 1=1 ";
-                        if (isset($date_from) && isset($date_to)) {
-                            $sql .= " AND (CAST(t1.date_synced AS DATE) BETWEEN '$date_from' AND '$date_to')";
-                        }
-                        $sql .= ") AS derived
+                            FROM mob_prop_info t1 WHERE 1=1 ";*/
+
+
+                    $sql = "DECLARE @columnNames NVARCHAR(MAX)
+                            SELECT @columnNames = COALESCE(@columnNames + ', ', '') + 'mob_prop_info.' + COLUMN_NAME
+                            FROM (SELECT DISTINCT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'mob_prop_info' AND COLUMN_NAME NOT IN ('ClientSignature','ClientPassportPhoto','IdFrontPage','IdLastPage')) AS subquery
+                            DECLARE @sql NVARCHAR(MAX)
+                            SET @sql = 'SELECT ' + @columnNames + ',null as StatusName,null as Status,
+                            proposalinfo.UwCode,uwcodesinfo.uw_name,
+                            null AS agent_name
+                            FROM mob_prop_info 
+                            LEFT JOIN agents_info ON agents_info.id = mob_prop_info.agent_code 
+                            LEFT  JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code " . $sql_inject . "
+                            LEFT JOIN proposalinfo ON proposalinfo.MproposalNumber=mob_prop_info.ID
+                            LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
+                            WHERE mob_prop_info.agent_code = $agentId
+                            ORDER BY mob_prop_info.ID DESC'
+                            EXEC (@sql)";
+
+                    /*if (isset($date_from) && isset($date_to)) {
+                        $sql .= " AND (CAST(t1.date_synced AS DATE) BETWEEN '$date_from' AND '$date_to')";
+                    }
+                    $sql .= ") AS derived
                         INNER JOIN planinfo ON planinfo.plan_code = derived.plan_code
                         INNER JOIN agents_info ON agents_info.id = derived.agent_code
                         INNER JOIN AgentsunitsInfo ON AgentsunitsInfo.id = agents_info.UnitName 
@@ -245,34 +245,25 @@ class policyController extends Controller
                         LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
                         LEFT JOIN AppraisalHistory ON 
                         (AppraisalHistory.proposal_no = proposalinfo.proposal_no AND AppraisalHistory.IsCurrentRecord = 1)";
-                        if ($positionId == 4 || $positionId == 6) {
-                            $sql .= " WHERE derived.agent_code in (SELECT t2.id  FROM agents_info t2 WHERE t2.UnitName=$unitId)";
-                        } else if ($positionId == 7) {
-                            $BranchId = DbHelper::getColumnValue('AgentsunitsInfo', 'id', $unitId, 'AgentsBranchIdKey');
-                            $sectorId = DbHelper::getColumnValue('AgentsBranchInfo', 'id', $BranchId, 'AgentsRegionIdKey');
+                    if ($positionId == 4 || $positionId == 6) {
+                        $sql .= " WHERE derived.agent_code in (SELECT t2.id  FROM agents_info t2 WHERE t2.UnitName=$unitId)";
+                    } else if ($positionId == 7) {
+                        $BranchId = DbHelper::getColumnValue('AgentsunitsInfo', 'id', $unitId, 'AgentsBranchIdKey');
+                        $sectorId = DbHelper::getColumnValue('AgentsBranchInfo', 'id', $BranchId, 'AgentsRegionIdKey');
 
-                            $sql .= " WHERE AgentsRegionInfo.id=$sectorId";
-                        } else if ($positionId == 8 || (isset($is_dashboard) && $is_dashboard == "1")) {
-                            //do nothing..
-                            $sql .= " WHERE 1=1 AND (planinfo.microassurance=0 AND planinfo.IsCreditLife=0) ";
-                        } else {
+                        $sql .= " WHERE AgentsRegionInfo.id=$sectorId";
+                    } else if ($positionId == 8 || (isset($is_dashboard) && $is_dashboard == "1")) {
+                        //do nothing..
+                        $sql .= " WHERE 1=1 AND (planinfo.microassurance=0 AND planinfo.IsCreditLife=0) ";
+                    } else {
 
-                            $sql .= " WHERE derived.agent_code IN 
+                        $sql .= " WHERE derived.agent_code IN 
                             (SELECT t2.id  FROM agents_info t2 WHERE t2.RecruitedBy=$agentId OR t2.id=$agentId) ";
-                        }
-
-                        $sql .= " ORDER BY derived.ID DESC";
-
-                        $organised_arr = DbHelper::getTableRawData($sql);
-                        return $res = array(
-                            'success' => true,
-                            'record_id' => $record_id,
-                            'policy_arr' => $organised_arr,
-                            'message' => 'Data Synced Successfully!!'
-                        );
                     }
 
-                    //AND (mob_prop_info.HasBeenPicked=0 OR mob_prop_info.isWebCompleted=0)
+                    $sql .= " ORDER BY derived.ID DESC";
+                    */
+
                     $row_arr = DbHelper::getTableRawData($sql);
                 } else if (isset($pos_type) && !empty($pos_type)) {
                     //logic just check if micro else display all 1-lnd life 
@@ -387,6 +378,11 @@ class policyController extends Controller
                     for ($i = 0; $i < sizeof($row_arr); $i++) {
                         $pep_details[] = $row_arr[$i]->ReasonsForExposure;
                     }
+
+                    $agentId = $results->agent_code;
+                    //get the agent no
+                    $agent_code = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'AgentNoCode');
+
                     $organised_arr[] = array(
                         'ID' => (int)$results->ID,
                         //,
@@ -525,8 +521,8 @@ class policyController extends Controller
 
                         'DependantPremium' => $results->DependantPremium,
 
-                        'agent_code' => $results->agent_code,
-                        'agent_name' => $results->agent_name,
+                        'agent_code' => $agent_code,
+                        //'agent_name' => $results->agent_name,
                         'reasons_for_exposure' => $pep_details,
 
                         'Height' => $results->Height,
@@ -580,7 +576,7 @@ class policyController extends Controller
 
                 if (isset($record_id) && $record_id > 0) {
 
-                    $qry = $this->smartlife_db->table('PEPclassDetails')->select('id','PepClassification as classification')
+                    $qry = $this->smartlife_db->table('PEPclassDetails')->select('id', 'PepClassification as classification')
                         ->where(
                             array(
                                 'prop_id' => $record_id
@@ -588,7 +584,7 @@ class policyController extends Controller
                         );
                     $PepClassifications = $qry->get();
 
-                    $qry = $this->smartlife_db->table('PEPDetails')->select('id','ReasonsForExposure as definition')
+                    $qry = $this->smartlife_db->table('PEPDetails')->select('id', 'ReasonsForExposure as definition')
                         ->where(
                             array(
                                 'prop_id' => $record_id
@@ -596,7 +592,7 @@ class policyController extends Controller
                         );
                     $PepDefinitions = $qry->get();
 
-                    $qry = $this->smartlife_db->table('ClientSourceOfFundDetails')->select('id','SourceOfFundsOption as sourceOfFunds')
+                    $qry = $this->smartlife_db->table('ClientSourceOfFundDetails')->select('id', 'SourceOfFundsOption as sourceOfFunds')
                         ->where(
                             array(
                                 'prop_id' => $record_id
@@ -605,7 +601,7 @@ class policyController extends Controller
                     $sourceOfFunds = $qry->get();
 
                     //ClientRiskTypeDetails
-                    $qry = $this->smartlife_db->table('ClientRiskTypeDetails')->select('id','RiskType as riskType')
+                    $qry = $this->smartlife_db->table('ClientRiskTypeDetails')->select('id', 'RiskType as riskType')
                         ->where(
                             array(
                                 'prop_id' => $record_id
@@ -670,6 +666,15 @@ class policyController extends Controller
                         $beneficiaries_arr[$i]['b_dob'] = $row_arr[$i]->birth_date;
                         $beneficiaries_arr[$i]['b_percentage_allocated'] = $row_arr[$i]->perc_alloc;
                         $beneficiaries_arr[$i]['b_mobile_no'] = $row_arr[$i]->telephone;
+
+                        $beneficiaries_arr[$i]['IsForMainbenefit'] = (bool)$row_arr[$i]->IsForMainbenefit;
+                        $beneficiaries_arr[$i]['IsForRiderBenefit'] = (bool)$row_arr[$i]->IsForRiderBenefit;
+
+                        $mob_rider_info = $this->smartlife_db->table('mob_rider_info')
+                            ->where('id', $row_arr[$i]->rider_code)
+                            ->first();
+
+                        $beneficiaries_arr[$i]['rider_code'] = $mob_rider_info->rider;
                     }
 
                     $qry = $this->smartlife_db->table('mob_family_healthinfo')->select('*')

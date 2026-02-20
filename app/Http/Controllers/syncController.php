@@ -299,7 +299,8 @@ class syncController extends Controller
                 $pay_method_code = $request->input('pay_method_code');
                 $staff_number = $request->input('employer_no');
                 $record_id = $request->input('ID');
-                $agent_code = $request->input('agent_code');
+                $agent_code = $request->input('agent_no');
+            
                 $IsWebComplete = $request->input('IsWebComplete');
                 $plan_code = $request->input('plan_id');
                 if (!isset($plan_code)) {
@@ -423,7 +424,7 @@ class syncController extends Controller
                 //////////end of validations///////////
 
                 if (isset($agent_code)) {
-                    $agent_code = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $request->input('agent_code'), 'id');
+                    $agent_code = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_code, 'id');
                 } else {
                     $agent_code = DbHelper::getColumnValue('agents_info', 'IsDirectAgent', 1, 'id');
                 }
@@ -968,12 +969,18 @@ class syncController extends Controller
                 $rider_array = array();
                 $rider_arr = $riders_input;
                 if (isset($rider_arr)) {
+                    // Update mob_beneficiary_info - set rider_code to null when deleting riders
+                    $this->smartlife_db->table('mob_beneficiary_info')
+                        ->where('prop_id', $record_id)
+                        ->update(['rider_code' => null]);
+
                     $this->smartlife_db->table('mob_rider_info')->where('prop_id', '=', $record_id)->delete();
                     for ($i = 0; $i < sizeof($rider_arr); $i++) {
                         $rider_array[$i]['prop_id'] = $record_id;
                         $rider_array[$i]['rider'] = $rider_arr[$i]['r_rider'];
                         $rider_array[$i]['sa'] = $rider_arr[$i]['r_sa'];
                         $rider_array[$i]['premium'] = $rider_arr[$i]['r_premium'];
+                        
                         //delete then insert
                         $rider_id = $this->smartlife_db->table('mob_rider_info')->insertGetId($rider_array[$i]);
                     }
@@ -1034,6 +1041,17 @@ class syncController extends Controller
                         if (empty($beneficiaries_array[$i]['relationship'])) {
                             $beneficiaries_array[$i]['relationship'] = null;
                         }
+
+                        $beneficiaries_array[$i]['IsForMainbenefit'] = $beneficiaries_embb[$i]['IsForMainbenefit'];
+                        $beneficiaries_array[$i]['IsForRiderBenefit'] = $beneficiaries_embb[$i]['IsForRiderBenefit'];
+
+                        // Search mob_rider_info table to find rider ID matching prop_id and rider_code
+                        $rider_info = $this->smartlife_db->table('mob_rider_info')
+                            ->where('prop_id', $record_id)
+                            ->where('rider', $beneficiaries_embb[$i]['rider_code'])
+                            ->first();
+                             
+                        $beneficiaries_array[$i]['rider_code'] = $rider_info ? $rider_info->id : null;
 
                         $beneficiaries_id = $this->smartlife_db->table('mob_beneficiary_info')->insertGetId($beneficiaries_array[$i]);
                     }
