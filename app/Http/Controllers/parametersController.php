@@ -165,7 +165,7 @@ class parametersController extends Controller
                 WHERE [Description] IS NOT NULL";
                 $paclass_info_rows = DbHelper::getTableRawData($sql);
 
-                $sql = "select occupation_code,occupation_name from occupationinfo 
+                $sql = "select TRIM(occupation_code) as occupation_code,occupation_name from occupationinfo 
                 WHERE [occupation_name] IS NOT NULL";
                 $Occupationinfo_rows = DbHelper::getTableRawData($sql);
 

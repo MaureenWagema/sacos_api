@@ -395,7 +395,7 @@ class policyController extends Controller
                         //'uw_reason' => $results->uw_reason,
                         'Status' => $results->Status,
                         'StatusName' => $results->StatusName,
-                        'IncomeType' => (int)$results->IncomeType ?? null,
+                        'IncomeType' => (int)$results->employment_status ?? null,
 
                         'isApproved' => $results->isApproved,
                         'mobile_id' => $results->mobile_id,
@@ -404,7 +404,7 @@ class policyController extends Controller
                         'name' => $results->surname . " " . $results->other_name,
 
                         'employer_code' => $results->employer,
-                        'emp_code' => $results->emp_code,
+                        'emp_code' => $results->EmployerName,
                         'employee_noCode' => $results->employee_noCode,
                         'employee_noDisplay' => $results->employee_noDisplay,
                         //'policy_no' => $results->policy_no,
@@ -432,6 +432,8 @@ class policyController extends Controller
 
                         'DualCitiizenship' => (string)($results->DualCitiizenship ? 1 : 2),
                         'Country2' => $results->Country2,
+                        'DeClassificationDate' => $results->DeClassificationDate,
+                        'SelfEmploymentDetails' => $results->SelfEmploymentDetails,
 
                         'GpsCode' => $results->GpsCode,
                         'SRCNumber' => $results->SRCNumber,
@@ -669,12 +671,20 @@ class policyController extends Controller
 
                         $beneficiaries_arr[$i]['IsForMainbenefit'] = (bool)$row_arr[$i]->IsForMainbenefit;
                         $beneficiaries_arr[$i]['IsForRiderBenefit'] = (bool)$row_arr[$i]->IsForRiderBenefit;
+                        $beneficiaries_arr[$i]['rider_code'] = null; // Initialize rider_code BenefitCategory
+                        $beneficiaries_arr[$i]['BenefitCategory'] = null; // Initialize BenefitCategory
 
-                        $mob_rider_info = $this->smartlife_db->table('mob_rider_info')
-                            ->where('id', $row_arr[$i]->rider_code)
-                            ->first();
+                        $mob_rider_info = null;
+                        if(isset($row_arr[$i]->rider_code) && !empty($row_arr[$i]->rider_code)) {
+                            $mob_rider_info = $this->smartlife_db->table('mob_rider_info')
+                                ->where('id', $row_arr[$i]->rider_code)
+                                ->first();
+                        }
 
-                        $beneficiaries_arr[$i]['rider_code'] = $mob_rider_info->rider;
+                        if($mob_rider_info && $row_arr[$i]->IsForRiderBenefit && isset($mob_rider_info->rider)){
+                            $beneficiaries_arr[$i]['rider_code'] = $mob_rider_info->rider;
+                            $beneficiaries_arr[$i]['BenefitCategory'] = $mob_rider_info->BenefitCategory;
+                        }
                     }
 
                     $qry = $this->smartlife_db->table('mob_family_healthinfo')->select('*')

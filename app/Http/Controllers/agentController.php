@@ -229,8 +229,22 @@ class agentController extends Controller
     public function getAgentDetails(Request $request)
     {
         try {
+
+            $total_submitted_proposals = 0;
+            $total_policies = 0;
             $agent_no = $request->input('agentNo');
             $agentId = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'id');
+
+            //count mob_proposals
+            $total_submitted_proposals = $this->smartlife_db->table('proposalinfo')
+            ->where('agent_no', $agentId)
+            ->count();
+            
+            //count policies
+            $total_policies = $this->smartlife_db->table('polinfo')
+            ->where('agent_no', $agentId)
+            ->count();
+            
             
             $AgentDetails = $this->smartlife_db->table('agents_info as p')
                 ->select(
@@ -260,6 +274,8 @@ class agentController extends Controller
             $res = array(
                 'success' => true,
                 'AgentDetails' => $AgentDetails,
+                'total_submitted_proposals' => $total_submitted_proposals,
+                'total_policies' => $total_policies,
                 //'AgentClawBack' => $AgentClawBack
             );
         } catch (\Exception $exception) {

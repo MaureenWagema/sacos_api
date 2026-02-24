@@ -700,10 +700,12 @@ class syncController extends Controller
                     'AllowInformationSharing' => $request->input('AllowInformationSharing') == 1,
                     'DoNotAllowAllowInformationSharing' => $request->input('AllowInformationSharing') == 0,
 
-                    'emp_code' => $request->input('emp_code'),
+                    'EmployerName' => $request->input('emp_code'),
                     'employee_noCode' => $request->input('employee_noCode'),
                     'employee_noDisplay' => $request->input('employee_noDisplay'),
-                    'IncomeType' => $request->input('IncomeType'),
+                    'employment_status' => $request->input('IncomeType'),
+                    'DeClassificationDate' => $request->input('DeClassificationDate'),
+                    'SelfEmploymentDetails' => $request->input('SelfEmploymentDetails'),
 
                     'pay_code' => $pay_method_code,
                     'bank_code' => $request->input('bank_code'),
@@ -1045,13 +1047,20 @@ class syncController extends Controller
                         $beneficiaries_array[$i]['IsForMainbenefit'] = $beneficiaries_embb[$i]['IsForMainbenefit'];
                         $beneficiaries_array[$i]['IsForRiderBenefit'] = $beneficiaries_embb[$i]['IsForRiderBenefit'];
 
+                        // Initialize rider_code
+                        $beneficiaries_array[$i]['rider_code'] = null;
+                        $beneficiaries_array[$i]['BenefitCategory'] = $beneficiaries_embb[$i]['BenefitCategory'];
+
                         // Search mob_rider_info table to find rider ID matching prop_id and rider_code
-                        $rider_info = $this->smartlife_db->table('mob_rider_info')
-                            ->where('prop_id', $record_id)
-                            ->where('rider', $beneficiaries_embb[$i]['rider_code'])
-                            ->first();
-                             
-                        $beneficiaries_array[$i]['rider_code'] = $rider_info ? $rider_info->id : null;
+                        if(isset($beneficiaries_embb[$i]['rider_code']) && !empty($beneficiaries_embb[$i]['rider_code'])) {
+                            $rider_info = $this->smartlife_db->table('mob_rider_info')
+                                ->where('prop_id', $record_id)
+                                ->where('rider', $beneficiaries_embb[$i]['rider_code'])
+                                ->first();
+                                
+                            $beneficiaries_array[$i]['rider_code'] = $rider_info ? $rider_info->id : null;
+                            
+                        }
 
                         $beneficiaries_id = $this->smartlife_db->table('mob_beneficiary_info')->insertGetId($beneficiaries_array[$i]);
                     }
