@@ -423,20 +423,20 @@ class policyController extends Controller
                         'country_code' => $results->Country,
                         'city' => $results->city,
 
-                        'occupation_code' => $results->occupation,
+                        'occupation_code' => $results->occupation_code,
 
                         'dob' => $results->Dob,
                         'anb' => $results->anb,
-                        'home_town' => $results->home_town,
+                        'home_town' => $results->PlaceOfbirth,
                         'ExpiryDate' => $results->ExpiryDate,
 
-                        'DualCitiizenship' => (string)($results->DualCitiizenship ? 1 : 2),
+                        'DualCitiizenship' => (string)($results->DualCitizenship ? 1 : 2),
                         'Country2' => $results->Country2,
                         'DeClassificationDate' => $results->DeClassificationDate,
                         'SelfEmploymentDetails' => $results->SelfEmploymentDetails,
 
                         'GpsCode' => $results->GpsCode,
-                        'SRCNumber' => $results->SRCNumber,
+                        'SRCNumber' => $results->pin_no,
 
                         'SourceOfIncome' => $results->AMLSourceOfIncome,
                         'SourceOfIncome2' => $results->AMLSourceOfIncome2,
@@ -478,6 +478,7 @@ class policyController extends Controller
 
                         'proposal_date' => $results->proposal_date,
 
+                        'MailingAddress' => $results->MailingAddress,
                         'postal_address' => $results->postal_address,
                         'residential_address' => $results->residential_address,
                         'Doyouhavesecondaryincome' => (bool) $results->Doyouhavesecondaryincome,
@@ -672,18 +673,17 @@ class policyController extends Controller
                         $beneficiaries_arr[$i]['IsForMainbenefit'] = (bool)$row_arr[$i]->IsForMainbenefit;
                         $beneficiaries_arr[$i]['IsForRiderBenefit'] = (bool)$row_arr[$i]->IsForRiderBenefit;
                         $beneficiaries_arr[$i]['rider_code'] = null; // Initialize rider_code BenefitCategory
-                        $beneficiaries_arr[$i]['BenefitCategory'] = null; // Initialize BenefitCategory
+                        $beneficiaries_arr[$i]['BenefitCategory'] = $mob_rider_info->BenefitCategory ?? null;
 
                         $mob_rider_info = null;
-                        if(isset($row_arr[$i]->rider_code) && !empty($row_arr[$i]->rider_code)) {
+                        if (isset($row_arr[$i]->rider_code) && !empty($row_arr[$i]->rider_code)) {
                             $mob_rider_info = $this->smartlife_db->table('mob_rider_info')
                                 ->where('id', $row_arr[$i]->rider_code)
                                 ->first();
                         }
 
-                        if($mob_rider_info && $row_arr[$i]->IsForRiderBenefit && isset($mob_rider_info->rider)){
+                        if ($mob_rider_info && $row_arr[$i]->IsForRiderBenefit && isset($mob_rider_info->rider)) {
                             $beneficiaries_arr[$i]['rider_code'] = $mob_rider_info->rider;
-                            $beneficiaries_arr[$i]['BenefitCategory'] = $mob_rider_info->BenefitCategory;
                         }
                     }
 
@@ -2525,6 +2525,12 @@ class policyController extends Controller
                 $prem_due_dateVAR = DbHelper::getColumnValue('polinfo', 'id', $policyId, 'prem_due_date');
                 $pay_mode = DbHelper::getColumnValue('polinfo', 'id', $policyId, 'pay_mode');
                 $coverperiod = DbHelper::getColumnValue('paymentmodeinfo', 'id', $pay_mode, 'coverperiod');
+                
+                // Prevent division by zero - set default coverperiod if null or zero
+                if ($coverperiod == null || $coverperiod == 0) {
+                    $coverperiod = 1; // Default to 1 month to prevent division by zero
+                }
+                
                 $prem_due_dateVARX = $this->addMonthsToDate($prem_due_dateVAR, $coverperiod);
                 $effective_dateVAR = DbHelper::getColumnValue('polinfo', 'id', $policyId, 'effective_date');
                 $MonthDateUsedVAR = date('Y-m-d');
@@ -2561,10 +2567,10 @@ class policyController extends Controller
                 g.name AS agent_name,h.description AS agent_office,t3.description,t3.investment_plan
                 FROM polinfo p
                 INNER JOIN planinfo t3 ON t3.plan_code=p.plan_code
-                INNER JOIN statuscodeinfo c ON c.status_code=p.status_code
-                INNER JOIN clientinfo T4 ON p.client_number = T4.client_number
-                INNER JOIN agents_info g ON g.id=p.agent_no
-                INNER JOIN AgentsunitsInfo h ON g.UnitName=h.id
+                LEFT JOIN statuscodeinfo c ON c.status_code=p.status_code
+                LEFT JOIN clientinfo T4 ON p.client_number = T4.client_number
+                LEFT JOIN agents_info g ON g.id=p.agent_no
+                LEFT JOIN AgentsunitsInfo h ON g.UnitName=h.id
                 left JOIN pay_source_mainteinance d ON p.emp_code=d.emp_code
                 left JOIN bankcodesinfo e ON e.bank_code=p.EFTBank_code
                 left JOIN bankmasterinfo f ON f.id = p.EFTBankBranchCode
@@ -2592,16 +2598,14 @@ class policyController extends Controller
                 (DATEDIFF(month,t1.effective_date,GETDATE()) * T3.coverperiod * t1.modal_prem) AS expected_prem,
                 d.description AS [status], T3.description AS pay_mode, 
                 g.AgentNoCode AS agent_no,g.name AS agent_name,h.description AS agent_office,
-                g.RecruitedBy, t5.description 'Branch',t6.Description 'Sector'
+                g.RecruitedBy
                 FROM polinfo T1 
                 INNER JOIN planinfo T2 on T1.plan_code = T2.plan_code 
-                INNER JOIN paymentmodeinfo T3 on t1.plan_code = T3.plan_code and t1.pay_mode=T3.id 
-                INNER JOIN clientinfo T4 on T1.client_number = T4.client_number
-                INNER JOIN statuscodeinfo d ON d.status_code=T1.status_code
-                INNER JOIN agents_info g ON g.id=T1.agent_no
-                INNER JOIN AgentsunitsInfo h ON g.UnitName=h.id
-                LEFT JOIN AgentsBranchInfo t5 ON t5.id=h.AgentsBranchIdKey
-                LEFT JOIN AgentsRegionInfo t6 ON t6.id=t5.AgentsRegionIdKey";
+                LEFT JOIN paymentmodeinfo T3 on t1.plan_code = T3.plan_code and t1.pay_mode=T3.id 
+                LEFT JOIN clientinfo T4 on T1.client_number = T4.client_number
+                LEFT JOIN statuscodeinfo d ON d.status_code=T1.status_code
+                LEFT JOIN agents_info g ON g.id=T1.agent_no
+                LEFT JOIN AgentsunitsInfo h ON g.UnitName=h.id";
 
                 if (isset($criteria) && $criteria == '1') { //name
                     $sql .= " WHERE T4.name LIKE '%$search_entry%'";

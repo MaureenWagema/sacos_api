@@ -681,16 +681,16 @@ class syncController extends Controller
                     'health_condition' => $request->input('health_condition'),
                     'Country' => $country_code,
 
-                    'DualCitiizenship' => $request->input('DualCitiizenship') == 1,
+                    'DualCitizenship' => $request->input('DualCitiizenship') == 1,
                     'Country2' => $request->input('Country2'),
                     'GpsCode' => $request->input('GpsCode'),
-                    'SRCNumber' => $request->input('SRCNumber'),
+                    'pin_no' => $request->input('SRCNumber'),
 
                     'city' => $request->input('city'),
-                    'occupation' => $request->input('occupation_code'),
+                    'occupation_code' => $request->input('occupation_code'),
                     'Dob' => $request->input('dob'),
                     'anb' => $anb,
-                    'home_town' => $request->input('home_town'),
+                    'PlaceOfbirth' => $request->input('home_town'),
                     'ExpiryDate' => $request->input('ExpiryDate'),
 
                     'AMLSourceOfIncome' => $request->input('SourceOfIncome'),
@@ -743,6 +743,7 @@ class syncController extends Controller
                     'second_age' => $request->input('second_age'),
 
                     'proposal_date' => Carbon::now(),
+                    'MailingAddress' => $request->input('MailingAddress'),
                     'postal_address' => $request->input('postal_address'),
                     'residential_address' => $request->input('residential_address'), //IsPep
                     'Doyouhavesecondaryincome' => (bool)$request->input('Doyouhavesecondaryincome'),
@@ -1044,6 +1045,8 @@ class syncController extends Controller
                             $beneficiaries_array[$i]['relationship'] = null;
                         }
 
+                        $beneficiaries_array[$i]['IsForMainbenefit'] = $beneficiaries_embb[$i]['IsForMainbenefit'];
+                        $beneficiaries_array[$i]['IsForRiderBenefit'] = $beneficiaries_embb[$i]['IsForRiderBenefit'];
                         $beneficiaries_array[$i]['IsForMainbenefit'] = $beneficiaries_embb[$i]['IsForMainbenefit'];
                         $beneficiaries_array[$i]['IsForRiderBenefit'] = $beneficiaries_embb[$i]['IsForRiderBenefit'];
 
