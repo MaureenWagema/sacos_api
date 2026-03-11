@@ -3273,12 +3273,14 @@ class policyController extends Controller
             //$branch_id = DbHelper::getColumnValue('PermissionPolicyUser', 
             //'UserName', $username, 'Branch');
             //$sql = "SELECT * FROM pos_log p";  INNER JOIN portal_users e ON p.created_by=e.username
-            $sql = "SELECT p.id,p.ClientName,p.staff_no,p.Activity,p.ComplaintType,p.Narration,
-             p.created_on,p.created_by,d.Branch,g.glbranch_name as branch_name 
+            $sql = "SELECT p.id,p.ClientName,p.StaffNumber,p.Activity,p.ComplaintType,p.Narration,
+             p.created_on,p.created_by,d.Branch,g.glbranch_name as branch_name,
+             p.UserName, ct.Description as ComplaintTypeDescription
              FROM pos_log p 
             
              LEFT JOIN PermissionPolicyUser d ON d.UserName = p.created_by
              LEFT JOIN glBranchInfo g ON d.Branch=g.glBranch 
+             LEFT JOIN POSComplaintType ct ON ct.id = p.ComplaintType
              WHERE ";
 
             if ($n == "6") {
@@ -3297,14 +3299,14 @@ class policyController extends Controller
             }
 
             $sql .= " CAST(p.created_on AS DATE)  BETWEEN '$date_from' AND '$date_to' 
-            GROUP BY p.id,p.ClientName,p.staff_no,p.Activity,p.Narration,p.created_on,
-            p.created_by,d.Branch,g.glbranch_name,p.ComplaintType
+            GROUP BY p.id,p.ClientName,p.StaffNumber,p.Activity,p.Narration,p.created_on,
+            p.created_by,d.Branch,g.glbranch_name,p.ComplaintType,p.UserName,ct.Description
             ORDER BY p.id DESC";
 
             $Activities = DbHelper::getTableRawData($sql);
 
             //TODO - Display the Summaries..
-            $sql_summ = "SELECT COUNT(DISTINCT p.staff_no) AS total, d.Branch, 
+            $sql_summ = "SELECT COUNT(DISTINCT p.StaffNumber) AS total, d.Branch, 
             g.glbranch_name 'branch_name' 
             FROM pos_log p 
             LEFT JOIN PermissionPolicyUser d ON d.UserName = p.created_by 
@@ -3343,19 +3345,40 @@ class policyController extends Controller
         return response()->json($res);
     }
 
+    //3. get complaint types endpoint
+    public function getComplaintTypes(Request $request)
+    {
+        try {
+            $sql = "SELECT id, Description FROM POSComplaintType ORDER BY Description";
+            $complaintTypes = DbHelper::getTableRawData($sql);
+            
+            $res = array(
+                'success' => true,
+                'complaintTypes' => $complaintTypes
+            );
+        } catch (\Exception $exception) {
+            $res = array(
+                'success' => false,
+                'message' => $exception->getMessage()
+            );
+        }
+        return response()->json($res);
+    }
+
     //2. add post activities endpoint
     public function postPOSActivities(Request $request)
     {
         try {
             $pos_log_data = array(
                 'ClientName' => $request->input('ClientName'),
-                'staff_no' => $request->input('staff_no'),
+                'StaffNumber' => $request->input('StaffNumber'),
                 'Activity' => $request->input('Activity'),
                 'Narration' => $request->input('Narration'),
                 'eClaimId' => null,
                 'eEndorsementId' => null,
                 'created_on' => date('Y-m-d H:i:s'),
                 'created_by' => $request->input('created_by'),
+                'UserName' => $request->input('UserName'),
                 'ComplaintType' => $request->input('ComplaintType')
             );
             $pos_log_id = $this->smartlife_db->table('pos_log')->insertGetId($pos_log_data);
