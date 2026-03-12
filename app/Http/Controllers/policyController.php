@@ -3283,7 +3283,8 @@ class policyController extends Controller
              LEFT JOIN POSComplaintType ct ON ct.id = p.ComplaintType
              WHERE ";
 
-            if ($n == "6") {
+            // Commented out filters to get all data
+            /*if ($n == "6") {
                 $sql .= " p.Activity=3 AND ";
             }
 
@@ -3296,9 +3297,12 @@ class policyController extends Controller
             }
             if ($source_type == "2" || $is_micro == "1") {
                 $sql .= " d.Module='MI' AND ";
-            }
+            }*/
 
-            $sql .= " CAST(p.created_on AS DATE)  BETWEEN '$date_from' AND '$date_to' 
+            // Commented out date filter to get all data
+            /*$sql .= " CAST(p.created_on AS DATE)  BETWEEN '$date_from' AND '$date_to' */
+            
+            $sql .= " 1=1 
             GROUP BY p.id,p.ClientName,p.StaffNumber,p.Activity,p.Narration,p.created_on,
             p.created_by,d.Branch,g.glbranch_name,p.ComplaintType,p.UserName,ct.Description
             ORDER BY p.id DESC";
@@ -3311,7 +3315,7 @@ class policyController extends Controller
             FROM pos_log p 
             LEFT JOIN PermissionPolicyUser d ON d.UserName = p.created_by 
             LEFT JOIN glBranchInfo g ON d.Branch=g.glBranch 
-            WHERE CAST(p.created_on AS DATE) BETWEEN '$date_from' AND '$date_to'
+            /*WHERE CAST(p.created_on AS DATE) BETWEEN '$date_from' AND '$date_to'*/
             GROUP BY d.Branch, g.glbranch_name";
 
             $ClientSummary = DbHelper::getTableRawData($sql_summ);
