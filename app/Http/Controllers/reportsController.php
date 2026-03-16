@@ -11,6 +11,61 @@ use Illuminate\Support\Facades\File;
 class reportsController extends Controller
 {
 
+
+    public function getSacosRpt(Request $request)
+    {
+        try {
+            $res = array();
+
+            $policy_no = $request->input('policy_no');
+            //$policyId = DbHelper::getColumnValue('mob_prop_info', 'proposal_no', $policy_no, 'ID');
+            $ReportName = $request->input('ReportName');
+            $FileType = $request->input('FileType');
+            $Criteria = $request->input('Criteria');
+
+
+            $url_path = "http://192.168.133.31:120/slamslife/api/v1/Report/GenerateByPolicy";
+
+            $params = ['json' => [
+                    'policy_no' => $policy_no,
+                    'ReportName' => $ReportName,
+                    'FileType' => $FileType,
+                    'Criteria' => $Criteria,
+            ]];
+
+            print_r($params);
+
+            $client = new \GuzzleHttp\Client;
+            $response = $client->post($url_path, $params);
+
+            var_dump($response);
+
+            if ($response->getStatusCode() == 200) {
+                $rawResponse = json_decode($response->getBody()->getContents());
+                $base64Rpt = $rawResponse->Report;
+            }
+
+            $res = array(
+                'success' => true,
+                'base64Rpt' => $base64Rpt,
+                'message' => 'Report successfully fetched'
+            );
+        } catch (\Exception $exception) {
+            $res = array(
+                'success' => false,
+                'message' => $exception->getMessage()
+            );
+            return response()->json($res);
+        } catch (\Throwable $throwable) {
+            $res = array(
+                'success' => false,
+                'message' => $throwable->getMessage()
+            );
+            return response()->json($res);
+        }
+        return response()->json($res);
+    }
+
     //display group post rpt only
     public function getGroupRpt(Request $request)
     {

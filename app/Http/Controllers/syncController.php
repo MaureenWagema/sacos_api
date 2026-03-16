@@ -725,14 +725,16 @@ class syncController extends Controller
 
                     'inv_premium' => $inv_prem,
                     'basic_premium' => $basic_premium,
-                    'modal_premium' => $modal_premium,
+                    //$modal_premium,
                     'rider_premium' => $rider_prem,
                     'annual_premium' => $annual_premium,
                     'Vat' => $request->input('Vat'),
                     'TotalPremium' => $total_premium,
+                    
                     'Sum_Assured' => $sum_assured,
                     'pol_fee' => $policy_fee,
-                    'cepa' => $request->input('cepa'),
+                    'modal_premium' => (float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
+                    //'cepa' => $request->input('cepa'),
                     'tot_protection' => $request->input('tot_protection'),
                     'transfer_charge' => $request->input('transfer_charge'),
 

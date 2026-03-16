@@ -214,6 +214,8 @@ class VerifyCsrfToken extends Middleware
         'reports/getMDsDashboard',
         'reports/policyNoMicro',
 
+        'reports/getSacosRpt',
+
         'email/sendEmail',
         'email/smsPOST',
         'email/sendLink',
