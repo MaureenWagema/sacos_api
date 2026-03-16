@@ -91,6 +91,7 @@ class VerifyCsrfToken extends Middleware
 
         'policy/getActivitiesData',
         'policy/postPOSActivities',
+        'policy/getComplaintTypes',
 
         'policy/validatePWDLoan',
 

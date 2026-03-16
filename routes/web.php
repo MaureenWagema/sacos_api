@@ -144,6 +144,7 @@ Route::get('policy/reBuildCashValue', [policyController::class, 'reBuildCashValu
 
 Route::get('policy/getActivitiesData', [policyController::class, 'getActivitiesData']);
 Route::post('policy/postPOSActivities', [policyController::class, 'postPOSActivities']);
+Route::get('policy/getComplaintTypes', [policyController::class, 'getComplaintTypes']);
 //
 Route::get('policy/getAgentPaySourceData', [policyController::class, 'getAgentPaySourceData']);
 Route::get('policy/validatePWDLoan', [policyController::class, 'validatePWDLoan']);
