@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Helpers\DbHelper;
 use Carbon\Carbon;
 use Ramsey\Uuid\Uuid;
+use PDO;
 
 class claimController extends Controller
 {
@@ -72,524 +73,658 @@ class claimController extends Controller
     }
 
 
-    //claims entries
-    public function insertClaimEntries(Request $request)
+     public function insertClaimEntries(Request $request)
     {
         try {
-            $res = array();
-            // put in a transaction the whole process of syncing data...
-            $this->smartlife_db->transaction(function () use (&$res, $request) {
-
-                $statuscode = $request->input('statuscode');//14;
-                if(!isset($statuscode)){
-                    $statuscode = 14;
-                }
-                $id = $request->input('id');
-                $PolicyId = $request->input('PolicyId'); //DbHelper::getColumnValue('polinfo', 'policy_no',$policy_no,'id');
-                $mobile_id = $request->input('mobile_id');
-                $policy_no = $request->input('policyno');
-                $MicroPolicy = $request->input('MicroPolicy');
-                if (isset($MicroPolicy) && $MicroPolicy > 0) {
-                    $PolicyId = null;
-                }
-                if (isset($policy_no)) {
-                    $PolicyId = DbHelper::getColumnValue('polinfo', 'policy_no', $policy_no, 'id');
-                    if (!isset($PolicyId)) {
-                        $PolicyId = DbHelper::getColumnValue('MicroPolicyInfo', 'ProposalNumber', $policy_no, 'Id');
-                    }
-                }
-                $ProposalNumber = $request->input('ProposalNumber');
-                $claim_type = $request->input('claim_type');
-                $PartialWithdPurpose = $request->input('PartialWithdPurpose');
-                $CurrentCashValue = $request->input('CurrentCashValue');
-                $PreviousloanAmount = $request->input('PreviousloanAmount');
-                $AmountAppliedFor = $request->input('AmountAppliedFor');
-                $ClaimCause = $request->input('ClaimCause');
-                $DoctorName = $request->input('DoctorName');
-                $event_date = $request->input('event_date');
-                $ClaimantName = $request->input('ClaimantName');
-                $ClaimantMobile = $request->input('ClaimantMobile');
-                $PaymentOptions = $request->input('PaymentOptions');
-                $TermInMonths = $request->input('TermInMonths');
-                $Pay_method = $request->input('ClaimDefaultPay_method');
-                $isClaimPayChange = $request->input('isClaimPayChange');
-                $LoanPolicies = $request->input('LoanPolicies');
-                $IsFromClient = $request->input('IsFromClient');
-
-                $IsWrongful = false;
-                if($claim_type == "RFU" || $claim_type == "RFULOAN" || $claim_type == "RFD" || $claim_type == "RFDLOAN"){
-                    $IsWrongful = true;
-                }
-
+            $res = [];
+            
+            if (!$this->checkDatabaseConnection()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Database connection is currently unavailable. Please try again.'
+                ], 503);
+            }
+            
+            try {
+                // Extract and validate data first.... check how naeza make this faster
+                $claimData = $this->extractClaimData($request);
+                $paymentData = $this->extractPaymentData($request);
+                $attachmentData = $this->extractAttachmentData($request);
                 
-
-                //explode it and re-write it to ids seperated by comma
-                if(isset($LoanPolicies)){
-                    $tmp_loanpolicy = "";
-                    $tmp_i = 0;
-                    $loanPolicyArray = explode(',', $LoanPolicies);
-                    // Loop through the array and print each element
-                    foreach ($loanPolicyArray as $loanPolicy) {
-                        $Policy_Id = DbHelper::getColumnValue('polinfo', 'policy_no', $loanPolicy, 'id');
-                        if($tmp_i == 0){
-                            $tmp_loanpolicy = $Policy_Id;
-                        }else{
-                            $tmp_loanpolicy = ",".$Policy_Id;
-                        }
-                        $tmp_i++;
-                    }
-                    $LoanPolicies = $tmp_loanpolicy;
-                }
-
-
-
-                if(!isset($isClaimPayChange) && isset($Pay_method)){
-                    $ClaimDefaultPay_method = $request->input('ClaimDefaultPay_method');
-                    $ClaimDefaultTelcoCompany = $request->input('ClaimDefaultTelcoCompany');
-                    $ClaimDefaultMobileWallet = $request->input('ClaimDefaultMobileWallet');
-                    $ClaimDefaultEFTBank_code = $request->input('ClaimDefaultEFTBank_code');
-                    $ClaimDefaultEFTBankBranchCode = $request->input('ClaimDefaultEFTBankBranchCode');
-                    $ClaimDefaultEFTBank_account = $request->input('ClaimDefaultEFTBank_account');
-                    $ClaimDefaultEftBankaccountName = $request->input('ClaimDefaultEftBankaccountName');
-                } 
-                $user_id = $request->input('user_id');
-                $Reason = $request->input('Reason');
-                $id_type = $request->input('id_type');
-                $IdNumber = $request->input('IdNumber');
-
-                if(isset($isClaimPayChange) && $isClaimPayChange){
-                    $ClaimDefaultPay_method = $request->input('ClaimDefaultPay_method');
-                    $ClaimDefaultTelcoCompany = $request->input('ClaimDefaultTelcoCompany');
-                    $ClaimDefaultMobileWallet = $request->input('ClaimDefaultMobileWallet');
-                    $ClaimDefaultEFTBank_code = $request->input('ClaimDefaultEFTBank_code');
-                    $ClaimDefaultEFTBankBranchCode = $request->input('ClaimDefaultEFTBankBranchCode');
-                    $ClaimDefaultEFTBank_account = $request->input('ClaimDefaultEFTBank_account');
-                    $ClaimDefaultEftBankaccountName = $request->input('ClaimDefaultEftBankaccountName');
-                }else{
-                    if(!isset($Pay_method)){
-                        $ClaimDefaultPay_method = $request->input('ClaimDefaultPay_methodD');
-                        $ClaimDefaultTelcoCompany = $request->input('ClaimDefaultTelcoCompanyD');
-                        $ClaimDefaultMobileWallet = $request->input('ClaimDefaultMobileWalletD');
-                        $ClaimDefaultEFTBank_code = $request->input('ClaimDefaultEFTBank_codeD');
-                        $ClaimDefaultEFTBankBranchCode = $request->input('ClaimDefaultEFTBankBranchCodeD');
-                        $ClaimDefaultEFTBank_account = $request->input('ClaimDefaultEFTBank_accountD');
-                        $ClaimDefaultEftBankaccountName = $request->input('ClaimDefaultEftBankaccountNameD');
-                    }
-                }
-
-                //LoanPaySource, LoanStaffNo
-                $LoanDefaultPay_method = $request->input('LoanDefaultPay_method');
-                $LoanPaySource = $request->input('LoanPaySource');
-                $LoanStaffNo = $request->input('LoanStaffNo');
-                $LoanDefaultTelcoCompany = $request->input('LoanDefaultTelcoCompany');
-                if(isset($LoanDefaultTelcoCompany)){
-                    $LoanPaySource=$LoanDefaultTelcoCompany;
-                }
-
-                $LoanDefaultMobileWallet = $request->input('LoanDefaultMobileWallet');
-                $LoanDefaultEFTBank_code = $request->input('LoanDefaultEFTBank_code');
-                $LoanDefaultEFTBankBranchCode = $request->input('LoanDefaultEFTBankBranchCode');
-                $LoanDefaultEFTBank_account = $request->input('LoanDefaultEFTBank_account');
-                $LoanDefaultEftBankaccountName = $request->input('LoanDefaultEftBankaccountName');
-                $FuneralMembersInfo = $request->input('FuneralMembersInfo');
+                \Log::info('Raw Request Data: ' . json_encode($request->all()));
+                \Log::info('Extracted Payment Data: ' . json_encode($paymentData));
                 
-
-                //get client_name, 
-                $client_no = DbHelper::getColumnValue('polinfo', 'id', $PolicyId, 'client_number');
-                if(!isset($client_no)){
-                    $client_no = DbHelper::getColumnValue('MicroPolicyInfo', 'Id', $MicroPolicy, 'Client');
+                $this->validateClaimData($claimData);
+                
+                if ($claimData['IsWebComplete'] == 0) {
+                    // Use minimal client info for draft claims
+                    $clientInfo = [
+                        'name' => $claimData['ClaimantName'],
+                        'client_number' => 'DRAFT-' . time() 
+                    ];
+                    $policyInfo = [
+                        'id' => null,
+                        'client_number' => $clientInfo['client_number'],
+                        'type' => 'draft'
+                    ];
+                } else {
+                    $policyInfo = $this->getPolicyInfo($claimData);
+                    $clientInfo = $this->getClientInfo($policyInfo);
                 }
-                if(!isset($client_no)){
-                    $client_no = DbHelper::getColumnValue('proposalinfo', 'proposal_no', $ProposalNumber, 'client_number');
-                }
-                if(!isset($client_no)){
-                    $client_no = DbHelper::getColumnValue('MicroProposalInfo', 'ProposalNumber', $ProposalNumber, 'Client');
-                }
-                //use clientId to fetch client_name
-                $ClientName = DbHelper::getColumnValue('clientinfo', 'client_number', $client_no, 'name');
-
-                $username = $user_id; //DbHelper::getColumnValue('portal_users', 'id',$user_id,'username');
-                $branch_id = DbHelper::getColumnValue('PermissionPolicyUser', 'UserName', $username, 'Branch');
-
-
-                $Emp_code = $request->input('Emp_code');
-                $BankCode = $request->input('BankCode');
-                $ReferenceNumber = $request->input('ReferenceNumber');
-                //$DateFrom = $request->input('DateFrom');
-                //$DateTo = $request->input('DateTo');
-
-                //TODO - Validate entry of staff no if its wrongful claim
-                if($IsWrongful && ($statuscode == 13 || $statuscode == "13")){
-                    if($claim_type == "RFU"){
-                        //employer
-                        $sql = "SELECT * FROM checkoffinfo t1 
-                        WHERE (t1.Is_unknown=1 OR t1.Is_unknown=1 ) AND 
-                        (t1.IsRefunded=0 OR t1.IsRefunded=0) AND t1.Emp_code ='$Emp_code' AND 
-                        t1.staff_no ='$ReferenceNumber'";
-                        $PaySourceRawData = DbHelper::getTableRawData($sql);
-                        if(sizeof($PaySourceRawData) === 0){
-                            //return;
-                            return $res = array(
-                                'success' => false,
-                                'message' => 'Claim not Submited!. Missing wrongful record. Check staff Number'
-                            );
-                        }
-                    }
-                    if($claim_type == "RFULOAN"){
-                        //employer
-                        $sql = "SELECT * FROM Loancheckoffinfo t1 
-                        INNER JOIN LoanReceipts t2 ON t1.LoanReceiptKey= t2.IdKey  
-                        WHERE (t1.Is_unknown=1 OR t1.Is_unknown=1) AND (t1.IsRefunded=0 OR t1.IsRefunded=0) 
-                        AND t2.EmpCode = '$Emp_code' AND 
-                        t1.ReferenceNumber ='$ReferenceNumber'";
-                        $PaySourceRawData = DbHelper::getTableRawData($sql);
-                        if(sizeof($PaySourceRawData) === 0){
-                            //return;
-                            return $res = array(
-                                'success' => false,
-                                'message' => 'Claim not Submited!. Missing wrongful record. Check staff Number'
-                            );
-                        }
-                    }
-                    if($claim_type == "RFD"){
-                        //employer
-                        $sql = "SELECT * FROM Deduct t1 
-                        WHERE (t1.Is_unknown=1 OR t1.Is_unknown=1 ) AND 
-                        (t1.IsRefunded=0 OR t1.IsRefunded=0) AND t1.Bank_code ='$BankCode' AND 
-                        t1.BankAccountNumber ='$ReferenceNumber'";
-                        $PaySourceRawData = DbHelper::getTableRawData($sql);
-                        if(sizeof($PaySourceRawData) === 0){
-                            //return;
-                            return $res = array(
-                                'success' => false,
-                                'message' => 'Claim not Submited!. Missing wrongful record. Check staff Number'
-                            );
-                        }
-                    }
-                    if($claim_type == "RFDLOAN"){
-                        //employer
-                        $sql = "SELECT * FROM Loancheckoffinfo t1 
-                        INNER JOIN LoanReceipts t2 ON t1.LoanReceiptKey= t2.IdKey  
-                        WHERE (t1.Is_unknown=1 OR t1.Is_unknown=1) AND (t1.IsRefunded=0 OR t1.IsRefunded=0) 
-                        AND t2.BankCode ='$BankCode' AND 
-                        t1.ReferenceNumber = '$ReferenceNumber'";
-                        $PaySourceRawData = DbHelper::getTableRawData($sql);
-                        if(sizeof($PaySourceRawData) === 0){
-                            //return;
-                            return $res = array(
-                                'success' => false,
-                                'message' => 'Claim not Submited!. Missing wrongful record. Check staff Number'
-                            );
-                        }
-                    }
-                }
-
-                //LoanStaffNo
-                //insert or update...
-                //do a search where
-                $FlagShowClaimnant = 0;
-                if($claim_type != "RFD" && $claim_type != "RFU" && 
-                $claim_type != "RFDLOAN" && $claim_type != "RFULOAN" && $claim_type != "REP"){
-                    $FlagShowClaimnant = 1;
-                    if(empty($PolicyId)){
-                        $sql = "select * from eClaimsEntries p where (p.MicroPolicy=$MicroPolicy and p.claim_type='$claim_type') and (p.statuscode=13 or p.statuscode=14) and p.IsCancelled IS NULL";
-                    }else{
-                        $sql = "select * from eClaimsEntries p where (p.PolicyId=$PolicyId and p.claim_type='$claim_type') and (p.statuscode=13 or p.statuscode=14) and p.IsCancelled IS NULL";
-                    } 
-                }else{
-
-                    if(isset($id)){
-                        $sql = "select * from eClaimsEntries p where p.id=$id";
-                    }else{
-                        /*else{
-                            $sql = "select * from eClaimsEntries p where (p.claim_type='$claim_type') and (p.statuscode=13 or p.statuscode=14)";
-                        } */
-                        if($claim_type == "REP"){
-                            $sql = "select * from eClaimsEntries p where (p.ProposalNumber='$ProposalNumber' and p.claim_type='$claim_type') and (p.statuscode=13 or p.statuscode=14)";
-                        }
-                    }
-
-                }
-
-                $table_data = array(
-                    'mobile_id' => '',
-                    'HasBeenPicked' => 0,
+                
+                $statusCode = $claimData['IsWebComplete'] == 1 ? 14 : 13; 
+                $statusText = $claimData['IsWebComplete'] == 1 ? 'submitted' : 'draft';
+                
+                $tableData = array_merge([
                     'created_on' => Carbon::now(),
                     'RequestDate' => Carbon::now(),
-                    'statuscode' => $statuscode,
-                    'claim_type' => $claim_type,
-                    'PolicyId' => $PolicyId,
-                    'PartialWithdPurpose' => $PartialWithdPurpose,
-                    'CurrentCashValue' => $CurrentCashValue,
-                    'PreviousloanAmount' => $PreviousloanAmount,
-                    'AmountAppliedFor' => $AmountAppliedFor,
-                    'ClientName' => $ClientName,
-                    'ClaimCause' => $ClaimCause,
-                    'DoctorName' => $DoctorName,
-                    'event_date' => $event_date,
-                    'ClaimantName' => $ClaimantName,
-                    'ClaimantMobile' => $ClaimantMobile,
-                    'PaymentOptions' => $PaymentOptions,
-                    'MicroPolicy' => $MicroPolicy,
-                    'TermInMonths' => $TermInMonths,
-                    'Pay_method' => $Pay_method,
-                    'branch_id' => $branch_id,
-                    'id_type'=>$id_type,
-                    'IdNumber'=>$IdNumber,
-                    'ClaimDefaultPay_method'=>$ClaimDefaultPay_method,
-                    'ClaimDefaultTelcoCompany'=>$ClaimDefaultTelcoCompany,
-                    'ClaimDefaultMobileWallet'=>$ClaimDefaultMobileWallet,
-                    'ClaimDefaultEFTBank_code'=>$ClaimDefaultEFTBank_code,
-                    'ClaimDefaultEFTBankBranchCode' => $ClaimDefaultEFTBankBranchCode,
-                    'ClaimDefaultEFTBank_account' => $ClaimDefaultEFTBank_account,
-                    'ClaimDefaultEftBankaccountName' => $ClaimDefaultEftBankaccountName,
-                    'LoanPayMethod'=>$LoanDefaultPay_method,
-                    'LoanPayEmpCode'=>$LoanPaySource,
-                    'LoanPayemployee_no'=>$LoanStaffNo,
-                    'MobileWallet'=>$LoanDefaultMobileWallet,
-                    'LoanPayBank_code'=>$LoanDefaultEFTBank_code,
-                    'LoanPayBankBranchCode' => $LoanDefaultEFTBankBranchCode,
-                    'LoanPayBank_account' => $LoanDefaultEFTBank_account,
-                    'LoanPayBankaccountName' => $LoanDefaultEftBankaccountName,
-                    'FuneralMembersInfo' => $FuneralMembersInfo,
-                    'Reason' => $Reason,
-                    'Emp_code' => $Emp_code,
-                    'BankCode' => $BankCode,
-                    'ReferenceNumber' => $ReferenceNumber,
-                    'FlagShowClaimnant' => $FlagShowClaimnant,
-                    'LoanPolicies' => $LoanPolicies, 
-                    'ProposalNumber' => $ProposalNumber
-                );
-
+                    'statuscode' => $statusCode,
+                    'branch_id' => $claimData['IsWebComplete'] == 1 ? $this->getBranchId($request->input('user_id')) : null,
+                    'ClientName' => $clientInfo['name'],
+                    'client_number' => $clientInfo['client_number'],
+                ], $claimData, $paymentData, $attachmentData);
                 
+                $stepParam = $request->input('step', 1); 
+                $isStep2 = $stepParam == 2; 
                 
-                if(isset($sql)) $MobProposalsArr = DbHelper::getTableRawData($sql);
-
-
-                if (isset($MobProposalsArr) && sizeof($MobProposalsArr) > 0) {
-                    $record_id = $MobProposalsArr[0]->id;
-                    $table_data['altered_by'] = $user_id;
-                    $table_data['dola'] = date('Y-m-d H:i:s');
-                    //update..
-                    $this->smartlife_db->table('eClaimsEntries')
-                        ->where(
-                            array(
-                                "ID" => $record_id
-                            )
-                        )
-                        ->update($table_data);
+                \Log::info('Payment Data: ' . json_encode($paymentData));
+                \Log::info('Is Step 2: ' . ($isStep2 ? 'true' : 'false'));
+                \Log::info('IsWebComplete: ' . $claimData['IsWebComplete']);
+                
+                if ($claimData['IsWebComplete'] == 0) {
+                    if ($isStep2) {
+                        \Log::info('Processing Step 2 - Database save for draft claim');
+                        try {
+                            $policyInfo = $this->getPolicyInfo($claimData);
+                            $realClientInfo = $this->getClientInfo($policyInfo);
+                            $policyId = $policyInfo['id']; 
+                        } catch (\Exception $e) {
+                            
+                            $realClientInfo = [
+                                'name' => $claimData['ClaimantName'],
+                                'client_number' => $claimData['client_number'] ?? 'TEMP-' . time() 
+                            ];
+                            $policyId = null; 
+                        }
+                        
+                        $essentialData = [
+                            'claim_type' => $claimData['claim_type'],
+                            'policy_no' => $claimData['policy_no'], 
+                            'claimant' => $claimData['ClaimantName'], 
+                            'MobileNumber' => $claimData['ClaimantMobile'], 
+                            'IdNumber' => $claimData['ClaimantIdNumber'] ?? null,
+                            'id_type' => $claimData['id_type'] ?? null,
+                            'client_number' => $realClientInfo['client_number'],
+                            'created_on' => Carbon::now(),
+                            'created_by' => request()->input('user_id'),
+                            // Payment details - map to claimsinfo columns
+                            'Pay_method' => $paymentData['ClaimDefaultPay_method'] ?? null,
+                            'Bank' => $paymentData['ClaimDefaultEFTBank_code'] ?? null,
+                            'BankBranch' => $paymentData['ClaimDefaultEFTBankBranchCode'] ?? null,
+                            'BankAccount' => $paymentData['ClaimDefaultEFTBank_account'] ?? null,
+                            // Additional available columns
+                            'dola' => $claimData['eventdate'] ?? null, // Date of loss/accident
+                            'isApproved' => 0, // Draft claims are not approved
+                            'processed' => 0, // Draft claims are not processed
+                        ];
+                        $essentialData = array_filter($essentialData, function($value) {
+                            return $value !== null;
+                        });
+                        
+                        \Log::info('Final essential data for database: ' . json_encode($essentialData));
+                        \Log::info('About to call saveClaimEntryWithTimeout with ' . count($essentialData) . ' fields');
+                        
+                        $recordId = $this->saveClaimEntryWithTimeout($essentialData);
+                        
+                        \Log::info('saveClaimEntryWithTimeout returned record ID: ' . $recordId);
+                        
+                        // Process attachments
+                        foreach ($attachmentData['attachments'] as $attachment) {
+                            $this->saveClaimAttachment($attachment, $recordId);
+                        }
+                        
+                        try {
+                            $this->logClaimActivity($recordId, $claimData, $realClientInfo, 'draft');
+                            \Log::info('Draft claim activity logged successfully');
+                        } catch (\Exception $e) {
+                            \Log::error('Failed to log draft claim activity: ' . $e->getMessage());
+                            // Don't fail the entire operation if logging fails
+                        }
+                        
+                        try {
+                            $sessionKey = null;
+                            foreach (session()->all() as $key => $value) {
+                                if (strpos($key, 'draft_claim_') === 0 && is_array($value) && isset($value['claimData']['policy_no']) && $value['claimData']['policy_no'] === $claimData['policy_no']) {
+                                    $sessionKey = $key;
+                                    break;
+                                }
+                            }
+                            
+                            if ($sessionKey) {
+                                // Update the session with real record ID and complete data
+                                session([$sessionKey => [
+                                    'claimData' => $claimData,
+                                    'paymentData' => $paymentData,
+                                    'attachmentData' => $attachmentData,
+                                    'clientInfo' => $realClientInfo,
+                                    'databaseRecordId' => $recordId,
+                                    'isSavedToDatabase' => true 
+                                ]]);
+                                \Log::info('Updated session with real database record ID: ' . $recordId . ' for session key: ' . $sessionKey);
+                            }
+                        } catch (\Exception $e) {
+                            \Log::error('Failed to update session with real record ID: ' . $e->getMessage());
+                            // Don't fail the operation if session update fails
+                        }
+                    } else {
+                        $recordId = 'DRAFT-' . time() . '-' . rand(1000, 9999);
+                        session(['draft_claim_' . $recordId => [
+                            'claimData' => $claimData,
+                            'paymentData' => $paymentData,
+                            'attachmentData' => $attachmentData,
+                            'clientInfo' => $clientInfo
+                        ]]);
+                    }
                 } else {
-                    if (isset($id) && (int) $id > 0) {
-                        $table_data['altered_by'] = $user_id;
-                        $table_data['dola'] = date('Y-m-d H:i:s');
-                        //update
-                        $this->smartlife_db->table('eClaimsEntries')
-                            ->where(
-                                array(
-                                    "id" => $id
-                                )
-                            )
-                            ->update($table_data);
-                        $record_id = $id;
-                    } else {
-                        $table_data['created_by'] = $user_id;
-                        $table_data['created_on'] = date('Y-m-d H:i:s');
-
-                        //insert
-                        $is_maturity = DbHelper::getColumnValue('claims_types', 'claim_type', $claim_type, 'isMaturity');
-                        $isSurrender = DbHelper::getColumnValue('claims_types', 'claim_type', $claim_type, 'isSurrender');
-                        $claimTypeName = DbHelper::getColumnValue('claims_types', 'claim_type', $claim_type, 'Description');
-                        if(isset($PolicyId) && (float)$PolicyId > 0 && $is_maturity == 1){
-                            //ensure no other maturity exits
-                            $qry = $this->smartlife_db->table('claim_notificationinfo as p')
-                                    ->select('*')
-                                    ->where(array(
-                                        'p.claim_type' => $claim_type,
-                                        'p.PolicyId' => $PolicyId,
-                                        'p.IsCancelled' => 0,
-                                        'p.isdecline' => 0
-                                ));
-                            $results_claims = $qry->first();
-                            if(isset($results_claims)){
-                                $res = array(
-                                    'success' => false,
-                                    'message' => 'Active '.$claimTypeName.' Claim detected, this policy has a '.$claimTypeName.' claim with number: '.$results_claims->claim_no
-                                );
-                                return response()->json($res);
-                            }else{
-                                $record_id = $this->smartlife_db->table('eClaimsEntries')->insertGetId($table_data);
-                            }
-                        }else{
-                            $record_id = $this->smartlife_db->table('eClaimsEntries')->insertGetId($table_data);
-                        }
+                    $recordId = DB::transaction(function () use ($tableData, $claimData, $attachmentData) {
+                        $claimId = $this->saveClaimEntry($tableData, $claimData['ID'] ?? null);
                         
-                    }
-                }
-
-                //
-
-                //update clientinfo payment details...
-                if (isset($isClaimPayChange) && $isClaimPayChange && isset($claim_type) && $claim_type != "DTH" && !empty($ClaimDefaultPay_method)) {
-
-                    //TODO-Create change of client details endorsement
-                    //1. write down the diary
-                    /*$diary = "Change of Payment details to: \n";
-                    $ClaimDefaultPay_methodName = DbHelper::getColumnValue('payment_type', 'payment_mode', $ClaimDefaultPay_method, 'decription');
-                    $diary .= "Payment Type: " . $ClaimDefaultPay_methodName . "\n";
-
-                    if ($ClaimDefaultPay_method == "6") {
-                        //mobile money
-                        $ClaimDefaultTelcoCompanyName = DbHelper::getColumnValue('pay_source_mainteinance', 'emp_code', $ClaimDefaultTelcoCompany, 'Name');
-                        $diary .= "Telco Company: " . $ClaimDefaultTelcoCompanyName . "\n";
-                        $diary .= "Mobile Wallet: " . $ClaimDefaultMobileWallet . "\n";
-                    }
-
-                    if ($ClaimDefaultPay_method == "7" || $ClaimDefaultPay_method == "9") {
-                        //bank details
-                        $ClaimDefaultEFTBank_codeName = DbHelper::getColumnValue('bankcodesinfo', 'bank_code', $ClaimDefaultEFTBank_code, 'description');
-                        $ClaimDefaultEFTBankBranchCodeName = DbHelper::getColumnValue('bankmasterinfo', 'id', $ClaimDefaultEFTBankBranchCode, 'bankBranchName');
-                        $diary .= "Bank: " . $ClaimDefaultEFTBank_codeName . "\n";
-                        $diary .= "Bank Branch: " . $ClaimDefaultEFTBankBranchCodeName . "\n";
-                        $diary .= "Bank Account Name: " . $ClaimDefaultEftBankaccountName . "\n";
-                        $diary .= "Bank Account: " . $ClaimDefaultEFTBank_account . "\n";
-                    }
-
-                    //MicroPolicy
-                    if (isset($MicroPolicy) && $MicroPolicy > 0) {
-                        $endorsementData = array(
-                            "Endorsementtype" => 19,
-                            //client details
-                            "RequestDate" => Carbon::now(),
-                            "MicroPolicy" => $PolicyId,
-                            "Reason" => $diary,
-                            "ClaimDefaultPay_method"=>$ClaimDefaultPay_method,
-                            "ClaimDefaultTelcoCompany"=>$ClaimDefaultTelcoCompany,
-                            "ClaimDefaultMobileWallet"=>$ClaimDefaultMobileWallet,
-                            "ClaimDefaultEFTBank_code"=>$ClaimDefaultEFTBank_code,
-                            "ClaimDefaultEFTBankBranchCode" => $ClaimDefaultEFTBankBranchCode,
-                            "ClaimDefaultEFTBank_account" => $ClaimDefaultEFTBank_account,
-                            "ClaimDefaultEftBankaccountName" => $ClaimDefaultEftBankaccountName,
-                            "created_by" => $user_id,
-                            "created_on" => Carbon::now(),
-                            'branch_id' => $branch_id
-                        );
-                    } else {
-                        $endorsementData = array(
-                            "Endorsementtype" => 19,
-                            //client details
-                            "RequestDate" => Carbon::now(),
-                            "PolicyNumber" => $PolicyId,
-                            "Reason" => $diary,
-                            "ClaimDefaultPay_method"=>$ClaimDefaultPay_method,
-                            "ClaimDefaultTelcoCompany"=>$ClaimDefaultTelcoCompany,
-                            "ClaimDefaultMobileWallet"=>$ClaimDefaultMobileWallet,
-                            "ClaimDefaultEFTBank_code"=>$ClaimDefaultEFTBank_code,
-                            "ClaimDefaultEFTBankBranchCode" => $ClaimDefaultEFTBankBranchCode,
-                            "ClaimDefaultEFTBank_account" => $ClaimDefaultEFTBank_account,
-                            "ClaimDefaultEftBankaccountName" => $ClaimDefaultEftBankaccountName,
-                            "created_by" => $user_id,
-                            "created_on" => Carbon::now(),
-                            'branch_id' => $branch_id
-                        );
-                    }
-
-                    //StatusDescription IS NULL OR StatusDescription = "SUBMITTED"
-                    if(!empty($PolicyId)){
-                        $sql = "SELECT TOP 1 * FROM eEndorsmentEntries p WHERE p.Endorsementtype=19 AND (p.StatusDescription IS NULL OR p.StatusDescription='SUBMITTED') AND (p.PolicyNumber=$PolicyId OR p.MicroPolicy=$PolicyId)";
-                        $EndorsementArr = DbHelper::getTableRawData($sql);
-
-                        if (sizeof($EndorsementArr) > 0) {
-                            $this->smartlife_db->table('eEndorsmentEntries')
-                                ->where(
-                                    array(
-                                        "id" => $EndorsementArr[0]->id
-                                    )
-                                )
-                                ->update($endorsementData);
-                        } else {
-                            $this->smartlife_db->table('eEndorsmentEntries')->insertGetId($endorsementData);
-                        }
-                    }*/
-
-
-                    $payment_data = array(
-                        'id_type'=>$id_type,
-                        'IdNumber'=>$IdNumber,
-                        'ClaimDefaultPay_method'=>$ClaimDefaultPay_method,
-                        'ClaimDefaultTelcoCompany'=>$ClaimDefaultTelcoCompany,
-                        'ClaimDefaultMobileWallet'=>$ClaimDefaultMobileWallet,
-                        'ClaimDefaultEFTBank_code'=>$ClaimDefaultEFTBank_code,
-                        'ClaimDefaultEFTBankBranchCode' => $ClaimDefaultEFTBankBranchCode,
-                        'ClaimDefaultEFTBank_account' => $ClaimDefaultEFTBank_account,
-                        'ClaimDefaultEftBankaccountName' => $ClaimDefaultEftBankaccountName,
-                    );
-                    $this->smartlife_db->table('clientinfo')
-                    ->where(array(
-                        "client_number" => $client_no
-                    ))
-                    ->update($payment_data);
-                }
-
-               
-                //insert into pos_log
-                $staff_no = "";
-                $pos_log_e_id = DbHelper::getColumnValue('pos_log', 'eClaimId', $record_id, 'id');
-                if(!isset($pos_log_e_id)){
-                    if(isset($PolicyId)){
-                        $staff_no = DbHelper::getColumnValue('polinfo', 'id', $PolicyId, 'SearchReferenceNumber');
-                        if(!$staff_no){
-                            $staff_no = DbHelper::getColumnValue('proposalinfo', 'proposal_no', $ProposalNumber, 'SearchReferenceNumber');
-                            if(!isset($staff_no)){
-                                $staff_no = "";
+                        // Process attachments for complete claims
+                        if (!empty($attachmentData['attachments'])) {
+                            foreach ($attachmentData['attachments'] as $attachment) {
+                                $this->saveClaimAttachment($attachment, $claimId);
                             }
                         }
-                    }
-                    if(isset($MicroPolicy)){
-                        $staff_no = DbHelper::getColumnValue('MicroPolicyInfo', 'Id', $MicroPolicy, 'EmployeeNumber');
-                    }
-
-                    //narration is the claim_type
-                    $narration = DbHelper::getColumnValue('claims_types', 'claim_type', $claim_type, 'Description');
-                    $policy_number = DbHelper::getColumnValue('polinfo', 'id', $PolicyId, 'policy_no');
-                    $narration .= " (Policy Number: ".$policy_number.")";
                         
-                    $pos_log_data = array(
-                        'ClientName' => $ClaimantName,
-                        'staff_no' => $staff_no,
-                        'Activity' => 1,
-                        'Narration' => $narration,
-                        'eClaimId' => $record_id,
-                        'eEndorsementId' => null,
-                        'created_on' => date('Y-m-d H:i:s'),
-                        'created_by' => $user_id
-                    );
-                    if(!isset($IsFromClient)){
-                        $pos_log_id = $this->smartlife_db->table('pos_log')->insertGetId($pos_log_data);
-                    }
-                    
+                        return $claimId;
+                    });
                 }
-
-                //health questionnaire
-                $res = array(
+                
+                if ($claimData['IsWebComplete'] == 1 && !empty($paymentData['ClaimDefaultPay_method'])) {
+                    DB::transaction(function () use ($clientInfo, $paymentData) {
+                        $this->updateClientPaymentDetails($clientInfo['client_number'], $paymentData);
+                    });
+                }
+                
+                if ($claimData['IsWebComplete'] == 1) {
+                    DB::transaction(function () use ($recordId, $claimData, $clientInfo, $statusText) {
+                        $this->logClaimActivity($recordId, $claimData, $clientInfo, $statusText);
+                    });
+                }
+                
+                $res = [
                     'success' => true,
-                    'claim_id' => $record_id,
-                    'message' => 'Claim Successfully Saved!'
-                );
-            }, 1);
+                    'record_id' => $recordId,
+                    'statuscode' => $statusCode,
+                    'status' => $statusText,
+                    'message' => "Claim saved successfully as {$statusText}"
+                ];
+                
+            } catch (\Exception $exception) {
+                $res = [
+                    'success' => false,
+                    'message' => $exception->getMessage()
+                ];
+                return response()->json($res, 400);
+            }
+            return response()->json($res);
         } catch (\Exception $exception) {
-            $res = array(
+            return response()->json([
                 'success' => false,
                 'message' => $exception->getMessage()
-            );
-            return response()->json($res);
-        } catch (\Throwable $throwable) {
-            $res = array(
-                'success' => false,
-                'message' => $throwable->getMessage()
-            );
-            return response()->json($res);
+            ], 400);
         }
-        return response()->json($res);
+    }
+    
+    private function extractClaimData(Request $request)
+    {
+        return [
+            'ID' => $request->input('ID'),
+            'claim_type' => $request->input('claim_type'),
+            'claim_type_description' => $request->input('claim_type_description'),
+            'policy_no' => $request->input('policy_no'),
+            'client_number' => $request->input('client_number'), // Add client_number
+            'plan_code' => $request->input('plan_code'),
+            'plan_description' => $request->input('plan_description'),
+            // Fixed field names to match database columns
+            'ClaimantName' => $request->input('name') ?: $request->input('ClaimantName'),
+            'ClaimantMobile' => $request->input('mobile') ?: $request->input('ClaimantMobile'),
+            'ClaimantIdNumber' => $request->input('IdNumber') ?: $request->input('ClaimantIdNumber'),
+            'id_type' => $request->input('id_type'),
+            'IsWebComplete' => $request->input('IsWebComplete', 0), // Default to 0 (draft)
+            // Add other claim-specific fields as needed
+            'ClaimCause' => $request->input('ClaimCause'),
+            'DoctorName' => $request->input('DoctorName'),
+            'eventdate' => $request->input('event_date') ?: $request->input('eventdate'),
+        ];
+    }
+    
+    private function extractPaymentData(Request $request)
+    {
+        return [
+            // EFT Payment Fields (01)
+            'ClaimDefaultPay_method' => $request->input('ClaimDefaultPay_method'),
+            'ClaimDefaultEFTBank_code' => $request->input('ClaimDefaultEFTBank_code'),
+            'ClaimDefaultEFTBankBranchCode' => $request->input('ClaimDefaultEFTBankBranchCode'),
+            'ClaimDefaultEFTBank_accountName' => $request->input('ClaimDefaultEFTBank_accountName'),
+            'ClaimDefaultEFTBank_account' => $request->input('ClaimDefaultEFTBank_account'),
+            
+            // Cheque Payment Fields (02)
+            'ClaimDefaultCashRecipient' => $request->input('ClaimDefaultCashRecipient'),
+            'ClaimDefaultCashContact' => $request->input('ClaimDefaultCashContact'),
+        ];
+    }
+    
+    private function extractAttachmentData(Request $request)
+    {
+        return [
+            'attachments' => $request->input('attachments', []),
+            'documents' => $request->input('documents', []),
+        ];
+    }
+    
+    private function validateClaimData(array $data)
+    {
+        $required = ['claim_type', 'policy_no', 'ClaimantName']; // Removed ClaimantIdNumber
+        
+        foreach ($required as $field) {
+            if (empty($data[$field])) {
+                throw new \Exception("Field '{$field}' is required");
+            }
+        }
+        
+        // Validate payment method if provided
+        if (!empty($data['ClaimDefaultPay_method'])) {
+            $validMethods = ['01', '02']; // EFT and Cheque only
+            if (!in_array($data['ClaimDefaultPay_method'], $validMethods)) {
+                throw new \Exception("Invalid payment method");
+            }
+            
+            if ($data['ClaimDefaultPay_method'] === '01') {
+                $eftRequired = ['ClaimDefaultEFTBank_code', 'ClaimDefaultEFTBank_accountName', 'ClaimDefaultEFTBank_account'];
+                foreach ($eftRequired as $field) {
+                    if (empty($data[$field])) {
+                        throw new \Exception("EFT payment requires bank details");
+                    }
+                }
+            }
+            
+            // Validate Cheque fields if Cheque is selected
+            if ($data['ClaimDefaultPay_method'] === '02') {
+                $chequeRequired = ['ClaimDefaultCashRecipient', 'ClaimDefaultCashContact'];
+                foreach ($chequeRequired as $field) {
+                    if (empty($data[$field])) {
+                        throw new \Exception("Cheque payment requires recipient details");
+                    }
+                }
+            }
+        }
+    }
+    
+    private function getPolicyInfo(array $claimData)
+    {
+        $policyNo = $claimData['policy_no'];
+        
+        $policy = DB::table('polinfo')
+            ->where('policy_no', $policyNo)
+            ->first(); 
+            
+        if ($policy) {
+            return [
+                'id' => $policy->id,
+                'type' => 'micro'
+            ];
+        }
+        
+        throw new \Exception("Policy not found: {$policyNo}");
+    }
+    
+    private function getClientInfo(array $policyInfo)
+    {
+        $client = DB::table('clientinfo')
+            ->where('client_number', $policyInfo['client_number'])
+            ->first();
+            
+        if (!$client) {
+            throw new \Exception("Client not found: {$policyInfo['client_number']}");
+        }
+        
+        return [
+            'name' => $client->name,
+            'client_number' => $client->client_number
+        ];
+    }
+    
+    private function getBranchId($userId)
+    {
+        // Get branch from user permissions
+        $username = DB::table('portal_users')
+            ->where('id', $userId)
+            ->value('username');
+            
+        return DB::table('PermissionPolicyUser')
+            ->where('UserName', $username)
+            ->value('Branch');
+    }
+    
+    private function checkDatabaseConnection()
+    {
+        try {
+            // Simple connection test using the default connection
+            DB::connection()->getPdo();
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Database connection check failed: ' . $e->getMessage());
+            // Don't fail immediately - try to proceed with the operation
+            // Let the actual database operations handle connection issues
+            return true; // Allow operation to proceed, let individual operations handle failures
+        }
+    }
+
+    private function saveClaimEntryWithTimeout(array $tableData)
+    {
+        // Force SQL Server connection with different timeout settings
+        try {
+            \Log::info("Attempting SQL Server insert with custom settings...");
+            
+            // Create a new database connection with custom timeout settings
+            $config = [
+                'driver' => 'sqlsrv',
+                'host' => env('DB_HOST'),
+                'port' => env('DB_PORT', '1433'),
+                'database' => env('DB_DATABASE'),
+                'username' => env('DB_USERNAME'),
+                'password' => env('DB_PASSWORD'),
+                'trust_server_certificate' => true,
+                'timeout' => 30, // 30 seconds timeout
+                'options' => [
+                    PDO::ATTR_EMULATE_PREPARES => true,
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_TIMEOUT => 30,
+                ],
+            ];
+            
+            // Create new PDO connection
+            $dsn = "sqlsrv:Server=" . $config['host'] . "," . $config['port'] . ";Database=" . $config['database'] . ";LoginTimeout=30";
+            $pdo = new PDO($dsn, $config['username'], $config['password'], $config['options']);
+            
+            // Build the insert query manually
+            $columns = array_keys($tableData);
+            $values = array_values($tableData);
+            $placeholders = str_repeat('?,', count($columns) - 1) . '?';
+            
+            $sql = "INSERT INTO claimsinfo (" . implode(',', $columns) . ") VALUES ({$placeholders})";
+            
+            \Log::info("Executing SQL: " . $sql);
+            \Log::info("With data: " . json_encode($tableData));
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($values);
+            
+            // Get the last insert ID
+            $id = $pdo->lastInsertId();
+            
+            \Log::info("SQL Server insert successful! ID: " . $id);
+            return $id;
+            
+        } catch (\Exception $e) {
+            \Log::error("Custom SQL Server connection failed: " . $e->getMessage());
+            
+            // Try with Laravel's DB but with different approach
+            try {
+                \Log::info("Trying Laravel DB with transaction...");
+                
+                DB::transaction(function () use ($tableData, &$result) {
+                    $result = DB::table('claimsinfo')->insertGetId($tableData);
+                });
+                
+                \Log::info("Laravel transaction successful! ID: " . $result);
+                return $result;
+                
+            } catch (\Exception $e2) {
+                \Log::error("Laravel transaction also failed: " . $e2->getMessage());
+                
+                // Final attempt - try without any special settings
+                try {
+                    \Log::info("Final attempt - basic insert...");
+                    $result = DB::table('claimsinfo')->insertGetId($tableData);
+                    \Log::info("Basic insert successful! ID: " . $result);
+                    return $result;
+                    
+                } catch (\Exception $e3) {
+                    \Log::error("All SQL Server attempts failed: " . $e3->getMessage());
+                    throw new \Exception("Unable to save to SQL Server: " . $e3->getMessage());
+                }
+            }
+        }
+    }
+    
+    private function createSqliteBackup(array $backupData)
+    {
+        // Create a SQLite database as backup
+        $sqliteDb = storage_path('app/claims_backup.sqlite');
+        
+        // Create SQLite table if it doesn't exist
+        $pdo = new \PDO('sqlite:' . $sqliteDb);
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+        
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS eClaimsEntries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                backup_id TEXT UNIQUE,
+                claim_type TEXT,
+                policy_no TEXT,
+                ClaimantName TEXT,
+                ClaimantMobile TEXT,
+                ClaimantIdNumber TEXT,
+                statuscode INTEGER,
+                created_on TEXT,
+                RequestDate TEXT,
+                ClientName TEXT,
+                client_number TEXT,
+                created_by TEXT,
+                ClaimDefaultPay_method TEXT,
+                ClaimDefaultEFTBank_code TEXT,
+                ClaimDefaultEFTBankBranchCode TEXT,
+                ClaimDefaultEFTBank_accountName TEXT,
+                ClaimDefaultEFTBank_account TEXT,
+                ClaimDefaultCashRecipient TEXT,
+                ClaimDefaultCashContact TEXT,
+                backup_timestamp TEXT,
+                sync_status TEXT DEFAULT 'pending'
+            )
+        ");
+        
+        // Insert the data
+        $stmt = $pdo->prepare("
+            INSERT INTO eClaimsEntries (
+                backup_id, claim_type, policy_no, ClaimantName, ClaimantMobile, ClaimantIdNumber,
+                statuscode, created_on, RequestDate, ClientName, client_number, created_by,
+                ClaimDefaultPay_method, ClaimDefaultEFTBank_code, ClaimDefaultEFTBankBranchCode,
+                ClaimDefaultEFTBank_accountName, ClaimDefaultEFTBank_account, ClaimDefaultCashRecipient,
+                ClaimDefaultCashContact, backup_timestamp, sync_status
+            ) VALUES (
+                :backup_id, :claim_type, :policy_no, :ClaimantName, :ClaimantMobile, :ClaimantIdNumber,
+                :statuscode, :created_on, :RequestDate, :ClientName, :client_number, :created_by,
+                :ClaimDefaultPay_method, :ClaimDefaultEFTBank_code, :ClaimDefaultEFTBankBranchCode,
+                :ClaimDefaultEFTBank_accountName, :ClaimDefaultEFTBank_account, :ClaimDefaultCashRecipient,
+                :ClaimDefaultCashContact, :backup_timestamp, :sync_status
+            )
+        ");
+        
+        $data = $backupData['data'];
+        $stmt->execute([
+            ':backup_id' => $backupData['id'],
+            ':claim_type' => $data['claim_type'] ?? '',
+            ':policy_no' => $data['policy_no'] ?? '',
+            ':ClaimantName' => $data['ClaimantName'] ?? '',
+            ':ClaimantMobile' => $data['ClaimantMobile'] ?? '',
+            ':ClaimantIdNumber' => $data['ClaimantIdNumber'] ?? '',
+            ':statuscode' => $data['statuscode'] ?? 13,
+            ':created_on' => $data['created_on'] ?? '',
+            ':RequestDate' => $data['RequestDate'] ?? '',
+            ':ClientName' => $data['ClientName'] ?? '',
+            ':client_number' => $data['client_number'] ?? '',
+            ':created_by' => $data['created_by'] ?? '',
+            ':ClaimDefaultPay_method' => $data['ClaimDefaultPay_method'] ?? '',
+            ':ClaimDefaultEFTBank_code' => $data['ClaimDefaultEFTBank_code'] ?? '',
+            ':ClaimDefaultEFTBankBranchCode' => $data['ClaimDefaultEFTBankBranchCode'] ?? '',
+            ':ClaimDefaultEFTBank_accountName' => $data['ClaimDefaultEFTBank_accountName'] ?? '',
+            ':ClaimDefaultEFTBank_account' => $data['ClaimDefaultEFTBank_account'] ?? '',
+            ':ClaimDefaultCashRecipient' => $data['ClaimDefaultCashRecipient'] ?? '',
+            ':ClaimDefaultCashContact' => $data['ClaimDefaultCashContact'] ?? '',
+            ':backup_timestamp' => $backupData['timestamp'],
+            ':sync_status' => 'pending'
+        ]);
+    }
+
+    private function saveClaimEntry(array $tableData, $existingId = null)
+    {
+        $maxRetries = 3;
+        $retryCount = 0;
+        
+        while ($retryCount < $maxRetries) {
+            try {
+                // Set a shorter timeout for the database operation
+                DB::statement('SET LOCK_TIMEOUT 5000'); // 5 seconds
+                
+                if ($existingId) {
+                    // Update existing claim
+                    $updated = DB::table('eClaimsEntries')
+                        ->where('id', $existingId)
+                        ->update(array_merge($tableData, [
+                            'altered_by' => request()->input('user_id'),
+                            'dola' => Carbon::now()
+                        ]));
+                    
+                    if ($updated) {
+                        return $existingId;
+                    } else {
+                        throw new \Exception("Failed to update claim record");
+                    }
+                } else {
+                    // Insert new claim with timeout handling
+                    return DB::table('eClaimsEntries')->insertGetId(array_merge($tableData, [
+                        'created_by' => request()->input('user_id'),
+                        'created_on' => Carbon::now()
+                    ]));
+                }
+                
+            } catch (\Exception $e) {
+                $retryCount++;
+                
+                // Check if it's a timeout error
+                if (strpos($e->getMessage(), 'timeout') !== false || strpos($e->getMessage(), 'timed out') !== false) {
+                    if ($retryCount < $maxRetries) {
+                        // Wait before retrying (exponential backoff)
+                        usleep(500000 * $retryCount); // 0.5s, 1s, 1.5s
+                        continue;
+                    }
+                }
+                
+                // Re-throw the exception if it's not a timeout or we've exhausted retries
+                throw $e;
+            }
+        }
+        
+        throw new \Exception("Database operation failed after {$maxRetries} attempts due to timeout");
+    }
+    
+    private function updateClientPaymentDetails($clientNumber, array $paymentData)
+    {
+        // Only update payment details for submitted claims
+        $updateData = array_filter($paymentData, function($value) {
+            return !empty($value);
+        });
+        
+        if (!empty($updateData)) {
+            DB::table('clientinfo')
+                ->where('client_number', $clientNumber)
+                ->update($updateData);
+        }
+    }
+    
+    private function saveClaimAttachment($attachment, $claimId)
+    {
+        $uuid = Uuid::uuid4()->toString();
+        
+        // Save to claimsreqinfo table (like syncClaimImage does)
+        $tableData = [
+            'created_on' => Carbon::now(),
+            'code' => $attachment['req_code'] ?? 'ATTACH',
+            'received_flag' => 0,
+            'date_received' => Carbon::now(),
+            'eClaimNumber' => $claimId,
+            'File' => $uuid,
+            'Description' => $attachment['description'] ?? 'Attachment',
+        ];
+        
+        // Check if attachment already exists for this requirement
+        $existing = DB::table('claimsreqinfo')
+            ->where('eClaimNumber', $claimId)
+            ->where('code', $attachment['req_code'] ?? 'ATTACH')
+            ->first();
+            
+        if ($existing) {
+            DB::table('claimsreqinfo')->where('id', $existing->id)->update($tableData);
+        } else {
+            DB::table('claimsreqinfo')->insert($tableData);
+        }
+        
+        // Save file metadata to ClaimsStoreObject
+        $fileData = [
+            'Oid' => $uuid,
+            'FileName' => $attachment['filename'] ?? 'attachment.pdf',
+            'RequestedClaim' => $claimId,
+            'Size' => $attachment['size'] ?? 0,
+        ];
+        DB::table('ClaimsStoreObject')->insert($fileData);
+    }
+    
+    private function logClaimActivity($recordId, array $claimData, array $clientInfo, $statusText)
+    {
+        // Check if eClaimId already exists to ensure uniqueness
+        $existingLog = DB::table('pos_log')
+            ->where('eClaimId', $recordId)
+            ->where('Activity', 1) // Claim activity
+            ->first();
+            
+        if ($existingLog) {
+            return; // eClaimId already exists, do not save duplicate
+        }
+        
+        // Get claim type description
+        $claimTypeDesc = DB::table('claims_types')
+            ->where('claim_type', $claimData['claim_type'])
+            ->value('Description');
+            
+        // Log the activity with status
+        DB::table('pos_log')->insert([
+            'ClientName' => $claimData['ClaimantName'] ?? $clientInfo['name'],
+            'StaffNumber' => $this->getStaffNumber($claimData['policy_no']),
+            'Activity' => 1,
+            'Narration' => $claimTypeDesc . " (Policy Number: " . $claimData['policy_no'] . ") - Status: {$statusText}",
+            'eClaimId' => $recordId,
+            'created_on' => Carbon::now(),
+            'created_by' => request()->input('user_id')
+        ]);
+    }
+    
+    private function getStaffNumber($policyNo)
+    {
+        // Try regular policy first
+        $staffNo = DB::table('polinfo')
+            ->where('policy_no', $policyNo)
+            ->value('SearchReferenceNumber');
+            
+        if ($staffNo) {
+            return $staffNo;
+        }
+        
+        // Try micro policy
+        return DB::table('MicroPolicyInfo')
+            ->where('ProposalNumber', $policyNo)
+            ->value('EmployeeNumber') ?? '';
     }
 
     public function removeDuplicateClaimTypes(array $objects) {

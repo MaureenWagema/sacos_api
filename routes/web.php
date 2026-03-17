@@ -241,7 +241,9 @@ Route::post('agents/migrateAgentImage', [agentController::class, 'migrateAgentIm
 Route::post('agents/migrateAgentNICDocs', [agentController::class, 'migrateAgentNICDocs']);
 
 //claims:   
+Route::post('claims/testDatabaseInsert', [claimController::class, 'testDatabaseInsert']);
 Route::post('claims/insertClaimEntries', [claimController::class, 'insertClaimEntries']);
+Route::post('claims/completeDraftClaim', [claimController::class, 'completeDraftClaim']);
 Route::get('claims/getClientClaims', [claimController::class, 'getClientClaims']);
 Route::get('claims/getClaimAttachments', [claimController::class, 'getClaimAttachments']);
 Route::get('claims/getClaimFiles', [claimController::class, 'getClaimFiles']);
