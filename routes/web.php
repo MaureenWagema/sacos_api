@@ -108,6 +108,7 @@ Route::get('reports/fetchReinsuranceData', [reportsController::class, 'fetchRein
 Route::get('reports/checkIsMicro', [reportsController::class, 'checkIsMicro']);
 Route::get('reports/getMDsDashboard', [reportsController::class, 'getMDsDashboard']);
 Route::get('reports/policyNoMicro', [reportsController::class, 'policyNoMicro']);
+Route::post('reports/getSacosRpt', [reportsController::class, 'getSacosRpt']);
 
 //policy getSalesGridRange getActivitiesTotalsRange 
 Route::get('policy/getMicroProducts', [policyController::class, 'getMicroProducts']);
@@ -275,9 +276,4 @@ Route::group(['middleware' => ['client']], function () {
 
 
 
-});
-
-Route::get('/orders', function (Request $request) {
-    echo "here";
-    return "mister";
 });

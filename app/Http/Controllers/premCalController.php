@@ -10,10 +10,11 @@ use Carbon\Carbon;
 class premCalController extends Controller
 {
     //lets calculate the rider premium
-    public function riderPremium(Request $request){
-        try{
+    public function riderPremium(Request $request)
+    {
+        try {
             $res = array();
-            
+
             $sum_assured = $request->input('sum_assured');
             $rider_code = $request->input('rider_code');
             $age = $request->input('age');
@@ -43,10 +44,14 @@ class premCalController extends Controller
                     ]);
                 }
 
+                //override rider_code
+                $plan_rider_id = $plan_rider_config->id;
                 $UseAgeRange = $plan_rider_config->UseAgeRange ?? false;
                 $UseTerm = $plan_rider_config->UseTerm ?? false;
                 $UseTermRange = $plan_rider_config->UseTermRange ?? false;
                 $use_flat_rate = $plan_rider_config->use_flat_rate ?? false;
+                $FixedRateBasis = $plan_rider_config->FixedRateBasis ?? false;
+                $rate_basis2 = $plan_rider_config->rate_basis2 ?? 0;
                 $rate = $plan_rider_config->rate ?? 0;
                 $rate_basis = $plan_rider_config->rate_basis;
                 $TaxRate = $plan_rider_config->TaxRate ?? 0;
@@ -85,8 +90,7 @@ class premCalController extends Controller
 
                 if ($use_flat_rate == false) {
                     $sql = "SELECT * FROM rider_premuim_rates t 
-                            INNER JOIN rider_info r ON r.rider_code = t.rider_code 
-                            WHERE t.rider_code = '$rider_code' 
+                            WHERE t.rider_code = $plan_rider_id 
                             AND t.PlanCode = $plan_codeVAR 
                             AND $AgeRangeQueryPartVAR 
                             $TermRangeQueryPartVAR";
@@ -96,10 +100,14 @@ class premCalController extends Controller
                     if ($_rsRiderRate && count($_rsRiderRate) > 0) {
                         $recRow = $_rsRiderRate[0];
                         $dblPrmRate = (float)$recRow->normal_rate;
-                        
+
                         if ($use_flat_rate == false) {
-                            if (isset($recRow->rate_basis) && $recRow->rate_basis != null) {
-                                $dblRateBasis = (float)$recRow->rate_basis;
+                            if ($FixedRateBasis == false) {
+                                if (isset($recRow->rate_basis) && $recRow->rate_basis != null) {
+                                    $dblRateBasis = (float)$recRow->rate_basis;
+                                }
+                            }else{
+                                $dblRateBasis = $rate_basis2;
                             }
                         }
                     }
@@ -217,7 +225,6 @@ class premCalController extends Controller
                     'message' => 'Sum assured must be greater than 0'
                 );
             }
-
         } catch (\Exception $exception) {
             $res = array(
                 'success' => false,
@@ -234,8 +241,9 @@ class premCalController extends Controller
         return response()->json($res);
     }
     //lets create function FuneralPolicies
-    public function FuneralPolicies(Request $request){
-        try{
+    public function FuneralPolicies(Request $request)
+    {
+        try {
             $res = array();
             //we pass: plan_code, age & sum_assured
             $plan_code = $request->input('plan_code');
@@ -246,19 +254,19 @@ class premCalController extends Controller
             //for age we search where greater or equal than Min_age & less than Max_age
             //we match plan_code & SumAssured
             $qry = $this->smartlife_db->table('funeralratesinfo as p')
-            ->select('*')
-            ->where('p.Min_age', '<=', $age)
-            ->where('p.Max_age', '>=', $age)
-            ->where(array('p.plan_code' => $plan_code, 'p.SumAssured' => $sum_assured));
+                ->select('*')
+                ->where('p.Min_age', '<=', $age)
+                ->where('p.Max_age', '>=', $age)
+                ->where(array('p.plan_code' => $plan_code, 'p.SumAssured' => $sum_assured));
             $results = $qry->first();
-            if($results){
+            if ($results) {
                 $premium = $results->Rate;
                 $res = array(
                     'success' => true,
                     'premium' => $premium,
                     'message' => 'Premium Calculated Successfully!!'
                 );
-            }else{
+            } else {
                 $res = array(
                     'success' => false,
                     'message' => 'Premium Not Found!!'
@@ -280,10 +288,11 @@ class premCalController extends Controller
         return response()->json($res);
     }
 
-    public function ComputePremiumForProducts(Request $request){
-        try{
+    public function ComputePremiumForProducts(Request $request)
+    {
+        try {
             $res = array();
-            
+
             $plan_code = $request->input('plan_code');
             $age = $request->input('age');
             $term = $request->input('term');
@@ -296,30 +305,30 @@ class premCalController extends Controller
             $age2 = $request->input('age2');
             $DiscountRate = $request->input('DiscountRate') ?? 0;
             //$client_number = $request->input('client_number');
-            
+
             $dblPrmRate = 0;
             $w_rate2 = 0;
             $w_rate3 = 0;
             $dblRateBasis = 0;
-            
+
             if (!$plan_code) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Product Is Mandatory!'
                 ]);
             }
-            
+
             $plan_info = $this->smartlife_db->table('planinfo')
                 ->where('plan_code', $plan_code)
                 ->first();
-                
+
             if (!$plan_info) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Product not found!'
                 ]);
             }
-            
+
             $Funeral_cover = $plan_info->Funeral_cover ?? false;
             $UseFixedPremRate = $plan_info->UseFixedPremRate ?? false;
             $premium_table = $plan_info->premium_table ?? 0;
@@ -333,16 +342,16 @@ class premCalController extends Controller
             $UseAgeRangeFuneralRates = $plan_info->UseAgeRangeFuneralRates ?? false;
             $FuneralRateTable = $plan_info->FuneralRateTable ?? 0;
             $ReinsuranceMinSA = $plan_info->ReinsuranceMinSA ?? 0;
-            
+
             $category_info = $this->smartlife_db->table('plan_prop_category')
                 ->where('prop_code', $CategoryCode)
                 ->first();
-                
+
             $OrdinaryLifeProduct = $category_info->OrdinaryLifeProduct ?? false;
             $FuneralProduct = $category_info->FuneralProduct ?? false;
             $MortgageProduct = $category_info->MortgageProduct ?? false;
             $CreditLifeProduct = $category_info->CreditLifeProduct ?? false;
-            
+
             if ($UseCustomPremRate == false) {
                 if ($Funeral_cover == false) {
                     if ($UseFixedPremRate == false) {
@@ -351,19 +360,19 @@ class premCalController extends Controller
                                 AND age = $age 
                                 AND table_code = $premium_table 
                                 AND term = $term";
-                        
+
                         $_dataSet = DbHelper::getTableRawData($sql);
-                        
+
                         if ($_dataSet && count($_dataSet) > 0) {
                             $recRow = $_dataSet[0];
                             $dblPrmRate = (float)$recRow->rate;
-                            
+
                             if ($FixedRateBasis == true) {
                                 $dblRateBasis = $rate_basis_plan;
                             } else {
                                 $dblRateBasis = (float)$recRow->rate_basis;
                             }
-                            
+
                             if ($dblPrmRate == 0) {
                                 return response()->json([
                                     'success' => false,
@@ -387,7 +396,7 @@ class premCalController extends Controller
                     }
                 } else {
                     $CategoryCodeRel = DbHelper::getColumnValue('RelationshipCategory', 'description', $relationship_code, 'id');
-                    
+
                     if ($UseAgeRangeFuneralRates == true) {
                         $sql = "SELECT t1.* FROM funeralratesinfo t1 
                                 WHERE t1.CategoryCode = $CategoryCodeRel 
@@ -403,9 +412,9 @@ class premCalController extends Controller
                                 AND t1.min_age = $age 
                                 AND t1.tableCode = $FuneralRateTable";
                     }
-                    
+
                     $_dataSet = DbHelper::getTableRawData($sql);
-                    
+
                     if ($_dataSet && count($_dataSet) > 0) {
                         $recRow = $_dataSet[0];
                         if (isset($recRow->rate) && $recRow->rate != null) {
@@ -426,7 +435,7 @@ class premCalController extends Controller
             } else if ($UseCustomPremRate == true) {
                 $dblPrmRate = $Prem_rate;
                 $dblRateBasis = $rate_basis_plan;
-                
+
                 if ($Prem_rate == 0) {
                     return response()->json([
                         'success' => false,
@@ -434,14 +443,14 @@ class premCalController extends Controller
                     ]);
                 }
             }
-            
+
             if ($dblRateBasis <= 0 && $Funeral_cover == false) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Rate Basis Is Mandatory! Check Product Details'
                 ]);
             }
-            
+
             $w_temp = 0;
             $w_temp2 = 0;
             $w_temp3 = 0;
@@ -449,7 +458,7 @@ class premCalController extends Controller
             $TaxVAR = 1;
             $loadingFactorVAR = 0;
             $basic_premVAR = 0;
-            
+
             if ($policyFee > 0) {
                 if ($policyFeeRateIsPerc == false) {
                     $PolicyFeeVAR = $policyFee;
@@ -457,7 +466,7 @@ class premCalController extends Controller
                     $PolicyFeeVAR = ($policyFee / 100);
                 }
             }
-            
+
             if ($TaxRate > 0) {
                 if ($TaxRateIsPerc == false) {
                     $TaxVAR = $TaxRate;
@@ -465,15 +474,15 @@ class premCalController extends Controller
                     $TaxVAR = ($TaxRate / 100);
                 }
             }
-            
+
             if ($pay_mode_id) {
                 $paymode_info = $this->smartlife_db->table('paymentmodeinfo')
                     ->where('id', $pay_mode_id)
                     ->first();
-                    
+
                 $loadingFactorVAR = $paymode_info->loadingfactor ?? 1;
                 $coverperiod = $paymode_info->coverperiod ?? 1;
-                
+
                 if ($loadingFactorVAR <= 0) {
                     $loadingFactorVAR = 1;
                 }
@@ -481,10 +490,10 @@ class premCalController extends Controller
                 $loadingFactorVAR = 1;
                 $coverperiod = 1;
             }
-            
+
             $PTDRiderPrem = 0;
             $total_rider_prem = 0;
-            
+
             if ($OrdinaryLifeProduct == true) {
                 $w_temp = ((($dblPrmRate / $dblRateBasis) * $sa) + $PolicyFeeVAR) * $loadingFactorVAR * $TaxVAR;
             } else if ($FuneralProduct == true) {
@@ -492,20 +501,20 @@ class premCalController extends Controller
             } else if ($MortgageProduct == true) {
                 if ($mortgage_option == 'single') {
                     $w_temp2 = ($dblPrmRate / $dblRateBasis) * $sa;
-                    
+
                     $plan_rider = $this->smartlife_db->table('plan_rider_config as prc')
                         ->join('rider_info as ri', 'ri.rider_code', '=', 'prc.rider_code')
                         ->where('prc.plan_code', $plan_code)
                         ->where('ri.ptd', true)
                         ->where('prc.IsAutomatic', true)
                         ->first();
-                        
+
                     if ($plan_rider) {
                         $w_temp3 = ($plan_rider->rate / $plan_rider->rate_basis) * $sa * $term;
                         $PTDRiderPrem = $w_temp3;
                         $total_rider_prem = $w_temp3;
                     }
-                    
+
                     $w_temp = ($w_temp2 + $w_temp3 + $PolicyFeeVAR) * $TaxVAR;
                 } else if ($mortgage_option == 'joint') {
                     $sql = "SELECT * FROM premium_rate_setup 
@@ -513,36 +522,36 @@ class premCalController extends Controller
                             AND age = $age2 
                             AND table_code = $premium_table 
                             AND term = $term";
-                    
+
                     $_dataSet = DbHelper::getTableRawData($sql);
-                    
+
                     if ($_dataSet && count($_dataSet) > 0) {
                         $recRow = $_dataSet[0];
                         $w_rate2 = (float)$recRow->rate;
-                        
+
                         if ($w_rate2 == 0) {
                             return response()->json([
                                 'success' => false,
                                 'message' => "Second Life Rate Not Found! Please Check... For Policy Term: $term"
                             ]);
                         }
-                        
+
                         $w_rate3 = ($dblPrmRate + $w_rate2) * 0.90;
                         $w_temp2 = ($w_rate3 / $dblRateBasis) * $sa;
-                        
+
                         $plan_rider = $this->smartlife_db->table('plan_rider_config as prc')
                             ->join('rider_info as ri', 'ri.rider_code', '=', 'prc.rider_code')
                             ->where('prc.plan_code', $plan_code)
                             ->where('ri.ptd', true)
                             ->where('prc.IsAutomatic', true)
                             ->first();
-                            
+
                         if ($plan_rider) {
                             $w_temp3 = (($plan_rider->rate * 2) / $plan_rider->rate_basis) * $sa * $term;
                             $PTDRiderPrem = $w_temp3;
                             $total_rider_prem = $w_temp3;
                         }
-                        
+
                         $w_temp = ($w_temp2 + $w_temp3 + $PolicyFeeVAR) * $TaxVAR;
                     } else {
                         return response()->json([
@@ -554,33 +563,33 @@ class premCalController extends Controller
             } else if ($CreditLifeProduct == true) {
                 $w_temp = $dblPrmRate * $sa;
             }
-            
+
             $basic_premVAR = $w_temp - ($TaxVAR + $PolicyFeeVAR + $total_rider_prem);
             $modal_prem = $w_temp;
-            
+
             $premDiscount = 0;
             if ($DiscountRate > 0) {
                 $premDiscount = round(($DiscountRate / 100) * $basic_premVAR, 2);
             }
-            
+
             $TotalPremium = round($w_temp - $premDiscount, 2);
-            
+
             // $ReinsuranceAlert = false;
             // $totalSA = 0;
-            
+
             // if ($client_number) {
             //     $totalSA_result = $this->smartlife_db->table('proposalinfo')
             //         ->where('client_number', $client_number)
             //         ->sum('Sum_Assured');
             //     $totalSA = round($totalSA_result ?? 0, 2);
             // }
-            
+
             // if ($ReinsuranceMinSA > 0) {
             //     if (($sa + $totalSA) > $ReinsuranceMinSA) {
             //         $ReinsuranceAlert = true;
             //     }
             // }
-            
+
             $res = array(
                 'success' => true,
                 'basic_prem' => number_format((float)$basic_premVAR, 2, '.', ''),
@@ -597,7 +606,6 @@ class premCalController extends Controller
                 'loading_factor' => $loadingFactorVAR,
                 'message' => 'Premium Calculated Successfully!'
             );
-
         } catch (\Exception $exception) {
             $res = array(
                 'success' => false,
@@ -615,7 +623,8 @@ class premCalController extends Controller
     }
 
     //lets create function OrdinaryPolicies
-    public function OrdinaryPolicies(Request $request){
+    public function OrdinaryPolicies(Request $request)
+    {
         try {
             $res = array();
             $plan_code = $request->input('plan_code');
@@ -651,9 +660,6 @@ class premCalController extends Controller
                 'vat' => (float)$vat,
                 'message' => 'Premium Calculated Successfully!!'
             );
-
-
-            
         } catch (\Exception $exception) {
             $res = array(
                 'success' => false,
@@ -714,7 +720,7 @@ class premCalController extends Controller
         try {
 
             $isForParliament = $request->input('isForParliament');
-            if(isset($isForParliament)){
+            if (isset($isForParliament)) {
                 $isForParliament = 0;
             }
             $total_premium = $request->input('total_premium');
