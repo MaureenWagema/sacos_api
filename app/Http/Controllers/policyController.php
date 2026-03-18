@@ -3828,7 +3828,6 @@ class policyController extends Controller
                 ob_start();
                 imagepng($image, null, $quality);
                 $compressedData = ob_get_clean();
-                imagedestroy($image);
 
                 if ($compressedData === false) {
                     // Error handling: Unable to compress the image

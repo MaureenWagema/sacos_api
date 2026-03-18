@@ -6,15 +6,27 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Helpers\DbHelper;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use Ramsey\Uuid\Uuid;
-use PDO;
 
 class claimController extends Controller
-
 {
 
     //wrongful from slams.............
     //claims entries
+
+    /**
+     * Check if database connection is available
+     */
+    private function checkDatabaseConnection()
+    {
+        try {
+            $this->smartlife_db->select("SELECT 1");
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
 
     public function insertSLAMSWrongful(Request $request)
     {
@@ -44,7 +56,7 @@ class claimController extends Controller
                 $pos_log_data = array(
                     'ClientName' => $request->input('FullName'),
                     'staff_no' => $request->input('StaffNumber'),
-                    'Activity' => 1,
+                    'Activity' => 4,
                     'Narration' => $request->input('Reason'),
                     'eClaimId' => null,
                     'eEndorsementId' => null,
@@ -57,9 +69,7 @@ class claimController extends Controller
                     'success' => true,
                     'message' => 'Wrongful SLAMS Claim Successfully Submitted'
                 );
-
             }, 1);
-
         } catch (\Exception $exception) {
             $res = array(
                 'success' => false,
@@ -87,306 +97,94 @@ class claimController extends Controller
                 ], 503);
             }
             try {
-                $claimData = $this->extractClaimData($request);
-                $paymentData = $this->extractPaymentData($request);
-                $attachmentData = $this->extractAttachmentData($request);
-                
-                \Log::info('Raw Request Data: ' . json_encode($request->all()));
-                \Log::info('Extracted Payment Data: ' . json_encode($paymentData));
-                
-                $this->validateClaimData($claimData);
 
-                if ($claimData['IsWebComplete'] == 0) {
-                    // Use minimal client info for draft claims
-                    $clientInfo = [
-                        'name' => $claimData['ClaimantName'],
-                        'client_number' => 'DRAFT-' . time() 
-                    ];
-                    $policyInfo = [
-                        'id' => null,
-                        'client_number' => $clientInfo['client_number'] ?? 'TEMP-' . time(),
-                        'type' => 'draft'
-                    ];
+                //run validations of $request....
+
+
+                //from the payload
+                $policy_no = $request->input('policy_no');
+                $policyId = DbHelper::getColumnValue('polinfo', 'policy_no', $policy_no, 'id');
+                $client_number = DbHelper::getColumnValue('polinfo', 'policy_no', $policy_no, 'client_number');
+                $plan_code = $request->input('plan_code');
+                $plan_description = $request->input('plan_description');
+                $ClaimantName = $request->input('ClaimantName');
+                $ClaimantMobile =  $request->input('ClaimantMobile');
+                $IdNumber = $request->input('IdNumber');
+                $client_name = $request->input('name');
+                $id_type = $request->input('id_type');
+                $ClaimCause =  $request->input('ClaimCause');
+                $DoctorName = $request->input('DoctorName');
+                $claim_type = $request->input('claim_type');
+                $claim_type_description =  $request->input('claim_type_description');
+                $ClaimDefaultPay_method = $request->input('ClaimDefaultPay_method');
+                $ClaimDefaultEFTBank_code = $request->input('ClaimDefaultEFTBank_code');
+                $ClaimDefaultEFTBankBranchCode = $request->input('ClaimDefaultEFTBankBranchCode');
+                $ClaimDefaultEFTBank_accountName = $request->input('ClaimDefaultEFTBank_accountName');
+                $ClaimDefaultEFTBank_account = $request->input('ClaimDefaultEFTBank_account');
+                $ClaimDefaultCashRecipient = $request->input('ClaimDefaultCashRecipient');
+                $ClaimDefaultCashContact = $request->input('ClaimDefaultCashContact');
+                $IsWebComplete = $request->input('IsWebComplete');
+
+
+
+                $statuscode = 14;
+                if ($IsWebComplete == 1) $statuscode = 13;
+                
+                $statusText = ($statuscode == 14) ? 'Draft' : 'Submitted';
+
+                $table_data = array(
+                    'claim_type' => $claim_type,
+                    'PolicyId' => $policyId,
+                    'statuscode' => $statuscode,
+                    'client_number' => $client_number,
+                    'ClientName' => $client_name,
+                    'ClaimantName' => $ClaimantName,
+                    'ClaimantMobile' => $ClaimantMobile,
+                    'IdNumber' => $IdNumber,
+                    'id_type' => $id_type,
+                    'ClaimCause' => $ClaimCause,
+                    'DoctorName' => $DoctorName,
+                    'ClaimDefaultPay_method' => $ClaimDefaultPay_method,
+                    'ClaimDefaultEFTBank_code' => $ClaimDefaultEFTBank_code,
+                    'ClaimDefaultEFTBankBranchCode' => $ClaimDefaultEFTBankBranchCode,
+                    'ClaimDefaultEftBankaccountName' => $ClaimDefaultEFTBank_accountName,
+                    'ClaimDefaultEFTBank_account' => $ClaimDefaultEFTBank_account
+                );
+
+                //select where policyId, claim_type and status_code are the same
+                $eClaimsObj = $this->smartlife_db->table('eClaimsEntries')
+                    ->select('*')
+                    ->where(array('PolicyId' => $policyId, 'claim_type' => $claim_type, 'statuscode' => $statuscode))
+                    ->first();
+
+                $isUpdate = false;
+                //if so update
+                if ($eClaimsObj) {
+                    $isUpdate = true;
+                    $record_id = $eClaimsObj->id;
+                    $this->smartlife_db->table('eClaimsEntries')
+                        ->where(
+                            array(
+                                "id" => $record_id
+                            )
+                        )
+                        ->update($table_data);
                 } else {
-                    $policyInfo = $this->getPolicyInfo($claimData);
-                    $clientInfo = $this->getClientInfo($policyInfo);
-                }
-                
-                $statusCode = $claimData['IsWebComplete'] == 1 ? 14 : 13; 
-                $statusText = $claimData['IsWebComplete'] == 1 ? 'submitted' : 'draft';
-                
-                $tableData = array_merge([
-                    'created_on' => Carbon::now(),
-                    'RequestDate' => Carbon::now(),
-                    'statuscode' => $statusCode,
-                    'branch_id' => $claimData['IsWebComplete'] == 1 ? $this->getBranchId($request->input('user_id')) : null,
-                    'ClientName' => $clientInfo['name'],
-                    'client_number' => $clientInfo['client_number'] ?? 'TEMP-' . time(),
-                ], array_merge($claimData, $paymentData));
-
-                // Remove array fields that shouldn't be inserted into database
-                unset($tableData['attachments']);
-                unset($tableData['documents']);
-                
-                // Remove fields that don't exist in eClaimsEntries table
-                unset($tableData['claim_type_description']);
-                unset($tableData['plan_code']);
-                unset($tableData['plan_description']);
-                unset($tableData['ID']);
-                unset($tableData['IsWebComplete']);
-                unset($tableData['ClaimCause']);
-                unset($tableData['DoctorName']);
-                unset($tableData['eventdate']);
-                unset($tableData['ClaimDefaultEFTBank_accountName']);
-                unset($tableData['ClaimDefaultCashRecipient']);
-                unset($tableData['ClaimDefaultCashContact']);
-
-                // Map policy_no to PolicyId for eClaimsEntries table
-                if (isset($tableData['policy_no'])) {
-                    // For complete claims, get the actual policy ID from database
-                    if ($claimData['IsWebComplete'] == 1) {
-                        try {
-                            $policyInfo = $this->getPolicyInfo(['policy_no' => $tableData['policy_no']]);
-                            $tableData['PolicyId'] = $policyInfo['id'];
-                        } catch (\Exception $e) {
-                            $tableData['PolicyId'] = null; // Fallback if policy not found
-                        }
-                    } else {
-                        $tableData['PolicyId'] = null; // Draft claims don't have policy ID yet
-                    }
-                    unset($tableData['policy_no']);
+                    //else insert (put in the Pos_Log)
+                    $record_id = $this->smartlife_db->table('eClaimsEntries')->insertGetId($table_data);
                 }
 
-                $stepParam = $request->input('step', 1); 
-                $isStep2 = $stepParam == 2; 
-                $isStep3 = $stepParam == 3;
-
-                \Log::info('Payment Data: ' . json_encode($paymentData));
-                \Log::info('Is Step 2: ' . ($isStep2 ? 'true' : 'false'));
-                \Log::info('Is Step 3: ' . ($isStep3 ? 'true' : 'false'));
-                \Log::info('IsWebComplete: ' . $claimData['IsWebComplete']);
-
-                if ($claimData['IsWebComplete'] == 0) {
-                    if ($isStep2) {
-                        \Log::info('Processing Step 2 - Database save for draft claim');
-
-                        try {
-                            $policyInfo = $this->getPolicyInfo($claimData);
-                            $realClientInfo = $this->getClientInfo($policyInfo);
-                            $policyId = $policyInfo['id']; 
-
-                            $essentialData = [
-                                'claim_type' => $claimData['claim_type'],
-                                'PolicyId' => $policyId,
-                                'ClaimantName' => $claimData['ClaimantName'],
-                                'ClaimantMobile' => $claimData['ClaimantMobile'],
-                                'IdNumber' => $claimData['IdNumber'] ?? null,
-                                'id_type' => $claimData['id_type'] ?? null,
-                                'client_number' => $realClientInfo['client_number'],
-                                'created_on' => Carbon::now(),
-                                'created_by' => request()->input('user_id'),
-                                'statuscode' => $claimData['statuscode'] ?? 13,
-                                'ClaimDefaultPay_method' => $paymentData['ClaimDefaultPay_method'] ?? null,
-                                'ClaimDefaultEFTBank_code' => $paymentData['ClaimDefaultEFTBank_code'] ?? null,
-                                'ClaimDefaultEFTBankBranchCode' => $paymentData['ClaimDefaultEFTBankBranchCode'] ?? null,
-                                'ClaimDefaultEFTBank_account' => $paymentData['ClaimDefaultEFTBank_account'] ?? null,
-                                'dola' => $claimData['eventdate'] ?? null,
-                                'isApproved' => 0,
-                            ];
-
-                        } catch (\Exception $e) {
-                            $realClientInfo = [
-                                'name' => $claimData['ClaimantName'],
-                                'client_number' => $claimData['client_number'] ?? 'TEMP-' . time() 
-                            ];
-
-                            $essentialData = [
-                                'claim_type' => $claimData['claim_type'],
-                                'PolicyId' => null,
-                                'ClaimantName' => $claimData['ClaimantName'],
-                                'ClaimantMobile' => $claimData['ClaimantMobile'],
-                                'IdNumber' => $claimData['IdNumber'] ?? null,
-                                'id_type' => $claimData['id_type'] ?? null,
-                                'client_number' => $realClientInfo['client_number'],
-                                'created_on' => Carbon::now(),
-                                'created_by' => request()->input('user_id'),
-                                'statuscode' => $claimData['statuscode'] ?? 13,
-                                'ClaimDefaultPay_method' => $paymentData['ClaimDefaultPay_method'] ?? null,
-                                'ClaimDefaultEFTBank_code' => $paymentData['ClaimDefaultEFTBank_code'] ?? null,
-                                'ClaimDefaultEFTBankBranchCode' => $paymentData['ClaimDefaultEFTBankBranchCode'] ?? null,
-                                'ClaimDefaultEFTBank_account' => $paymentData['ClaimDefaultEFTBank_account'] ?? null,
-                                'dola' => $claimData['eventdate'] ?? null,
-                                'isApproved' => 0,
-                            ];
-
-                            $policyId = null;
-                        }
-                        
-                        \Log::info('Final essential data for database: ' . json_encode($essentialData));
-                        \Log::info('About to call saveClaimEntryWithTimeout with ' . count($essentialData) . ' fields');
-                        
-                        $recordId = $this->saveClaimEntryWithTimeout($essentialData);
-                        
-                        \Log::info('saveClaimEntryWithTimeout returned record ID: ' . $recordId);
-                        
-                        // Process attachments
-                        
-                        try {
-                            $this->logClaimActivity($recordId, $claimData, $realClientInfo, 'draft');
-                            \Log::info('Draft claim activity logged successfully');
-                        } catch (\Exception $e) {
-                            \Log::error('Failed to log draft claim activity: ' . $e->getMessage());
-                            // Don't fail the entire operation if logging fails
-                        }
-                        
-                        try {
-                            $sessionKey = null;
-                            foreach (session()->all() as $key => $value) {
-                                if (strpos($key, 'draft_claim_') === 0 && is_array($value) && isset($value['claimData']['policy_no']) && $value['claimData']['policy_no'] === $claimData['policy_no']) {
-                                    $sessionKey = $key;
-                                    break;
-                                }
-                            }
-
-                            if ($sessionKey) {
-                                session([$sessionKey => [
-                                    'claimData' => $claimData,
-                                    'paymentData' => $paymentData,
-                                    'attachmentData' => $attachmentData,
-                                    'clientInfo' => $realClientInfo,
-                                    'databaseRecordId' => $recordId,
-                                    'isSavedToDatabase' => true 
-                                ]]);
-                                \Log::info('Updated session with real database record ID: ' . $recordId . ' for session key: ' . $sessionKey);
-                            }
-                        } catch (\Exception $e) {
-                            \Log::error('Failed to update session with real record ID: ' . $e->getMessage());
-                            // Don't fail the operation if session update fails
-                        }
-                    } elseif ($isStep3) {
-                        \Log::info('Processing Step 3 - Update existing draft claim');
-                        
-                        // Find existing record ID from session
-                        $existingRecordId = null;
-                        foreach (session()->all() as $key => $value) {
-                            if (strpos($key, 'draft_claim_') === 0 && is_array($value) && isset($value['claimData']['policy_no']) && $value['claimData']['policy_no'] === $claimData['policy_no']) {
-                                $existingRecordId = $value['databaseRecordId'] ?? null;
-                                if ($existingRecordId) {
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        if (!$existingRecordId) {
-                            return response()->json([
-                                'success' => false,
-                                'message' => 'No existing draft claim found to update'
-                            ], 400);
-                        }
-                        
-                        try {
-                            $policyInfo = $this->getPolicyInfo($claimData);
-                            $realClientInfo = $this->getClientInfo($policyInfo);
-                            $policyId = $policyInfo['id']; 
-
-                            $updateData = [
-                                'claim_type' => $claimData['claim_type'],
-                                'PolicyId' => $policyId,
-                                'ClaimantName' => $claimData['ClaimantName'],
-                                'ClaimantMobile' => $claimData['ClaimantMobile'],
-                                'IdNumber' => $claimData['IdNumber'] ?? null,
-                                'id_type' => $claimData['id_type'] ?? null,
-                                'client_number' => $realClientInfo['client_number'],
-                                'statuscode' => $claimData['statuscode'] ?? 13,
-                                'ClaimDefaultPay_method' => $paymentData['ClaimDefaultPay_method'] ?? null,
-                                'ClaimDefaultEFTBank_code' => $paymentData['ClaimDefaultEFTBank_code'] ?? null,
-                                'ClaimDefaultEFTBankBranchCode' => $paymentData['ClaimDefaultEFTBankBranchCode'] ?? null,
-                                'ClaimDefaultEFTBank_account' => $paymentData['ClaimDefaultEFTBank_account'] ?? null,
-                                'dola' => $claimData['eventdate'] ?? null,
-                            ];
-
-                        } catch (\Exception $e) {
-                            $updateData = [
-                                'claim_type' => $claimData['claim_type'],
-                                'PolicyId' => null,
-                                'ClaimantName' => $claimData['ClaimantName'],
-                                'ClaimantMobile' => $claimData['ClaimantMobile'],
-                                'IdNumber' => $claimData['IdNumber'] ?? null,
-                                'id_type' => $claimData['id_type'] ?? null,
-                                'client_number' => $claimData['client_number'] ?? 'TEMP-' . time(),
-                                'statuscode' => $claimData['statuscode'] ?? 13,
-                                'ClaimDefaultPay_method' => $paymentData['ClaimDefaultPay_method'] ?? null,
-                                'ClaimDefaultEFTBank_code' => $paymentData['ClaimDefaultEFTBank_code'] ?? null,
-                                'ClaimDefaultEFTBankBranchCode' => $paymentData['ClaimDefaultEFTBankBranchCode'] ?? null,
-                                'ClaimDefaultEFTBank_account' => $paymentData['ClaimDefaultEFTBank_account'] ?? null,
-                                'dola' => $claimData['eventdate'] ?? null,
-                            ];
-                            $realClientInfo = [
-                                'name' => $claimData['ClaimantName'],
-                                'client_number' => $claimData['client_number'] ?? 'TEMP-' . time()
-                            ];
-                        }
-                        
-                        \Log::info('Updating existing record ID: ' . $existingRecordId . ' with data: ' . json_encode($updateData));
-                        
-                        // Update the existing record
-                        $updated = DB::table('eClaimsEntries')
-                            ->where('id', $existingRecordId)
-                            ->update($updateData);
-                            
-                        if ($updated) {
-                            \Log::info('Record updated successfully');
-                            $recordId = $existingRecordId;
-                            
-                            // Skip attachment processing on Step 3 - only update claim data
-                            
-                            try {
-                                $this->logClaimActivity($recordId, $claimData, $realClientInfo, 'updated');
-                                \Log::info('Claim update activity logged successfully');
-                            } catch (\Exception $e) {
-                                \Log::error('Failed to log claim update activity: ' . $e->getMessage());
-                            }
-                        } else {
-                            \Log::error('Failed to update record');
-                            return response()->json([
-                                'success' => false,
-                                'message' => 'Failed to update existing claim'
-                            ], 400);
-                        }
-                    } else {
-                        $recordId = 'DRAFT-' . time() . '-' . rand(1000, 9999);
-                        session(['draft_claim_' . $recordId => [
-                            'claimData' => $claimData,
-                            'paymentData' => $paymentData,
-                            'attachmentData' => $attachmentData,
-                            'clientInfo' => $clientInfo
-                        ]]);
-                    }
-                } else {
-                    $recordId = DB::transaction(function () use ($tableData, $claimData, $attachmentData) {
-                        $claimId = $this->saveClaimEntry($tableData, $claimData['ID'] ?? null);
-                        
-                        // Process attachments for complete claims
-                        //$this->processAttachments($attachmentData, $claimId);
-                        
-                        return $claimId;
-                        $this->updateClientPaymentDetails($clientInfo['client_number'] ?? 'TEMP-' . time(), $paymentData);
-                    });
-                }
-                
-                if ($claimData['IsWebComplete'] == 1) {
-                    DB::transaction(function () use ($recordId, $claimData, $clientInfo, $statusText) {
-                        $this->logClaimActivity($recordId, $claimData, $clientInfo, $statusText);
-                    });
-                }
-                
                 $res = [
                     'success' => true,
-                    'record_id' => $recordId,
-                    'statuscode' => $statusCode,
-                    'status' => $statusText,
-                    'message' => "Claim saved successfully as {$statusText}"
+                    'record_id' => $record_id,
+                    'message' => "Claim " . ($isUpdate ? "updated" : "saved") . " successfully as {$statusText}"
                 ];
+
+                // Only log activity for new records, not updates
+                if (!$isUpdate) {
+                    $this->logClaimActivity($record_id, $table_data, ['client_number' => $client_number], $statusText, $policy_no);
+                }
+                
             } catch (\Exception $exception) {
                 $res = [
                     'success' => false,
@@ -403,67 +201,28 @@ class claimController extends Controller
         }
     }
 
-    private function extractClaimData(Request $request)
-    {
-        return [
-            'ID' => $request->input('ID'),
-            'claim_type' => $request->input('claim_type'),
-            'claim_type_description' => $request->input('claim_type_description'),
-            'policy_no' => $request->input('policy_no'),
-            'client_number' => $request->input('client_number') ?? 'TEMP-' . time(),
-            'plan_code' => $request->input('plan_code'),
-            'plan_description' => $request->input('plan_description'),
-            'ClaimantName' => $request->input('ClaimantName') ?: $request->input('name'),
-            'ClaimantMobile' => $request->input('ClaimantMobile') ?: $request->input('mobile'),
-            'IdNumber' => $request->input('IdNumber') ?: $request->input('IdNumber'),
-            'id_type' => $request->input('id_type'),
-            'IsWebComplete' => $request->input('IsWebComplete', 0),
-            'ClaimCause' => $request->input('ClaimCause'),
-            'DoctorName' => $request->input('DoctorName'),
-            'eventdate' => $request->input('event_date') ?: $request->input('eventdate'),
-        ];
-    }
+    
 
-    private function extractPaymentData(Request $request)
-    {
-        return [
-            'ClaimDefaultPay_method' => $request->input('ClaimDefaultPay_method'),
-            'ClaimDefaultEFTBank_code' => $request->input('ClaimDefaultEFTBank_code'),
-            'ClaimDefaultEFTBankBranchCode' => $request->input('ClaimDefaultEFTBankBranchCode'),
-            'ClaimDefaultEFTBank_accountName' => $request->input('ClaimDefaultEFTBank_accountName'),
-            'ClaimDefaultEFTBank_account' => $request->input('ClaimDefaultEFTBank_account'),
-            'ClaimDefaultCashRecipient' => $request->input('ClaimDefaultCashRecipient'),
-            'ClaimDefaultCashContact' => $request->input('ClaimDefaultCashContact'),
-        ];
-    }
-    
-    private function extractAttachmentData(Request $request)
-    {
-        return [
-            'attachments' => $request->input('attachments', []),
-            'documents' => $request->input('documents', []),
-        ];
-    }
-    
+   
+
     private function validateClaimData(array $data)
     {
-        $required = ['claim_type', 'policy_no', 'ClaimantName']; 
-        
+        $required = ['claim_type', 'policy_no', 'ClaimantName'];
+
         foreach ($required as $field) {
             if (empty($data[$field])) {
                 throw new \Exception("Field '{$field}' is required");
             }
         }
-        
+
         if (!empty($data['ClaimDefaultPay_method'])) {
-            $validMethods = ['01', '02']; 
+            $validMethods = ['01', '02'];
             if (!in_array($data['ClaimDefaultPay_method'], $validMethods)) {
 
                 throw new \Exception("Invalid payment method");
-
             }
 
-            
+
 
             if ($data['ClaimDefaultPay_method'] === '01') {
 
@@ -474,14 +233,11 @@ class claimController extends Controller
                     if (empty($data[$field])) {
 
                         throw new \Exception("EFT payment requires bank details");
-
                     }
-
                 }
-
             }
 
-            
+
 
             // Validate Cheque fields if Cheque is selected
 
@@ -494,597 +250,34 @@ class claimController extends Controller
                     if (empty($data[$field])) {
 
                         throw new \Exception("Cheque payment requires recipient details");
-
                     }
-
                 }
-
             }
-
         }
-
     }
-
-    
-
-    private function getPolicyInfo(array $claimData)
-
-    {
-
-        $policyNo = $claimData['policy_no'];
-
-        
-
-        $policy = DB::table('polinfo')
-
-            ->where('policy_no', $policyNo)
-
-            ->first(); 
-
-            
-
-        if ($policy) {
-
-            return [
-
-                'id' => $policy->id,
-
-                'type' => 'micro',
-
-                'client_number' => $policy->client_number
-
-            ];
-
-        }
-
-        
-
-        throw new \Exception("Policy not found: {$policyNo}");
-
-    }
-
-    
-
-    private function getClientInfo(array $policyInfo)
-
-    {
-
-        $client = DB::table('clientinfo')
-
-            ->where('client_number', $policyInfo['client_number'] ?? 'TEMP-' . time())
-
-            ->first();
-
-            
-
-        if (!$client) {
-
-            throw new \Exception("Client not found: " . ($policyInfo['client_number'] ?? 'unknown'));
-
-        }
-
-        
-
-        return [
-
-            'name' => $client->name,
-
-            'client_number' => $client->client_number
-
-        ];
-
-    }
-
-    
-
-    private function getBranchId($userId)
-
-    {
-
-        // Since portal_users table doesn't exist and we need to avoid foreign key constraints,
-        // return null for branch_id to allow the claim to be saved without branch validation
-
-        try {
-
-            // Return null instead of hardcoded branch ID to avoid FK constraint violations
-            return null;
-
-        } catch (\Exception $e) {
-
-            \Log::error('Error getting branch ID: ' . $e->getMessage());
-
-            return null; // Return null on error to avoid FK issues
-
-        }
-
-    }
-
-    
-
-    private function checkDatabaseConnection()
-
-    {
-
-        try {
-
-            // Simple connection test using the default connection
-
-            DB::connection()->getPdo();
-
-            return true;
-
-        } catch (\Exception $e) {
-
-            \Log::error('Database connection check failed: ' . $e->getMessage());
-
-            // Don't fail immediately - try to proceed with the operation
-
-            // Let the actual database operations handle connection issues
-
-            return true; // Allow operation to proceed, let individual operations handle failures
-
-        }
-
-    }
-
-
-
-    private function saveClaimEntryWithTimeout(array $tableData)
-
-    {
-
-        // Force SQL Server connection with different timeout settings
-
-        try {
-
-            \Log::info("Attempting SQL Server insert with custom settings...");
-
-            
-
-            // Create a new database connection with custom timeout settings
-
-            $config = [
-
-                'driver' => 'sqlsrv',
-
-                'host' => env('DB_HOST'),
-
-                'port' => env('DB_PORT', '1433'),
-
-                'database' => env('DB_DATABASE'),
-
-                'username' => env('DB_USERNAME'),
-
-                'password' => env('DB_PASSWORD'),
-
-                'trust_server_certificate' => true,
-
-                'timeout' => 30, // 30 seconds timeout
-
-                'options' => [
-
-                    PDO::ATTR_EMULATE_PREPARES => true,
-
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-
-                    PDO::ATTR_TIMEOUT => 30,
-
-                ],
-
-            ];
-
-            
-
-            // Create new PDO connection
-
-            $dsn = "sqlsrv:Server=" . $config['host'] . "," . $config['port'] . ";Database=" . $config['database'] . ";LoginTimeout=30";
-
-            $pdo = new PDO($dsn, $config['username'], $config['password'], $config['options']);
-
-            
-
-            // Build the insert query manually
-
-            $columns = array_keys($tableData);
-
-            $values = array_values($tableData);
-
-            $placeholders = str_repeat('?,', count($columns) - 1) . '?';
-
-            
-
-            $sql = "INSERT INTO eClaimsEntries (" . implode(',', $columns) . ") VALUES ({$placeholders})";
-
-            
-
-            \Log::info("Executing SQL: " . $sql);
-
-            \Log::info("With data: " . json_encode($tableData));
-
-            
-
-            $stmt = $pdo->prepare($sql);
-
-            $stmt->execute($values);
-
-            
-
-            // Get the last insert ID
-
-            $id = $pdo->lastInsertId();
-
-            
-
-            \Log::info("SQL Server insert successful! ID: " . $id);
-
-            return $id;
-
-            
-
-        } catch (\Exception $e) {
-
-            \Log::error("Custom SQL Server connection failed: " . $e->getMessage());
-
-            
-
-            // Try with Laravel's DB but with different approach
-
-            try {
-
-                DB::transaction(function () use ($tableData, &$result) {
-
-                    $result = DB::table('eClaimsEntries')->insertGetId($tableData);
-
-                });
-
-                
-
-                \Log::info("Laravel transaction successful! ID: " . $result);
-
-                return $result;
-
-                
-
-            } catch (\Exception $e2) {
-
-                \Log::error("Laravel transaction also failed: " . $e2->getMessage());
-
-                
-
-                // Final attempt - try without any special settings
-
-                try {
-
-                    \Log::info("Final attempt - basic insert...");
-
-                    $result = DB::table('eClaimsEntries')->insertGetId($tableData);
-
-                    \Log::info("Basic insert successful! ID: " . $result);
-
-                    return $result;
-
-                    
-
-                } catch (\Exception $e3) {
-
-                    \Log::error("All SQL Server attempts failed: " . $e3->getMessage());
-
-                    throw new \Exception("Unable to save to SQL Server: " . $e3->getMessage());
-
-                }
-
-            }
-
-        }
-
-    }
-
-    
-
-    private function createSqliteBackup(array $backupData)
-
-    {
-
-        // Create a SQLite database as backup
-
-        $sqliteDb = storage_path('app/claims_backup.sqlite');
-
-        
-
-        // Create SQLite table if it doesn't exist
-
-        $pdo = new \PDO('sqlite:' . $sqliteDb);
-
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-
-        
-
-        $pdo->exec("
-
-            CREATE TABLE IF NOT EXISTS eClaimsEntries (
-
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-                backup_id TEXT UNIQUE,
-
-                claim_type TEXT,
-
-                policy_no TEXT,
-
-                ClaimantName TEXT,
-
-                ClaimantMobile TEXT,
-
-                IdNumber TEXT,
-
-                statuscode INTEGER,
-
-                created_on TEXT,
-
-                RequestDate TEXT,
-
-                ClientName TEXT,
-
-                client_number TEXT,
-
-                created_by TEXT,
-
-                ClaimDefaultPay_method TEXT,
-
-                ClaimDefaultEFTBank_code TEXT,
-
-                ClaimDefaultEFTBankBranchCode TEXT,
-
-                ClaimDefaultEFTBank_accountName TEXT,
-
-                ClaimDefaultEFTBank_account TEXT,
-
-                ClaimDefaultCashRecipient TEXT,
-
-                ClaimDefaultCashContact TEXT,
-
-                backup_timestamp TEXT,
-
-                sync_status TEXT DEFAULT 'pending'
-
-            )
-
-        ");
-
-        
-
-        // Insert the data
-
-        $stmt = $pdo->prepare("
-
-            INSERT INTO eClaimsEntries (
-
-                backup_id, claim_type, policy_no, ClaimantName, ClaimantMobile, IdNumber,
-
-                statuscode, created_on, RequestDate, ClientName, client_number, created_by,
-
-                ClaimDefaultPay_method, ClaimDefaultEFTBank_code, ClaimDefaultEFTBankBranchCode,
-
-                ClaimDefaultEFTBank_accountName, ClaimDefaultEFTBank_account, ClaimDefaultCashRecipient,
-
-                ClaimDefaultCashContact, backup_timestamp, sync_status
-
-            ) VALUES (
-
-                :backup_id, :claim_type, :policy_no, :ClaimantName, :ClaimantMobile, :IdNumber,
-
-                :statuscode, :created_on, :RequestDate, :ClientName, :client_number, :created_by,
-
-                :ClaimDefaultPay_method, :ClaimDefaultEFTBank_code, :ClaimDefaultEFTBankBranchCode,
-
-                :ClaimDefaultEFTBank_accountName, :ClaimDefaultEFTBank_account, :ClaimDefaultCashRecipient,
-
-                :ClaimDefaultCashContact, :backup_timestamp, :sync_status
-
-            )
-
-        ");
-
-        
-
-        $data = $backupData['data'];
-
-        $stmt->execute([
-
-            ':backup_id' => $backupData['id'],
-
-            ':claim_type' => $data['claim_type'] ?? '',
-
-            ':PolicyId' => $data['PolicyId'] ?? '',
-
-            ':ClaimantName' => $data['ClaimantName'] ?? '',
-
-            ':ClaimantMobile' => $data['ClaimantMobile'] ?? '',
-
-            ':IdNumber' => $data['IdNumber'] ?? '',
-
-            ':statuscode' => $data['statuscode'] ?? 13,
-
-            ':created_on' => $data['created_on'] ?? '',
-
-            ':RequestDate' => $data['RequestDate'] ?? '',
-
-            ':ClientName' => $data['ClientName'] ?? '',
-
-            ':client_number' => $data['client_number'] ?? '',
-
-            ':created_by' => $data['created_by'] ?? '',
-
-            ':ClaimDefaultPay_method' => $data['ClaimDefaultPay_method'] ?? '',
-
-            ':ClaimDefaultEFTBank_code' => $data['ClaimDefaultEFTBank_code'] ?? '',
-
-            ':ClaimDefaultEFTBankBranchCode' => $data['ClaimDefaultEFTBankBranchCode'] ?? '',
-
-            ':ClaimDefaultEFTBank_accountName' => $data['ClaimDefaultEFTBank_accountName'] ?? '',
-
-            ':ClaimDefaultEFTBank_account' => $data['ClaimDefaultEFTBank_account'] ?? '',
-
-            ':ClaimDefaultCashRecipient' => $data['ClaimDefaultCashRecipient'] ?? '',
-
-            ':ClaimDefaultCashContact' => $data['ClaimDefaultCashContact'] ?? '',
-
-            ':backup_timestamp' => $backupData['timestamp'],
-
-            ':sync_status' => 'pending'
-
-        ]);
-
-    }
-
-
-
-    private function saveClaimEntry(array $tableData, $existingId = null)
-
-    {
-
-        $maxRetries = 3;
-
-        $retryCount = 0;
-
-        
-
-        while ($retryCount < $maxRetries) {
-
-            try {
-
-                // Set a shorter timeout for the database operation
-
-                DB::statement('SET LOCK_TIMEOUT 5000'); // 5 seconds
-
-                
-
-                if ($existingId) {
-
-                    // Update existing claim
-
-                    $updated = DB::table('eClaimsEntries')
-
-                        ->where('id', $existingId)
-
-                        ->update(array_merge($tableData, [
-
-                            'altered_by' => request()->input('user_id'),
-
-                            'dola' => Carbon::now()
-
-                        ]));
-
-                    
-
-                    if ($updated) {
-
-                        return $existingId;
-
-                    } else {
-
-                        throw new \Exception("Failed to update claim record");
-
-                    }
-
-                } else {
-
-                    // Insert new claim with timeout handling
-
-                    return DB::table('eClaimsEntries')->insertGetId(array_merge($tableData, [
-
-                        'created_by' => request()->input('user_id'),
-
-                        'created_on' => Carbon::now()
-
-                    ]));
-
-                }
-
-                
-
-            } catch (\Exception $e) {
-
-                $retryCount++;
-
-                
-
-                // Check if it's a timeout error
-
-                if (strpos($e->getMessage(), 'timeout') !== false || strpos($e->getMessage(), 'timed out') !== false) {
-
-                    if ($retryCount < $maxRetries) {
-
-                        // Wait before retrying (exponential backoff)
-
-                        usleep(500000 * $retryCount); // 0.5s, 1s, 1.5s
-
-                        continue;
-
-                    }
-
-                }
-
-                
-
-                // Re-throw the exception if it's not a timeout or we've exhausted retries
-
-                throw $e;
-
-            }
-
-        }
-
-        
-
-        throw new \Exception("Database operation failed after {$maxRetries} attempts due to timeout");
-
-    }
-
-    
-
-    private function updateClientPaymentDetails($clientNumber, array $paymentData)
-
-    {
-
-        // Disabled: clientinfo table doesn't have payment detail columns
-        // Payment details are stored in eClaimsEntries table, not clientinfo
-        
-        \Log::info('updateClientPaymentDetails called but disabled - payment details are stored in eClaimsEntries');
-        
-        return;
-
-    }
-
-    
-
-
 
     /// TODO: add username and createdby as created_by both as the username ya login
 
-    private function logClaimActivity($recordId, array $claimData, array $clientInfo, $statusText)
+    private function logClaimActivity($recordId, array $claimData, array $clientInfo, $statusText, $policy_no)
 
     {
 
         // Check if eClaimId already exists to ensure uniqueness
 
-        $existingLog = DB::table('pos_log')
+        $existingLog = DB::table('Pos_Log')
 
             ->where('eClaimId', $recordId)
 
-            ->where('Activity', 1) // Claim activity
-
+            ->where('Activity', 4) 
             ->first();
 
-            
+
 
         if ($existingLog) {
 
-            return; // eClaimId already exists, do not save duplicate
+            return;
 
         }
-
-        
 
         // Get claim type description
 
@@ -1094,19 +287,18 @@ class claimController extends Controller
 
             ->value('Description');
 
-            
 
         // Log the activity with status
 
-        DB::table('pos_log')->insert([
+        DB::table('Pos_Log')->insert([
 
             'ClientName' => $claimData['ClaimantName'] ?? $clientInfo['name'],
 
-            'StaffNumber' => $this->getStaffNumber($claimData['policy_no']),
+            'StaffNumber' => $this->getStaffNumber($policy_no),
 
-            'Activity' => 1,
+            'Activity' => 4,
 
-            'Narration' => $claimTypeDesc . " (Policy Number: " . $claimData['policy_no'] . ") - Status: {$statusText}",
+            'Narration' => $claimTypeDesc . " (Policy Number: " . $policy_no . ") ",
 
             'eClaimId' => $recordId,
 
@@ -1115,10 +307,9 @@ class claimController extends Controller
             'created_by' => request()->input('user_id')
 
         ]);
-
     }
 
-    
+
 
     private function getStaffNumber($policyNo)
 
@@ -1132,15 +323,14 @@ class claimController extends Controller
 
             ->value('SearchReferenceNumber');
 
-            
+
 
         if ($staffNo) {
 
             return $staffNo;
-
         }
 
-        
+
 
         // Try micro policy
 
@@ -1149,49 +339,6 @@ class claimController extends Controller
             ->where('ProposalNumber', $policyNo)
 
             ->value('EmployeeNumber') ?? '';
-
-    }
-
-
-
-    public function removeDuplicateClaimTypes(array $objects) {
-
-        // Use an associative array to store unique claim_type values
-
-        $uniqueClaimTypes = array();
-
-    
-
-        // Filter out duplicate claim_type values
-
-        $filteredArray = array_filter($objects, function ($item) use (&$uniqueClaimTypes) {
-
-            $claimType = $item->claim_type;
-
-    
-
-            // Check if claim_type is already in the uniqueClaimTypes array
-
-            if (!isset($uniqueClaimTypes[$claimType])) {
-
-                // Add claim_type to the uniqueClaimTypes array
-
-                $uniqueClaimTypes[$claimType] = true;
-
-                return true; // Include the item in the filtered array
-
-            }
-
-    
-
-            return false; // Exclude the item from the filtered array
-
-        });
-
-    
-
-        return array_values($filteredArray);
-
     }
 
 
@@ -1234,7 +381,7 @@ class claimController extends Controller
 
             ];
 
-            
+
 
             // Call the function to remove duplicates based on claim_type
 
@@ -1246,10 +393,9 @@ class claimController extends Controller
 
                 'success' => true,
 
-                'ClaimType' => $result//$this->removeDuplicateClaimTypes($ClaimType)
+                'ClaimType' => $result //$this->removeDuplicateClaimTypes($ClaimType)
 
             );
-
         } catch (\Exception $exception) {
 
             $res = array(
@@ -1261,7 +407,6 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         } catch (\Throwable $throwable) {
 
             $res = array(
@@ -1273,11 +418,9 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         }
 
         return response()->json($res);
-
     }
 
 
@@ -1312,13 +455,12 @@ class claimController extends Controller
 
 
 
-                if(isset($claim_type)){
+                if (isset($claim_type)) {
 
                     $SchemeBenefit = DbHelper::getColumnValue('SchemeBenefitConfig', 'ClaimType', $claim_type, 'id');
-
                 }
 
-                
+
 
 
 
@@ -1331,7 +473,6 @@ class claimController extends Controller
                 if (!isset($PayMethod)) {
 
                     $PayScheme = 1;
-
                 } else {
 
                     if (isset($PayMethod) && $PayMethod == "1")
@@ -1345,7 +486,6 @@ class claimController extends Controller
                     if (isset($PayMethod) && $PayMethod == "3")
 
                         $PayMember = 1;
-
                 }
 
                 //get MemberID
@@ -1413,7 +553,6 @@ class claimController extends Controller
                         ->update($table_data);
 
                     $record_id = $id;
-
                 } else {
 
                     //$table_data['CreatedBy'] = $user_id;
@@ -1423,7 +562,6 @@ class claimController extends Controller
                     //insert
 
                     $record_id = $this->smartlife_db->table('eClaimEntriesGroup')->insertGetId($table_data);
-
                 }
 
 
@@ -1439,9 +577,7 @@ class claimController extends Controller
                     'message' => 'Claim Successfully Saved!'
 
                 );
-
             }, 5);
-
         } catch (\Exception $exception) {
 
             $res = array(
@@ -1453,7 +589,6 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         } catch (\Throwable $throwable) {
 
             $res = array(
@@ -1465,11 +600,9 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         }
 
         return response()->json($res);
-
     }
 
 
@@ -1490,22 +623,20 @@ class claimController extends Controller
 
 
 
-            if(!isset($is_group) || $is_group == 0){
+            if (!isset($is_group) || $is_group == 0) {
 
                 $sql = "SELECT p.*,d.description AS file_desc from claimsreqinfo p 
 
                 inner join claim_requirement d on d.reg_code=p.code 
 
-                where p.eClaimNumber=$rcd_id";           
-
-            }else{
+                where p.eClaimNumber=$rcd_id";
+            } else {
 
                 $sql = "SELECT p.*,d.description AS file_desc from glifeclaimsreqinfo p 
 
                 inner join claim_requirement d on d.reg_code=p.code 
 
-                where p.EclaimsEntrieId=$rcd_id"; 
-
+                where p.EclaimsEntrieId=$rcd_id";
             }
 
             $Files = DbHelper::getTableRawData($sql);
@@ -1519,7 +650,6 @@ class claimController extends Controller
                 'Files' => $Files
 
             );
-
         } catch (\Exception $exception) {
 
             $res = array(
@@ -1531,7 +661,6 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         } catch (\Throwable $throwable) {
 
             $res = array(
@@ -1543,11 +672,9 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         }
 
         return response()->json($res);
-
     }
 
 
@@ -1574,7 +701,7 @@ class claimController extends Controller
 
                 // Debug logging - Show all request data
 
-                \Log::info('syncClaimImage - All request data:', [
+                Log::info('syncClaimImage - All request data:', [
 
                     'all_inputs' => $request->all(),
 
@@ -1588,7 +715,7 @@ class claimController extends Controller
 
                 ]);
 
-                
+
 
                 $myFile = $request->file('myFile');
 
@@ -1598,11 +725,11 @@ class claimController extends Controller
 
                 $eClaimId = $request->input('eClaimId') ?: $request->input('record_id');
 
-                
+
 
                 // Debug logging
 
-                \Log::info('syncClaimImage - Parameters:', [
+                Log::debug('syncClaimImage - Parameters:', [
 
                     'req_code' => $req_code,
 
@@ -1614,25 +741,25 @@ class claimController extends Controller
 
                 ]);
 
-                
+
 
                 $Description = DbHelper::getColumnValue('claim_requirement', 'reg_code', $req_code, 'description') ?: "Document Upload";
 
-                
+
 
                 // Debug description
 
-                \Log::info('syncClaimImage - Description:', ['Description' => $Description]);
+                Log::debug('syncClaimImage - Description:', ['Description' => $Description]);
 
-                
+
 
                 // Check if req_code exists in claim_requirement table
 
                 $codeExists = DbHelper::getTableRawData("SELECT COUNT(*) as count FROM claim_requirement WHERE reg_code = '$req_code'");
 
-                \Log::info('syncClaimImage - Code exists check:', ['req_code' => $req_code, 'exists' => $codeExists[0]->count > 0]);
+                Log::debug('syncClaimImage - Code exists check:', ['req_code' => $req_code, 'exists' => $codeExists[0]->count > 0]);
 
-                
+
 
                 // If code doesn't exist, use a default one
 
@@ -1640,25 +767,24 @@ class claimController extends Controller
 
                     $req_code = '001'; // Use DEATH CERTIFICATE as default
 
-                    \Log::info('syncClaimImage - Using fallback code:', ['new_req_code' => $req_code]);
-
+                    Log::debug('syncClaimImage - Using fallback code:', ['new_req_code' => $req_code]);
                 }
 
-                
+
 
                 // Check if eClaimId exists in eClaimsEntries table
 
                 $eClaimExists = DbHelper::getTableRawData("SELECT COUNT(*) as count FROM eClaimsEntries WHERE id = '$eClaimId'");
 
-                \Log::info('syncClaimImage - eClaimId exists check:', ['eClaimId' => $eClaimId, 'exists' => $eClaimExists[0]->count > 0]);
+                Log::debug('syncClaimImage - eClaimId exists check:', ['eClaimId' => $eClaimId, 'exists' => $eClaimExists[0]->count > 0]);
 
-                
+
 
                 // If eClaimId doesn't exist, create a basic record
 
                 if ($eClaimExists[0]->count == 0) {
 
-                    \Log::info('syncClaimImage - Creating eClaimEntry:', ['eClaimId' => $eClaimId]);
+                    Log::debug('syncClaimImage - Creating eClaimEntry:', ['eClaimId' => $eClaimId]);
 
                     try {
 
@@ -1676,19 +802,16 @@ class claimController extends Controller
 
                         ]);
 
-                        \Log::info('syncClaimImage - eClaimEntry created successfully');
-
+                        Log::debug('syncClaimImage - eClaimEntry created successfully');
                     } catch (\Exception $e) {
 
-                        \Log::error('syncClaimImage - eClaimEntry creation failed:', ['error' => $e->getMessage()]);
+                        Log::error('syncClaimImage - eClaimEntry creation failed:', ['error' => $e->getMessage()]);
 
                         throw $e;
-
                     }
-
                 }
 
-                
+
 
                 $signature = $request->input('signature');
 
@@ -1698,7 +821,7 @@ class claimController extends Controller
 
 
 
-                $fileName = $eClaimId . ".png"; 
+                $fileName = $eClaimId . ".png";
 
 
 
@@ -1708,7 +831,7 @@ class claimController extends Controller
 
                 if (isset($signature))
 
-                    $this->saveStringFile($signature, $category_id, $req_code, $eClaimId, $fileName,$IsClientSigned);
+                    $this->saveStringFile($signature, $category_id, $req_code, $eClaimId, $fileName, $IsClientSigned);
 
 
 
@@ -1721,9 +844,7 @@ class claimController extends Controller
                     'message' => 'Data Synced Successfully!!'
 
                 );
-
             }, 5);
-
         } catch (\Exception $exception) {
 
             $res = array(
@@ -1735,7 +856,6 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         } catch (\Throwable $throwable) {
 
             $res = array(
@@ -1747,11 +867,9 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         }
 
         return response()->json($res);
-
     }
 
 
@@ -1778,11 +896,11 @@ class claimController extends Controller
 
         $file->getMimeType();
 
-        
+
 
         // Debug logging
 
-        \Log::info('savePhysicalFile - Starting:', [
+        Log::debug('savePhysicalFile - Starting:', [
 
             'fileName' => $fileName,
 
@@ -1796,7 +914,7 @@ class claimController extends Controller
 
         ]);
 
-        
+
 
         //Move Uploaded File
 
@@ -1804,7 +922,7 @@ class claimController extends Controller
 
         $destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', $category_id, 'FileStoreLocationPath');
 
-        
+
 
         // Fallback to default path if database lookup fails
 
@@ -1817,16 +935,14 @@ class claimController extends Controller
             if (!is_dir($destinationPath)) {
 
                 mkdir($destinationPath, 0777, true);
-
             }
-
         }
 
-        
 
-        \Log::info('savePhysicalFile - Destination path:', ['destinationPath' => $destinationPath]);
 
-        
+        Log::debug('savePhysicalFile - Destination path:', ['destinationPath' => $destinationPath]);
+
+
 
         $file->move($destinationPath, $file->getClientOriginalName());
 
@@ -1848,9 +964,9 @@ class claimController extends Controller
 
         $claimsreqinfoArr = DbHelper::getTableRawData($sql);
 
-        
 
-        \Log::info('savePhysicalFile - Existing records check:', [
+
+        Log::debug('savePhysicalFile - Existing records check:', [
 
             'sql' => $sql,
 
@@ -1858,7 +974,7 @@ class claimController extends Controller
 
         ]);
 
-        
+
 
         $table_data = array(
 
@@ -1890,45 +1006,41 @@ class claimController extends Controller
 
             $record_id = $claimsreqinfoArr[0]->id;
 
-            \Log::info('savePhysicalFile - Updating existing record:', ['record_id' => $record_id]);
+            Log::debug('savePhysicalFile - Updating existing record:', ['record_id' => $record_id]);
 
             $this->smartlife_db->table('claimsreqinfo')
 
-            ->where(
+                ->where(
 
-                array(
+                    array(
 
-                    "id" => $record_id
+                        "id" => $record_id
+
+                    )
 
                 )
 
-            )
+                ->update($table_data);
+        } else {
 
-            ->update($table_data);
-
-        }else{
-
-            \Log::info('savePhysicalFile - Inserting new record');
+            Log::debug('savePhysicalFile - Inserting new record');
 
             try {
 
                 $record_id = $this->smartlife_db->table('claimsreqinfo')->insertGetId($table_data);
 
-                \Log::info('savePhysicalFile - New record ID:', ['record_id' => $record_id]);
-
+                Log::debug('savePhysicalFile - New record ID:', ['record_id' => $record_id]);
             } catch (\Exception $e) {
 
-                \Log::error('savePhysicalFile - Insert failed:', ['error' => $e->getMessage()]);
+                Log::error('savePhysicalFile - Insert failed:', ['error' => $e->getMessage()]);
 
                 throw $e;
-
             }
-
         }
 
 
 
-        
+
 
 
 
@@ -1948,14 +1060,13 @@ class claimController extends Controller
 
         );
 
-        
 
-        \Log::info('savePhysicalFile - Inserting into ClaimsStoreObject:', ['uuid' => $uuid]);
+
+        Log::debug('savePhysicalFile - Inserting into ClaimsStoreObject:', ['uuid' => $uuid]);
 
         $record_id = $this->smartlife_db->table('ClaimsStoreObject')->insertGetId($table_data);
 
-        \Log::info('savePhysicalFile - ClaimsStoreObject record ID:', ['record_id' => $record_id]);
-
+        Log::debug('savePhysicalFile - ClaimsStoreObject record ID:', ['record_id' => $record_id]);
     }
 
 
@@ -1967,12 +1078,11 @@ class claimController extends Controller
         $binary = base64_decode($base64);
 
         return bin2hex($binary);
-
     }
 
 
 
-    public function saveStringFile($file, $category_id, $req_code, $eClaimId, $fileName,$IsClientSigned=null)
+    public function saveStringFile($file, $category_id, $req_code, $eClaimId, $fileName, $IsClientSigned = null)
 
     {
 
@@ -2062,22 +1172,20 @@ class claimController extends Controller
 
             $this->smartlife_db->table('claimsreqinfo')
 
-            ->where(
+                ->where(
 
-                array(
+                    array(
 
-                    "id" => $record_id
+                        "id" => $record_id
+
+                    )
 
                 )
 
-            )
-
-            ->update($table_data);
-
-        }else{
+                ->update($table_data);
+        } else {
 
             $record_id = $this->smartlife_db->table('claimsreqinfo')->insertGetId($table_data);
-
         }
 
         //insert into Mob_ProposalStoreObject
@@ -2097,7 +1205,6 @@ class claimController extends Controller
         );
 
         $record_id = $this->smartlife_db->table('ClaimsStoreObject')->insertGetId($table_data);
-
     }
 
     //////////end of Claim Files///
@@ -2120,7 +1227,7 @@ class claimController extends Controller
 
             $is_micro = $request->input('is_micro');
 
-            if($is_micro == "1"){
+            if ($is_micro == "1") {
 
                 $sql = "SELECT p.Id 'id',d.PolicyNumber 'policy_no',p.claim_type,p.ClaimantName,
 
@@ -2137,8 +1244,7 @@ class claimController extends Controller
                 p.created_by = '$created_by' 
 
                 ORDER BY p.id DESC";
-
-            }else{
+            } else {
 
                 $sql = "SELECT p.id,d.policy_no,p.PolicyId,p.claim_type,p.ClaimantName,
 
@@ -2155,10 +1261,9 @@ class claimController extends Controller
                 p.created_by = '$created_by'
 
                 ORDER BY p.id DESC";
-
             }
 
-            
+
 
             $Claims = DbHelper::getTableRawData($sql);
 
@@ -2171,7 +1276,6 @@ class claimController extends Controller
                 'Claims' => $Claims
 
             );
-
         } catch (\Exception $exception) {
 
             $res = array(
@@ -2183,7 +1287,6 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         } catch (\Throwable $throwable) {
 
             $res = array(
@@ -2195,11 +1298,9 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         }
 
         return response()->json($res);
-
     }
 
 
@@ -2226,24 +1327,22 @@ class claimController extends Controller
 
 
 
-            $filter_array = array();//t3.id=6
+            $filter_array = array(); //t3.id=6
 
-            if($source_type == "2"){
+            if ($source_type == "2") {
 
                 $filter_array = array(
 
                     "p.processed" => 1
 
                 );
-
-            } else if($source_type == "3"){
+            } else if ($source_type == "3") {
 
                 $filter_array = array(
 
                     "s.id" => 6
 
                 );
-
             }
 
 
@@ -2262,13 +1361,13 @@ class claimController extends Controller
 
                 ->where($filter_array)
 
-                ->whereBetween('p.notification_date', [$date_from, $date_to]) 
+                ->whereBetween('p.notification_date', [$date_from, $date_to])
 
                 ->orderBy('p.notification_date', 'DESC')
 
                 ->get();
 
-           
+
 
             $res = array(
 
@@ -2277,7 +1376,6 @@ class claimController extends Controller
                 'Claims' => $results
 
             );
-
         } catch (\Exception $exception) {
 
             $res = array(
@@ -2289,7 +1387,6 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         } catch (\Throwable $throwable) {
 
             $res = array(
@@ -2301,11 +1398,9 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         }
 
         return response()->json($res);
-
     }
 
 
@@ -2352,18 +1447,15 @@ class claimController extends Controller
 
             $criteria = $request->input('criteria');
 
-            if(isset($criteria)) {
+            if (isset($criteria)) {
 
-                if($criteria == "1"){
+                if ($criteria == "1") {
 
                     $policy_no = $request->input('search_entry');
-
-                } else if($criteria == "2"){
+                } else if ($criteria == "2") {
 
                     $ReferenceNumber = $request->input('search_entry');
-
                 }
-
             }
 
 
@@ -2419,52 +1511,40 @@ class claimController extends Controller
             if (isset($client_no) && $client_no != 'undefined') {
 
                 $sql .= " WHERE p.client_number='$client_no'";
-
             } else if (isset($policy_no) && $policy_no != 'undefined') {
 
                 $sql .= " WHERE p.policy_no='$policy_no'";
-
             } else if (isset($id)) {
 
                 $sql .= " WHERE d.id=$id";
-
             } else if (isset($is_dashboard) && $is_dashboard == "1") {
 
-                if(!isset($date_from) || !isset($date_to)){
+                if (!isset($date_from) || !isset($date_to)) {
 
                     $date_from = date('Y-m-d');
 
                     $date_to = date('Y-m-d');
-
-                }//RequestDate
+                } //RequestDate
 
                 $sql .= " WHERE d.pay_due_date BETWEEN '$date_from' AND '$date_to'";
-
-                
-
             } else if (isset($is_md_coo)) {
 
-                if(!isset($date_from) || !isset($date_to)){
+                if (!isset($date_from) || !isset($date_to)) {
 
                     $date_from = date('Y-m-d');
 
                     $date_to = date('Y-m-d');
-
-                }//RequestDate
+                } //RequestDate
 
                 $sql .= " WHERE d.created_on BETWEEN '$date_from' AND '$date_to'";
-
-                
-
             } else if (isset($ReferenceNumber)) {
 
                 $sql .= " WHERE p.SearchReferenceNumber='$ReferenceNumber'";
-
             }
 
 
 
-            if(isset($criteria) || isset($is_md_coo)) {
+            if (isset($criteria) || isset($is_md_coo)) {
 
                 //TODO-Add the ones at enquiry stage only
 
@@ -2493,31 +1573,24 @@ class claimController extends Controller
                 if (isset($ReferenceNumber)) {
 
                     $sql_enquiry .= " AND p.SearchReferenceNumber='gli10213'";
-
                 }
 
                 if (isset($policy_no)) {
 
                     $sql_enquiry .= " AND p.policy_no='$policy_no'";
-
                 }
 
                 if (isset($is_md_coo)) {
 
-                    if(!isset($date_from) || !isset($date_to)){
+                    if (!isset($date_from) || !isset($date_to)) {
 
                         $date_from = date('Y-m-d');
 
                         $date_to = date('Y-m-d');
-
                     }
 
                     $sql .= " AND d.created_on BETWEEN '$date_from' AND '$date_to'";
-
                 }
-
-
-
             }
 
 
@@ -2561,32 +1634,27 @@ class claimController extends Controller
                 if (isset($client_no) && $client_no != 'undefined') {
 
                     $sql .= " WHERE p.Client='$client_no' ";
-
                 } else if (isset($policy_no) && $policy_no != 'undefined') {
 
                     $sql .= " WHERE p.PolicyNumber='$policy_no' ";
-
                 } else if (isset($id)) {
 
                     $sql .= " WHERE d.Id=$id";
-
                 } else if (isset($is_dashboard) && $is_dashboard == "1") {
 
-                    if(!isset($date_from) || !isset($date_to)){
+                    if (!isset($date_from) || !isset($date_to)) {
 
                         $date_from = date('Y-m-d');
 
                         $date_to = date('Y-m-d');
-
-                    }//RequestDate
+                    } //RequestDate
 
                     $sql .= " WHERE d.pay_due_date BETWEEN '$date_from' AND '$date_to'";
-
                 }
 
 
 
-                if(isset($criteria)) {
+                if (isset($criteria)) {
 
                     //TODO-Add the ones at enquiry stage only
 
@@ -2611,31 +1679,26 @@ class claimController extends Controller
                     if (isset($ReferenceNumber)) {
 
                         $sql_enquiry .= " AND p.SearchReferenceNumber='gli10213'";
-
                     }
 
                     if (isset($policy_no)) {
 
                         $sql_enquiry .= " AND p.PolicyNumber='$policy_no'";
-
                     }
-
                 }
-
             }
 
 
 
-            
+
 
             $Claims = DbHelper::getTableRawData($sql);
 
-            if(isset($criteria)){
+            if (isset($criteria)) {
 
                 $ClaimsE = DbHelper::getTableRawData($sql_enquiry);
 
                 $Claims = array_merge($Claims, $ClaimsE);
-
             }
 
 
@@ -2649,7 +1712,6 @@ class claimController extends Controller
                 'Claims' => $Claims
 
             );
-
         } catch (\Exception $exception) {
 
             $res = array(
@@ -2661,7 +1723,6 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         } catch (\Throwable $throwable) {
 
             $res = array(
@@ -2673,11 +1734,9 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         }
 
         return response()->json($res);
-
     }
 
 
@@ -2698,7 +1757,7 @@ class claimController extends Controller
 
             $SchemeID = DbHelper::getColumnValue('polschemeinfo', 'policy_no', $scheme_no, 'schemeID');
 
-            
+
 
             /*$sql = "SELECT
 
@@ -2795,7 +1854,6 @@ class claimController extends Controller
                 'Claims' => $Claims
 
             );
-
         } catch (\Exception $exception) {
 
             $res = array(
@@ -2807,7 +1865,6 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         } catch (\Throwable $throwable) {
 
             $res = array(
@@ -2819,11 +1876,9 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         }
 
         return response()->json($res);
-
     }
 
 
@@ -2888,7 +1943,7 @@ class claimController extends Controller
 
             INNER JOIN claims_types q ON q.claim_type=d.claim_type";
 
-            if(isset($proposal_no) && !isset($policy_no)){
+            if (isset($proposal_no) && !isset($policy_no)) {
 
                 $sql .= " INNER JOIN proposalinfo p ON d.ProposalNumber=p.proposal_no 
 
@@ -2901,8 +1956,7 @@ class claimController extends Controller
                 LEFT JOIN funeralmembers i ON i.id=d.FuneralMembersInfo 
 
                 LEFT JOIN glBranchInfo g ON d.branch_id=g.glBranch";
-
-            }else{
+            } else {
 
                 $sql .= " INNER JOIN polinfo p ON d.PolicyId=p.id 
 
@@ -2915,39 +1969,32 @@ class claimController extends Controller
                 LEFT JOIN funeralmembers i ON i.id=d.FuneralMembersInfo 
 
                 LEFT JOIN glBranchInfo g ON d.branch_id=g.glBranch";
-
             }
 
-            
+
 
             if (isset($client_no)) {
 
                 $sql .= " WHERE p.client_number='$client_no' AND d.statuscode <> 14";
-
             } else if (isset($policy_no)) {
 
                 $sql .= " WHERE p.policy_no='$policy_no' AND d.statuscode <> 14";
-
             } else if (isset($proposal_no)) {
 
                 $sql .= " WHERE d.ProposalNumber='$proposal_no' AND d.statuscode <> 14";
-
             } else if (isset($id)) {
 
                 $sql .= " WHERE d.id=$id";
-
             } else if (isset($date_from) || (isset($is_dashboard) && $is_dashboard == "1")) {
 
-                if(!isset($date_from) || !isset($date_to)){
+                if (!isset($date_from) || !isset($date_to)) {
 
                     $date_from = date('Y-m-d');
 
                     $date_to = date('Y-m-d');
-
-                }//RequestDate
+                } //RequestDate
 
                 $sql .= " WHERE (d.RequestDate BETWEEN '$date_from' AND '$date_to') AND d.statuscode <> 14";
-
             }
 
 
@@ -2980,7 +2027,7 @@ class claimController extends Controller
 
                 INNER JOIN claims_types q ON q.claim_type=d.claim_type ";
 
-                if(isset($proposal_no) && !isset($policy_no)){
+                if (isset($proposal_no) && !isset($policy_no)) {
 
                     $sql .= "LEFT JOIN MicroProposalInfo p ON d.ProposalNumber=p.ProposalNumber 
 
@@ -2989,8 +2036,7 @@ class claimController extends Controller
                     INNER JOIN ClaimStatusInfo e ON e.id=d.statuscode 
 
                     LEFT JOIN glBranchInfo g ON d.branch_id=g.glBranch";
-
-                }else{
+                } else {
 
                     $sql .= "LEFT JOIN MicroPolicyInfo p ON d.MicroPolicy=p.Id 
 
@@ -3001,39 +2047,31 @@ class claimController extends Controller
                     LEFT JOIN funeralmembers i ON i.id=d.FuneralMembersInfo 
 
                     LEFT JOIN glBranchInfo g ON d.branch_id=g.glBranch";
-
                 }
 
                 if (isset($client_no)) {
 
                     $sql .= " WHERE p.Client='$client_no' AND d.statuscode <> 14";
-
                 } else if (isset($policy_no)) {
 
                     $sql .= " WHERE p.PolicyNumber='$policy_no' AND d.statuscode <> 14";
-
                 } else if (isset($proposal_no)) {
 
                     $sql .= " WHERE d.ProposalNumber='$proposal_no' AND d.statuscode <> 14";
-
                 } else if (isset($id)) {
 
                     $sql .= " WHERE d.id=$id";
-
                 } else if (isset($date_from) || (isset($is_dashboard) && $is_dashboard == "1")) {
 
-                    if(!isset($date_from) || !isset($date_to)){
+                    if (!isset($date_from) || !isset($date_to)) {
 
                         $date_from = date('Y-m-d');
 
                         $date_to = date('Y-m-d');
-
-                    }//RequestDate
+                    } //RequestDate
 
                     $sql .= " WHERE (d.RequestDate BETWEEN '$date_from' AND '$date_to') AND d.statuscode <> 14";
-
                 }
-
             }
 
             //echo $sql;
@@ -3051,7 +2089,6 @@ class claimController extends Controller
                 'Claims' => $Claims
 
             );
-
         } catch (\Exception $exception) {
 
             $res = array(
@@ -3063,7 +2100,6 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         } catch (\Throwable $throwable) {
 
             $res = array(
@@ -3075,11 +2111,9 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         }
 
         return response()->json($res);
-
     }
 
 
@@ -3117,7 +2151,6 @@ class claimController extends Controller
                 'Attachments' => $Attachments
 
             );
-
         } catch (\Exception $exception) {
 
             $res = array(
@@ -3129,7 +2162,6 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         } catch (\Throwable $throwable) {
 
             $res = array(
@@ -3141,15 +2173,8 @@ class claimController extends Controller
             );
 
             return response()->json($res);
-
         }
 
         return response()->json($res);
-
     }
-
-
-
-
-
 }
