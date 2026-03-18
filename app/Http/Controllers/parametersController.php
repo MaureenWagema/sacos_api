@@ -405,6 +405,11 @@ class parametersController extends Controller
                 $sql = "SELECT * FROM ClientRiskRating WHERE [Description] IS NOT NULL";
                 $ClientRiskRating = DbHelper::getTableRawData($sql);
 
+                $sql = "SELECT p.*,d.* FROM claim_requirement p 
+                INNER JOIN claimtyperequirementinfo d ON d.req_code=p.reg_code
+                WHERE [description] IS NOT NULL";
+                $ClaimReqDocuments = DbHelper::getTableRawData($sql);
+
                 return response()->json(
                     array(
                         "success" => true,
@@ -488,7 +493,8 @@ class parametersController extends Controller
                         "FamilyStateInfo" => $FamilyStateInfo,
                         "YesNoOptions" => $YesNoOptions,
                         "clientDocuments" => $clientDocuments,
-                        "ClientRiskRating" => $ClientRiskRating
+                        "ClientRiskRating" => $ClientRiskRating,
+                        "ClaimReqDocuments" => $ClaimReqDocuments
                     )
                 );
 
