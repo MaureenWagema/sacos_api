@@ -367,7 +367,7 @@ class claimController extends Controller
                         $claimId = $this->saveClaimEntry($tableData, $claimData['ID'] ?? null);
                         
                         // Process attachments for complete claims
-                        $this->processAttachments($attachmentData, $claimId);
+                        //$this->processAttachments($attachmentData, $claimId);
                         
                         return $claimId;
                         $this->updateClientPaymentDetails($clientInfo['client_number'] ?? 'TEMP-' . time(), $paymentData);
