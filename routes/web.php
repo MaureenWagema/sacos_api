@@ -256,6 +256,7 @@ Route::get('claims/getGroupClaims', [claimController::class, 'getGroupClaims']);
 Route::get('claims/getClaimsToSign', [claimController::class, 'getClaimsToSign']);
 Route::get('claims/getGroupHistoryClaims', [claimController::class, 'getGroupHistoryClaims']);
 Route::post('claims/insertSLAMSWrongful', [claimController::class, 'insertSLAMSWrongful']);
+Route::get('claims/fetchClaimsEntries', [claimController::class, 'fetchClaimsEntries']);
 
 //ussd 
 Route::post('itc/setAllBeneficiaries', [USSDController::class, 'setAllBeneficiaries']);

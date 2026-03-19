@@ -158,7 +158,8 @@ class claimController extends Controller
                     'ClaimDefaultEFTBank_code' => $ClaimDefaultEFTBank_code,
                     'ClaimDefaultEFTBankBranchCode' => $ClaimDefaultEFTBankBranchCode,
                     'ClaimDefaultEftBankaccountName' => $ClaimDefaultEFTBank_accountName,
-                    'ClaimDefaultEFTBank_account' => $ClaimDefaultEFTBank_account
+                    'ClaimDefaultEFTBank_account' => $ClaimDefaultEFTBank_account,
+                    'created_on' => Carbon::now() 
                 );
 
 
@@ -379,6 +380,66 @@ class claimController extends Controller
     }
 
 
+
+    // Fetch claims entries
+    public function fetchClaimsEntries(Request $request)
+    {
+        try {
+            $res = [];
+            
+            // Get all possible parameters
+            $policy_no = $request->input('policy_no');     
+            $limit = $request->input('limit', 100); 
+            $offset = $request->input('offset', 0); 
+            
+            // Build the query
+            $query = $this->smartlife_db->table('eClaimsEntries as e')
+                ->select(
+                    'e.*',
+                    'p.policy_no',
+                    'c.name AS client_name',
+                    's.description AS status',
+                    't.Description AS claim_description',
+                    'o.decription AS paymethod'
+                )
+                ->leftJoin('polinfo as p', 'e.PolicyId', '=', 'p.id')
+                ->leftJoin('clientinfo as c', 'e.client_number', '=', 'c.client_number')
+                ->leftJoin('ClaimStatusInfo as s', 'e.statuscode', '=', 's.id')
+                ->leftJoin('claims_types as t', 'e.claim_type', '=', 't.claim_type')
+                ->leftJoin('payment_type as o', 'e.ClaimDefaultPay_method', '=', 'o.payment_mode');
+            
+            // Apply policy filter only if provided
+            if (!empty($policy_no)) {
+                $query->where('p.policy_no', $policy_no);
+            }
+            
+            // Order by latest first
+            $query->orderBy('e.created_on', 'DESC');
+            
+            // Apply pagination
+            if ($limit > 0) {
+                $query->limit($limit)->offset($offset);
+            }
+            
+            $claims = $query->get();
+            
+            $res = [
+                'success' => true,
+                'claims' => $claims,
+                'count' => $claims->count(),
+                'message' => 'Claims fetched successfully'
+            ];
+            
+        } catch (\Exception $exception) {
+            $res = [
+                'success' => false,
+                'message' => $exception->getMessage()
+            ];
+            return response()->json($res, 400);
+        }
+        
+        return response()->json($res);
+    }
 
     //get Claims Attached files
 

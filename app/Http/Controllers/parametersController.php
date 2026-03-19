@@ -405,6 +405,8 @@ class parametersController extends Controller
                 $sql = "SELECT * FROM ClientRiskRating WHERE [Description] IS NOT NULL";
                 $ClientRiskRating = DbHelper::getTableRawData($sql);
 
+
+                //claimsrequirement documents
                 $sql = "SELECT p.*,d.* FROM claim_requirement p 
                 INNER JOIN claimtyperequirementinfo d ON d.req_code=p.reg_code
                 WHERE [description] IS NOT NULL";
