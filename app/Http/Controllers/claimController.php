@@ -125,10 +125,20 @@ class claimController extends Controller
                 $ClaimDefaultCashContact = $request->input('ClaimDefaultCashContact');
                 $IsWebComplete = $request->input('IsWebComplete');
 
-
+                // Debug logging to check the actual values
+                Log::debug('insertClaimEntries - Status code logic:', [
+                    'IsWebComplete' => $IsWebComplete,
+                    'IsWebComplete_type' => gettype($IsWebComplete),
+                    'IsWebComplete_value' => var_export($IsWebComplete, true)
+                ]);
 
                 $statuscode = 14;
                 if ($IsWebComplete == 1) $statuscode = 13;
+                
+                Log::debug('insertClaimEntries - Final status code:', [
+                    'statuscode' => $statuscode,
+                    'condition_result' => ($IsWebComplete == 1)
+                ]);
                 
                 $statusText = ($statuscode == 14) ? 'Draft' : 'Submitted';
 
@@ -151,17 +161,22 @@ class claimController extends Controller
                     'ClaimDefaultEFTBank_account' => $ClaimDefaultEFTBank_account
                 );
 
-                //select where policyId, claim_type and status_code are the same
+
+                //select where policyId, claim_type are the same (exclude statuscode to allow status updates)
                 $eClaimsObj = $this->smartlife_db->table('eClaimsEntries')
                     ->select('*')
-                    ->where(array('PolicyId' => $policyId, 'claim_type' => $claim_type, 'statuscode' => $statuscode))
+                    ->where(array('PolicyId' => $policyId, 'claim_type' => $claim_type))
                     ->first();
+
+               
 
                 $isUpdate = false;
                 //if so update
                 if ($eClaimsObj) {
                     $isUpdate = true;
                     $record_id = $eClaimsObj->id;
+                    
+                    
                     $this->smartlife_db->table('eClaimsEntries')
                         ->where(
                             array(
@@ -169,9 +184,12 @@ class claimController extends Controller
                             )
                         )
                         ->update($table_data);
+                        
                 } else {
                     //else insert (put in the Pos_Log)
+                    
                     $record_id = $this->smartlife_db->table('eClaimsEntries')->insertGetId($table_data);
+                    
                 }
 
                 $res = [
@@ -180,9 +198,12 @@ class claimController extends Controller
                     'message' => "Claim " . ($isUpdate ? "updated" : "saved") . " successfully as {$statusText}"
                 ];
 
-                // Only log activity for new records, not updates
-                if (!$isUpdate) {
-                    $this->logClaimActivity($record_id, $table_data, ['client_number' => $client_number], $statusText, $policy_no);
+                // Log activity if eClaimId doesn't exist in Pos_Log (for both new and updated records)
+                $this->logClaimActivity($record_id, $table_data, ['client_number' => $client_number], $policy_no);
+                
+                // Handle file uploads if any files are sent with the request
+                if ($request->hasFile('myFile') || $request->hasFile('doc_id')) {
+                    $this->syncClaimImage($request);
                 }
                 
             } catch (\Exception $exception) {
@@ -258,7 +279,7 @@ class claimController extends Controller
 
     /// TODO: add username and createdby as created_by both as the username ya login
 
-    private function logClaimActivity($recordId, array $claimData, array $clientInfo, $statusText, $policy_no)
+    private function logClaimActivity($recordId, array $claimData, array $clientInfo, $policy_no)
 
     {
 
@@ -273,12 +294,6 @@ class claimController extends Controller
 
 
 
-        if ($existingLog) {
-
-            return;
-
-        }
-
         // Get claim type description
 
         $claimTypeDesc = DB::table('claims_types')
@@ -288,9 +303,8 @@ class claimController extends Controller
             ->value('Description');
 
 
-        // Log the activity with status
 
-        DB::table('Pos_Log')->insert([
+        $logData = [
 
             'ClientName' => $claimData['ClaimantName'] ?? $clientInfo['name'],
 
@@ -306,7 +320,30 @@ class claimController extends Controller
 
             'created_by' => request()->input('user_id')
 
-        ]);
+        ];
+
+
+
+        if ($existingLog) {
+
+            // Update existing log entry
+
+            DB::table('Pos_Log')
+
+                ->where('eClaimId', $recordId)
+
+                ->where('Activity', 4)
+
+                ->update($logData);
+
+        } else {
+
+            // Insert new log entry
+
+            DB::table('Pos_Log')->insert($logData);
+
+        }
+
     }
 
 
@@ -942,29 +979,32 @@ class claimController extends Controller
 
         Log::debug('savePhysicalFile - Destination path:', ['destinationPath' => $destinationPath]);
 
-
-
-        $file->move($destinationPath, $file->getClientOriginalName());
+        try {
+            $file->move($destinationPath, $file->getClientOriginalName());
+            Log::debug('savePhysicalFile - File moved successfully');
+        } catch (\Exception $e) {
+            Log::error('savePhysicalFile - File move failed:', ['error' => $e->getMessage()]);
+            throw $e;
+        }
 
         $uuid = Uuid::uuid4();
-
         $uuid = $uuid->toString();
+        Log::debug('savePhysicalFile - UUID generated:', ['uuid' => $uuid]);
 
+        //check if file already exists in both tables
+        $sql = "SELECT p.*, c.Oid as existing_oid FROM claimsreqinfo p 
+                 LEFT JOIN ClaimsStoreObject c ON p.[File] = c.Oid 
+                 WHERE p.eClaimNumber=$eClaimId AND p.code='$req_code'";
 
-
-        //insert into mob_proposalFileAttachment
-
-        //claim_no,code,received_flag,date_received,MicroClaim,eClaimNumber,File,Description
-
-
-
-        //check if file already exists
-
-        $sql = "SELECT p.* FROM claimsreqinfo p WHERE p.eClaimNumber=$eClaimId AND p.code='$req_code'";
-
-        $claimsreqinfoArr = DbHelper::getTableRawData($sql);
-
-
+        Log::debug('savePhysicalFile - Executing query:', ['sql' => $sql]);
+        
+        try {
+            $claimsreqinfoArr = DbHelper::getTableRawData($sql);
+            Log::debug('savePhysicalFile - Query executed successfully', ['result_count' => sizeof($claimsreqinfoArr)]);
+        } catch (\Exception $e) {
+            Log::error('savePhysicalFile - Query failed:', ['error' => $e->getMessage()]);
+            throw $e;
+        }
 
         Log::debug('savePhysicalFile - Existing records check:', [
 
@@ -974,7 +1014,9 @@ class claimController extends Controller
 
         ]);
 
+        $isUpdate = false;
 
+        $existingOid = null;
 
         $table_data = array(
 
@@ -994,110 +1036,106 @@ class claimController extends Controller
 
             'File' => $uuid,
 
-            'Description' => $fileName //$Description,
-
         );
 
-
+        Log::debug('savePhysicalFile - Table data prepared:', ['table_data' => $table_data]);
 
         if (sizeof($claimsreqinfoArr) > 0) {
-
             //update..
-
+            $isUpdate = true;
+            $existingOid = $claimsreqinfoArr[0]->existing_oid;
             $record_id = $claimsreqinfoArr[0]->id;
 
             Log::debug('savePhysicalFile - Updating existing record:', ['record_id' => $record_id]);
 
-            $this->smartlife_db->table('claimsreqinfo')
-
-                ->where(
-
-                    array(
-
-                        "id" => $record_id
-
+            try {
+                $this->smartlife_db->table('claimsreqinfo')
+                    ->where(
+                        array(
+                            "id" => $record_id
+                        )
                     )
+                    ->update($table_data);
 
-                )
+                Log::debug('savePhysicalFile - claimsreqinfo updated successfully');
 
-                ->update($table_data);
+            } catch (\Exception $e) {
+                Log::error('savePhysicalFile - claimsreqinfo update failed:', ['error' => $e->getMessage()]);
+                throw $e;
+            }
         } else {
-
             Log::debug('savePhysicalFile - Inserting new record');
 
             try {
-
                 $record_id = $this->smartlife_db->table('claimsreqinfo')->insertGetId($table_data);
-
                 Log::debug('savePhysicalFile - New record ID:', ['record_id' => $record_id]);
+
             } catch (\Exception $e) {
-
                 Log::error('savePhysicalFile - Insert failed:', ['error' => $e->getMessage()]);
-
                 throw $e;
             }
         }
 
-
-
-
-
-
-
-        //insert into Mob_ProposalStoreObject
-
-        $table_data = array(
-
+        //insert/update into ClaimsStoreObject
+        $storeObject_data = array(
             'Oid' => $uuid,
-
             //'claimno' => $eClaimId,
-
             'FileName' => $fileName,
-
             'RequestedClaim' => $eClaimId,
-
             'Size' => $file_size,
-
         );
 
+        if ($isUpdate && $existingOid) {
+            // Update existing ClaimsStoreObject record
+            Log::debug('savePhysicalFile - Updating existing ClaimsStoreObject:', ['existing_oid' => $existingOid]);
 
+            try {
+                $this->smartlife_db->table('ClaimsStoreObject')
+                    ->where('Oid', $existingOid)
+                    ->update($storeObject_data);
 
-        Log::debug('savePhysicalFile - Inserting into ClaimsStoreObject:', ['uuid' => $uuid]);
+                Log::debug('savePhysicalFile - ClaimsStoreObject updated successfully');
 
-        $record_id = $this->smartlife_db->table('ClaimsStoreObject')->insertGetId($table_data);
+            } catch (\Exception $e) {
+                Log::error('savePhysicalFile - ClaimsStoreObject update failed:', ['error' => $e->getMessage()]);
+                throw $e;
+            }
+        } else {
+            // Insert new ClaimsStoreObject record
+            Log::debug('savePhysicalFile - Inserting into ClaimsStoreObject:', ['uuid' => $uuid]);
 
-        Log::debug('savePhysicalFile - ClaimsStoreObject record ID:', ['record_id' => $record_id]);
+            try {
+                $record_id = $this->smartlife_db->table('ClaimsStoreObject')->insertGetId($storeObject_data);
+                Log::debug('savePhysicalFile - ClaimsStoreObject record ID:', ['record_id' => $record_id]);
+
+            } catch (\Exception $e) {
+                Log::error('savePhysicalFile - ClaimsStoreObject insert failed:', ['error' => $e->getMessage()]);
+                throw $e;
+            }
+        }
+
+        Log::debug('savePhysicalFile - Process completed successfully');
     }
 
 
 
     function base64ToVarbinary($base64)
-
     {
-
         $binary = base64_decode($base64);
-
         return bin2hex($binary);
     }
 
 
 
     public function saveStringFile($file, $category_id, $req_code, $eClaimId, $fileName, $IsClientSigned = null)
-
     {
-
         // $prefix = "data:image/png;base64,";
-
         // if (strpos($file, $prefix) === 0) {
-
         //     return str_replace($prefix, '', $file);
-
         // }
 
         //echo $file;
-
         //echo "am here";
-
         $file = substr($file, 22);
 
         //echo $file;
@@ -1107,13 +1145,11 @@ class claimController extends Controller
         $destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', $category_id, 'FileStoreLocationPath');
 
 
-
         file_put_contents($destinationPath . '\\' . $eClaimId . '.png', base64_decode($file));
 
         $image_path = $destinationPath . "\\" . $eClaimId . ".png";
 
         $image_binary = file_get_contents($image_path);
-
 
 
         $this->smartlife_db->table('eClaimsEntries')
@@ -1129,7 +1165,6 @@ class claimController extends Controller
                 'IsClientSigned' => $IsClientSigned
 
             ]);
-
 
 
         //insert into mob_proposalFileAttachment
@@ -1205,102 +1240,6 @@ class claimController extends Controller
         );
 
         $record_id = $this->smartlife_db->table('ClaimsStoreObject')->insertGetId($table_data);
-    }
-
-    //////////end of Claim Files///
-
-
-
-    //fetch claims to sign... 
-
-    public function getClaimsToSign(Request $request)
-
-    {
-
-        try {
-
-            $res = array();
-
-            //created_by, is_micro
-
-            $created_by = $request->input('created_by');
-
-            $is_micro = $request->input('is_micro');
-
-            if ($is_micro == "1") {
-
-                $sql = "SELECT p.Id 'id',d.PolicyNumber 'policy_no',p.claim_type,p.ClaimantName,
-
-                p.ClaimantMobile,p.created_on,p.IsClientSigned 
-
-                FROM eClaimsEntries p 
-
-                INNER JOIN MicroPolicyInfo d ON p.MicroPolicy=d.id
-
-                WHERE p.created_on > '2024-07-20' AND
-
-                (p.IsClientSigned=0 OR p.IsClientSigned IS NULL) AND 
-
-                p.created_by = '$created_by' 
-
-                ORDER BY p.id DESC";
-            } else {
-
-                $sql = "SELECT p.id,d.policy_no,p.PolicyId,p.claim_type,p.ClaimantName,
-
-                p.ClaimantMobile,p.created_on,p.IsClientSigned 
-
-                FROM eClaimsEntries p 
-
-                INNER JOIN polinfo d ON p.PolicyId=d.id
-
-                WHERE p.created_on > '2024-07-20' AND
-
-                (p.IsClientSigned=0 OR p.IsClientSigned IS NULL) AND 
-
-                p.created_by = '$created_by'
-
-                ORDER BY p.id DESC";
-            }
-
-
-
-            $Claims = DbHelper::getTableRawData($sql);
-
-            //health questionnaire
-
-            $res = array(
-
-                'success' => true,
-
-                'Claims' => $Claims
-
-            );
-        } catch (\Exception $exception) {
-
-            $res = array(
-
-                'success' => false,
-
-                'message' => $exception->getMessage()
-
-            );
-
-            return response()->json($res);
-        } catch (\Throwable $throwable) {
-
-            $res = array(
-
-                'success' => false,
-
-                'message' => $throwable->getMessage()
-
-            );
-
-            return response()->json($res);
-        }
-
-        return response()->json($res);
     }
 
 
