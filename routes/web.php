@@ -15,6 +15,7 @@ use App\Http\Controllers\quotationController;
 use App\Http\Controllers\claimController;
 use App\Http\Controllers\reportsController;
 use App\Http\Controllers\groupController;
+use App\Http\Controllers\endorsementController;
 use App\Http\Controllers\USSDController;
 use App\Http\Controllers\NsanoController;
 
@@ -257,6 +258,10 @@ Route::get('claims/getClaimsToSign', [claimController::class, 'getClaimsToSign']
 Route::get('claims/getGroupHistoryClaims', [claimController::class, 'getGroupHistoryClaims']);
 Route::post('claims/insertSLAMSWrongful', [claimController::class, 'insertSLAMSWrongful']);
 Route::get('claims/fetchClaimsEntries', [claimController::class, 'fetchClaimsEntries']);
+
+//endorsement
+Route::post('endorsement/saveEndorsement', [endorsementController::class, 'saveEndorsement']);
+Route::get('endorsement/getEndorsementEntries', [endorsementController::class, 'getEndorsementEntries']);
 
 //ussd 
 Route::post('itc/setAllBeneficiaries', [USSDController::class, 'setAllBeneficiaries']);
