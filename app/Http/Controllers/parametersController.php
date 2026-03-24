@@ -406,11 +406,22 @@ class parametersController extends Controller
                 $ClientRiskRating = DbHelper::getTableRawData($sql);
 
 
+
+
                 //claimsrequirement documents
                 $sql = "SELECT p.*,d.* FROM claim_requirement p 
                 INNER JOIN claimtyperequirementinfo d ON d.req_code=p.reg_code
                 WHERE [description] IS NOT NULL";
                 $ClaimReqDocuments = DbHelper::getTableRawData($sql);
+
+                $sql = "SELECT p.id,p.plan_code,d.description as name,p.IsMandatory FROM PlanCheckListDetails p 
+                INNER JOIN PlanDocChecklist d ON d.id=p.Document
+                WHERE [description] IS NOT NULL";
+                $PlanCheckListDetails = DbHelper::getTableRawData($sql);
+
+                //mob_FamilyStateRelation
+                $sql = "SELECT id,Relationship FROM mob_FamilyStateRelation WHERE [Relationship] IS NOT NULL";
+                $mob_FamilyStateRelation = DbHelper::getTableRawData($sql);
 
                 return response()->json(
                     array(
@@ -496,7 +507,9 @@ class parametersController extends Controller
                         "YesNoOptions" => $YesNoOptions,
                         "clientDocuments" => $clientDocuments,
                         "ClientRiskRating" => $ClientRiskRating,
-                        "ClaimReqDocuments" => $ClaimReqDocuments
+                        "ClaimReqDocuments" => $ClaimReqDocuments,
+                        "PlanCheckListDetails" => $PlanCheckListDetails,
+                        "mob_FamilyStateRelation" => $mob_FamilyStateRelation
                     )
                 );
 

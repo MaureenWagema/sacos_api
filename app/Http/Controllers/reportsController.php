@@ -33,12 +33,12 @@ class reportsController extends Controller
                     'Criteria' => $Criteria,
             ]];
 
-            print_r($params);
+            //print_r($params);
 
             $client = new \GuzzleHttp\Client;
             $response = $client->post($url_path, $params);
 
-            var_dump($response);
+            //var_dump($response);
 
             if ($response->getStatusCode() == 200) {
                 $rawResponse = json_decode($response->getBody()->getContents());
