@@ -32,6 +32,7 @@ class VerifyCsrfToken extends Middleware
         'auth/SendBrokerOTP',
         'auth/SendGroupOTP',
 
+
         'reports/getAgentProducts',
 
         'params/getParams',
@@ -69,6 +70,7 @@ class VerifyCsrfToken extends Middleware
         'policy/getPolicyDetails',
         'policy/getRequestedEndorsements',
         'policy/saveEndorsement',
+        'endorsement/saveEndorsement',
         'policy/getMicroProducts',
         'policy/getMicroPolicyDetails',
         'policy/UpdateBeneficiaries',
@@ -164,6 +166,7 @@ class VerifyCsrfToken extends Middleware
         'agents/getIdTypes',
         'agents/getGender',
         'agents/getMaritalStatus',
+        'endorsement/getEndorsementEntries',
 
         'agents/getExprienceSector',
         'agents/getRelationships',

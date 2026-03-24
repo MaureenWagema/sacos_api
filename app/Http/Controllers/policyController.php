@@ -3661,8 +3661,14 @@ class policyController extends Controller
         $file->getMimeType();
         //Move Uploaded File
         //FileCategoriesStore
-        //$destinationPath = 'C:\Users\kgach\Documents\SmartLife\EndorsementDocuments';
-        $destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', $category_id, 'FileStoreLocationPath');
+        //$destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', $category_id, 'FileStoreLocationPath');
+        $destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', 1, 'FileStoreLocationPath');
+        
+        // Create directory if it doesn't exist
+        if (!file_exists($destinationPath)) {
+            mkdir($destinationPath, 0777, true);
+        }
+        
         $file->move($destinationPath, $file->getClientOriginalName());
         $uuid = Uuid::uuid4();
         $uuid = $uuid->toString();
