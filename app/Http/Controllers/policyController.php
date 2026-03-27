@@ -3787,7 +3787,7 @@ class policyController extends Controller
             //get files for eClaim
             $rcd_id = $request->input('rcd_id');
 
-            $sql = "SELECT p.*,p.Doc_id as doc_id from mob_proposalFileAttachment p WHERE p.MobileProposal=$rcd_id";
+            $sql = "SELECT p.*,p.DocumentName as doc_id from mob_proposalFileAttachment p WHERE p.MobileProposal=$rcd_id";
             $Files = DbHelper::getTableRawData($sql);
 
             $res = array(

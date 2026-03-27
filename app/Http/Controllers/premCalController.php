@@ -495,6 +495,7 @@ class premCalController extends Controller
             $total_rider_prem = 0;
 
             if ($OrdinaryLifeProduct == true) {
+                $loadingFactorVAR;
                 $w_temp = ((($dblPrmRate / $dblRateBasis) * $sa) + $PolicyFeeVAR) * $loadingFactorVAR * $TaxVAR;
             } else if ($FuneralProduct == true) {
                 $w_temp = round($dblPrmRate * $coverperiod, 2);
@@ -1915,7 +1916,7 @@ class premCalController extends Controller
                 ->where(array('p.plan_code' => $plan_id, 'p.CategoryCode' => $CategoryCode));
             $results_funeral = $qry->first();
             if ($results_funeral) {
-                echo $funeral_rate = $results_funeral->Rate;
+                $funeral_rate = $results_funeral->Rate;
             }
 
             if ($CategoryCode == "1") {

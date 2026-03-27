@@ -724,7 +724,7 @@ class syncController extends Controller
                     'Prem_rate' => $request->input('Prem_rate'),
 
                     'inv_premium' => $inv_prem,
-                    'basic_premium' => $basic_premium,
+                    'basic_premium' => (float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
                     //$modal_premium,
                     'rider_premium' => $rider_prem,
                     'annual_premium' => $annual_premium,
@@ -733,7 +733,7 @@ class syncController extends Controller
                     
                     'Sum_Assured' => $sum_assured,
                     'pol_fee' => $policy_fee,
-                    'modal_premium' => (float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
+                    'modal_premium' => $total_premium,//(float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
                     //'cepa' => $request->input('cepa'),
                     'tot_protection' => $request->input('tot_protection'),
                     'transfer_charge' => $request->input('transfer_charge'),
@@ -1373,6 +1373,7 @@ class syncController extends Controller
             //$record_id = 18;
             //facility_letter
             $proposal_file = $request->file('proposal_file');
+            $expiry_date = $request->input('expiry_date');
             $doc_id = $request->input('doc_id');
             $facility_letter = $request->file('facility_letter');
             $photo = $request->file('photo');
@@ -1577,7 +1578,7 @@ class syncController extends Controller
             if (isset($payslip_path))
                 $this->savePhysicalFile($payslip_path, $category_id, $policy_no, $proposal_id, 6);
             if (isset($proposal_file))
-                $this->savePhysicalFile($proposal_file, $category_id, $policy_no, $proposal_id, $doc_id);
+                $this->savePhysicalFile($proposal_file, $category_id, $policy_no, $proposal_id, $doc_id, $expiry_date);
 
             $res = array(
                 'success' => true,
@@ -1601,7 +1602,7 @@ class syncController extends Controller
         return response()->json($res);
     }
 
-    public function savePhysicalFile($file, $category_id, $policy_no, $proposal_id, $file_type)
+    public function savePhysicalFile($file, $category_id, $policy_no, $proposal_id, $file_type, $expiry_date = null)
     {
         $fileName = $file->getClientOriginalName();
         //Display File Extension
@@ -1637,8 +1638,9 @@ class syncController extends Controller
             'DocumentType' => $category_id,
             'File' => $uuid,
             'Description' => $fileName,
-            'Doc_id' => $Doc_id,
-            'ClientDocumentType' => $Doc_id
+            //'Doc_id' => $Doc_id,
+            'DocumentName' => $Doc_id,
+            'ExpiryDate' => $expiry_date
         );
         $record_id = $this->smartlife_db->table('mob_proposalFileAttachment')->insertGetId($table_data);
         //insert into Mob_ProposalStoreObject

@@ -414,7 +414,7 @@ class parametersController extends Controller
                 WHERE [description] IS NOT NULL";
                 $ClaimReqDocuments = DbHelper::getTableRawData($sql);
 
-                $sql = "SELECT p.id,p.plan_code,d.description as name,p.IsMandatory FROM PlanCheckListDetails p 
+                $sql = "SELECT p.id,p.plan_code,d.description as name,p.IsMandatory,d.WithExpiryDate FROM PlanCheckListDetails p 
                 INNER JOIN PlanDocChecklist d ON d.id=p.Document
                 WHERE [description] IS NOT NULL";
                 $PlanCheckListDetails = DbHelper::getTableRawData($sql);
@@ -422,6 +422,14 @@ class parametersController extends Controller
                 //mob_FamilyStateRelation
                 $sql = "SELECT id,Relationship FROM mob_FamilyStateRelation WHERE [Relationship] IS NOT NULL";
                 $mob_FamilyStateRelation = DbHelper::getTableRawData($sql);
+
+                //PlanTermOptions
+                $sql = "SELECT id,plan_code,TermOption FROM PlanTermOptions";
+                $PlanTermOptions = DbHelper::getTableRawData($sql);
+
+                //PlanSumAssuredOptions
+                $sql = "SELECT id,plan_code,SAOption FROM PlanSumAssuredOptions";
+                $PlanSumAssuredOptions = DbHelper::getTableRawData($sql);
 
                 return response()->json(
                     array(
@@ -509,7 +517,9 @@ class parametersController extends Controller
                         "ClientRiskRating" => $ClientRiskRating,
                         "ClaimReqDocuments" => $ClaimReqDocuments,
                         "PlanCheckListDetails" => $PlanCheckListDetails,
-                        "mob_FamilyStateRelation" => $mob_FamilyStateRelation
+                        "mob_FamilyStateRelation" => $mob_FamilyStateRelation,
+                        "PlanTermOptions" => $PlanTermOptions,
+                        "PlanSumAssuredOptions" => $PlanSumAssuredOptions
                     )
                 );
 
