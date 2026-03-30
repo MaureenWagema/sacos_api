@@ -293,6 +293,7 @@ class premCalController extends Controller
         try {
             $res = array();
 
+            $gender = $request->input('gender');
             $plan_code = $request->input('plan_code');
             $age = $request->input('age');
             $term = $request->input('term');
@@ -327,6 +328,11 @@ class premCalController extends Controller
                     'success' => false,
                     'message' => 'Product not found!'
                 ]);
+            }
+
+            $FemaleRateIsDiscounted = $plan_info->FemaleRateIsDiscounted ?? false;
+            if(isset($gender) && $gender == "F" && $FemaleRateIsDiscounted){
+                $age = $age - (float)$plan_info->FemaleDiscountRate;
             }
 
             $Funeral_cover = $plan_info->Funeral_cover ?? false;

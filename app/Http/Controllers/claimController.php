@@ -200,7 +200,7 @@ class claimController extends Controller
                 ];
 
                 // Log activity if eClaimId doesn't exist in Pos_Log (for both new and updated records)
-                $this->logClaimActivity($record_id, $table_data, ['client_number' => $client_number], $policy_no);
+                $this->logClaimActivity($record_id, $table_data, ['client_number' => $client_number], $policy_no,$IdNumber);
                 
                 // Handle file uploads if any files are sent with the request
                 if ($request->hasFile('myFile') || $request->hasFile('doc_id')) {
@@ -280,13 +280,13 @@ class claimController extends Controller
 
     /// TODO: add username and createdby as created_by both as the username ya login
 
-    private function logClaimActivity($recordId, array $claimData, array $clientInfo, $policy_no)
+    private function logClaimActivity($recordId, array $claimData, array $clientInfo, $policy_no,$IdNumber)
 
     {
 
         // Check if eClaimId already exists to ensure uniqueness
 
-        $existingLog = DB::table('Pos_Log')
+        $existingLog = $this->smartlife_db->table('Pos_Log')
 
             ->where('eClaimId', $recordId)
 
@@ -297,7 +297,7 @@ class claimController extends Controller
 
         // Get claim type description
 
-        $claimTypeDesc = DB::table('claims_types')
+        $claimTypeDesc = $this->smartlife_db->table('claims_types')
 
             ->where('claim_type', $claimData['claim_type'])
 
@@ -309,7 +309,7 @@ class claimController extends Controller
 
             'ClientName' => $claimData['ClaimantName'] ?? $clientInfo['name'],
 
-            'StaffNumber' => $this->getStaffNumber($policy_no),
+            'StaffNumber' => $IdNumber,
 
             'Activity' => 4,
 
@@ -329,7 +329,7 @@ class claimController extends Controller
 
             // Update existing log entry
 
-            DB::table('Pos_Log')
+            $this->smartlife_db->table('Pos_Log')
 
                 ->where('eClaimId', $recordId)
 
@@ -341,7 +341,7 @@ class claimController extends Controller
 
             // Insert new log entry
 
-            DB::table('Pos_Log')->insert($logData);
+            $this->smartlife_db->table('Pos_Log')->insert($logData);
 
         }
 

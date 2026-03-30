@@ -1519,7 +1519,7 @@ class loginController extends Controller
 
                 //http://192.168.1.248:85/api/Report/Authentication?Username=User&password=Delivered%2C15
                 //TODO - If not successfull then, use Dante's endpoint first
-                $url_path = "http://192.168.1.248:85/api/Report/Authentication?Username=" . $username . "&password=" . $pass;
+                $url_path = "http://192.168.133.31:120/slamslife/api/v1/Report/Authentication?Username=" . $username . "&password=" . $pass;
 
                 $client = new \GuzzleHttp\Client;
                 $response = $client->get($url_path);
@@ -1531,27 +1531,22 @@ class loginController extends Controller
                     if ($is_correct == "true") {
                         //echo "Its here";
                         $POSID = DbHelper::getColumnValue('PortalUsers', 'Username', $username, 'id');
-                        // if(!isset($POSID)){
-                        //     $POSID = DbHelper::getColumnValue('PortalUsers', 'agent_no', $username, 'id');
-                        // }
-                        $POSTYPE = DbHelper::getColumnValue('PortalUsers', 'Username', $username, 'PosType');
-                        if(!isset($POSTYPE)){
-                            $Module = DbHelper::getColumnValue('PermissionPolicyUser', 'UserName', $username, 'Module');
-                            if($Module == "MI"){
-                                $POSTYPE = 2;
-                            }else if($Module == "IL"){
-                                $POSTYPE = 1;
-                            }
+                        //if its not set the insert them into table PortalUsers
+                        if(!isset($POSID)){
+                            //user query builder
+                            $table_data = array(
+                                'Username' => $username,
+                                'Password' => $password
+                            );
+                            $POSID = $this->smartlife_db->table('PortalUsers')->insertGetId($table_data);
+                        }else {
+                            //update the password
+                            $this->smartlife_db->table('PortalUsers')->where('Username', $username)->update(['Password' => $password]);
                         }
-
-                        $IsCreditLifeUser = DbHelper::getColumnValue('PermissionPolicyUser', 'UserName', $username, 'IsCreditLifeUser');
-                        $isMicroManager = DbHelper::getColumnValue('PermissionPolicyUser', 'UserName', $username, 'isMicroManager');
+                        
                         $res = array(
                             'success' => true,
-                            'user_id' => $POSID,
-                            'pos_type' => $POSTYPE,
-                            'IsCreditLifeUser' => $IsCreditLifeUser,
-                            'isMicroManager' => $isMicroManager
+                            'user_id' => $POSID
                         );
                         return $res;
                     } else {
