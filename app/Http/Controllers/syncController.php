@@ -16,11 +16,11 @@ class syncController extends Controller
         $policy_no = null;
         //get the policy_serial
         $qry = $this->smartlife_db->table('planinfo as p')
-            ->select('p.policy_serial', 'p.PlanOldName', 'p.PlanDesc')
+            ->select('p.policy_serial', 'p.PlanDesc')
             ->where(array('p.plan_code' => $plan_code));
         $results = $qry->first();
         //BusinessChannel
-        $BusinessChannel = DbHelper::getColumnValue('agents_info', 'id', $agent_code, 'BusinessChannel');
+        //$BusinessChannel = DbHelper::getColumnValue('agents_info', 'id', $agent_code, 'BusinessChannel');
 
 
         $policy_no = $results->PlanDesc . '-' . date("Y") . '-' . str_pad($results->policy_serial, 5, 0, STR_PAD_LEFT);
@@ -293,14 +293,14 @@ class syncController extends Controller
 
                 $edwa_proposal_no = "";
                 $country_code = $request->input('country_code');
-                if (!isset($country_code)) {
-                    $country_code = "001";
-                }
+                // if (!isset($country_code)) {
+                //     $country_code = "SYC";
+                // }
                 $pay_method_code = $request->input('pay_method_code');
                 $staff_number = $request->input('employer_no');
                 $record_id = $request->input('ID');
                 $agent_code = $request->input('agent_no');
-            
+
                 $IsWebComplete = $request->input('IsWebComplete');
                 $plan_code = $request->input('plan_id');
                 if (!isset($plan_code)) {
@@ -503,12 +503,21 @@ class syncController extends Controller
 
                 $is_topup = $request->input('is_top_up');
                 //if(!isset($is_topup) || $is_topup == false){
-                if (isset($record_id) && (int)$record_id > 0) {
-                    //do nothing...
+                // if (isset($record_id) && (int)$record_id > 0) {
+                //     //do nothing...
+                //     $proposal_no = DbHelper::getColumnValue('mob_prop_info', 'ID', $record_id, 'proposal_no');
+                // } else {
+
+                //     $proposal_no = null;
+                //     if (isset($plan_code)) {
+                //         $proposal_no = $this->generate_policyno($plan_code, $agent_code);
+                //     }
+                // }
+
+                $proposal_no = null;
+                if (isset($plan_code)) {
                     $proposal_no = DbHelper::getColumnValue('mob_prop_info', 'ID', $record_id, 'proposal_no');
-                } else {
-                    $proposal_no = null;
-                    if (isset($plan_code)) {
+                    if (!isset($proposal_no)) {
                         $proposal_no = $this->generate_policyno($plan_code, $agent_code);
                     }
                 }
@@ -670,15 +679,15 @@ class syncController extends Controller
                     //'confirmed_otp_date' => $confirmed_otp_date,
                     //'confirmed_otp' => $confirmed_otp,
                     'mobile_id' => $request->input('mobile_id'),
-                    'surname' => $request->input('surname'),
-                    'other_name' => $request->input('other_name'),
+                    'surname' => strtoupper($request->input('surname')),
+                    'other_name' => strtoupper($request->input('other_name')),
                     'employer' => $employer_code,
-                    'email' => $request->input('email'),
+                    'email' => strtoupper($request->input('email')),
                     'mobile' => $request->input('mobile'),
                     'marital_status' => $request->input('marital_status_code'),
                     'gender' => $request->input('gender_code'),
                     'good_health' => (bool) $request->input('good_health'),
-                    'health_condition' => $request->input('health_condition'),
+                    'health_condition' => strtoupper($request->input('health_condition')),
                     'Country' => $country_code,
 
                     'DualCitizenship' => $request->input('DualCitiizenship') == 1,
@@ -686,7 +695,7 @@ class syncController extends Controller
                     'GpsCode' => $request->input('GpsCode'),
                     'pin_no' => $request->input('SRCNumber'),
 
-                    'city' => $request->input('city'),
+                    'city' => strtoupper($request->input('city')),
                     'occupation_code' => $request->input('occupation_code'),
                     'Dob' => $request->input('dob'),
                     'anb' => $anb,
@@ -730,28 +739,28 @@ class syncController extends Controller
                     'annual_premium' => $annual_premium,
                     'Vat' => $request->input('Vat'),
                     'TotalPremium' => $total_premium,
-                    
+
                     'Sum_Assured' => $sum_assured,
                     'pol_fee' => $policy_fee,
-                    'modal_premium' => $total_premium,//(float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
+                    'modal_premium' => $total_premium, //(float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
                     //'cepa' => $request->input('cepa'),
                     'tot_protection' => $request->input('tot_protection'),
                     'transfer_charge' => $request->input('transfer_charge'),
 
                     'second_l_name' => $request->input('second_l_name'),
-                    'second_l_address' => $request->input('second_l_address'),
+                    'second_l_address' => strtoupper($request->input('second_l_address')),
                     'second_gender_code' => $request->input('second_gender_code'),
                     'second_dob' => $request->input('second_dob'),
                     'second_age' => $request->input('second_age'),
 
                     'proposal_date' => Carbon::now(),
-                    'MailingAddress' => $request->input('MailingAddress'),
-                    'postal_address' => $request->input('postal_address'),
-                    'residential_address' => $request->input('residential_address'), //IsPep
+                    'MailingAddress' => strtoupper($request->input('MailingAddress')),
+                    'postal_address' => strtoupper($request->input('postal_address')),
+                    'residential_address' => strtoupper($request->input('residential_address')), //IsPep
                     'Doyouhavesecondaryincome' => (bool)$request->input('Doyouhavesecondaryincome'),
                     'secondary_income' => (bool)$request->input('secondary_income'),
                     //'IsPep' => (bool)$IsPep,
-                    'politicaly_affiliated_person' => $request->input('politicaly_affiliated_person'),
+                    'politicaly_affiliated_person' => strtoupper($request->input('politicaly_affiliated_person')),
 
                     'Life_Premium' => $request->input('life_Premium'),
 
@@ -832,7 +841,7 @@ class syncController extends Controller
 
                 //PepClassifications?: PepClassificationType[];
                 //they are arrays just like riders
-                
+
 
                 //PepDefinitions?: PepDefinitionType[];
 
@@ -902,10 +911,10 @@ class syncController extends Controller
                 }
 
                 $pep_classifications = $request->input('PepClassifications');
-                if(isset($pep_classifications) && sizeof($pep_classifications) > 0){
+                if (isset($pep_classifications) && sizeof($pep_classifications) > 0) {
                     $this->smartlife_db->table('PEPclassDetails')->where('prop_id', '=', $record_id)->delete();
                     //insert into table: PEPclassDetails
-                    for($i=0;$i<sizeof($pep_classifications);$i++){
+                    for ($i = 0; $i < sizeof($pep_classifications); $i++) {
                         $table_data = array(
                             'prop_id' => $record_id,
                             'PepClassification' => $pep_classifications[$i]['classification'],
@@ -916,10 +925,10 @@ class syncController extends Controller
                 }
 
                 $SourceOfFunds = $request->input('SourceOfFunds');
-                if(isset($SourceOfFunds) && sizeof($SourceOfFunds) > 0){
+                if (isset($SourceOfFunds) && sizeof($SourceOfFunds) > 0) {
                     $this->smartlife_db->table('ClientSourceOfFundDetails')->where('prop_id', '=', $record_id)->delete();
                     //insert into table: PEPclassDetails
-                    for($i=0;$i<sizeof($SourceOfFunds);$i++){
+                    for ($i = 0; $i < sizeof($SourceOfFunds); $i++) {
                         $table_data = array(
                             'prop_id' => $record_id,
                             'SourceOfFundsOption' => $SourceOfFunds[$i]['sourceOfFunds'],
@@ -930,10 +939,10 @@ class syncController extends Controller
                 }
 
                 $pep_definitions = $request->input('PepDefinitions');
-                if(isset($pep_definitions) && sizeof($pep_definitions) > 0){
+                if (isset($pep_definitions) && sizeof($pep_definitions) > 0) {
                     $this->smartlife_db->table('PEPDetails')->where('prop_id', '=', $record_id)->delete();
                     //insert into table: PEPclassDetails
-                    for($i=0;$i<sizeof($pep_definitions);$i++){
+                    for ($i = 0; $i < sizeof($pep_definitions); $i++) {
                         $table_data = array(
                             'prop_id' => $record_id,
                             'ReasonsForExposure' => $pep_definitions[$i]['definition'],
@@ -946,10 +955,10 @@ class syncController extends Controller
 
                 //Source of Funds - RiskRating
                 $ClientRiskTypeDetails = $request->input('ClientRiskTypeDetails');
-                if(isset($ClientRiskTypeDetails) && sizeof($ClientRiskTypeDetails) > 0){
+                if (isset($ClientRiskTypeDetails) && sizeof($ClientRiskTypeDetails) > 0) {
                     $this->smartlife_db->table('ClientRiskTypeDetails')->where('prop_id', '=', $record_id)->delete();
                     //insert into table: PEPclassDetails
-                    for($i=0;$i<sizeof($ClientRiskTypeDetails);$i++){
+                    for ($i = 0; $i < sizeof($ClientRiskTypeDetails); $i++) {
                         $table_data = array(
                             'prop_id' => $record_id,
                             'RiskType' => $ClientRiskTypeDetails[$i]['RiskType'],
@@ -985,7 +994,7 @@ class syncController extends Controller
                         $rider_array[$i]['rider'] = $rider_arr[$i]['r_rider'];
                         $rider_array[$i]['sa'] = $rider_arr[$i]['r_sa'];
                         $rider_array[$i]['premium'] = $rider_arr[$i]['r_premium'];
-                        
+
                         //delete then insert
                         $rider_id = $this->smartlife_db->table('mob_rider_info')->insertGetId($rider_array[$i]);
                     }
@@ -1034,7 +1043,7 @@ class syncController extends Controller
                     $this->smartlife_db->table('mob_beneficiary_info')->where('prop_id', '=', $record_id)->delete();
                     for ($i = 0; $i < sizeof($beneficiaries_embb); $i++) {
                         $beneficiaries_array[$i]['prop_id'] = $record_id;
-                        $beneficiaries_array[$i]['Names'] = $beneficiaries_embb[$i]['b_name'];
+                        $beneficiaries_array[$i]['Names'] = strtoupper($beneficiaries_embb[$i]['b_name']);
                         $beneficiaries_array[$i]['relationship'] = $beneficiaries_embb[$i]['b_relationship'];
                         $beneficiaries_array[$i]['birth_date'] = $beneficiaries_embb[$i]['b_dob'];
                         if ($beneficiaries_array[$i]['birth_date'] == "null") {
@@ -1057,14 +1066,13 @@ class syncController extends Controller
                         $beneficiaries_array[$i]['BenefitCategory'] = $beneficiaries_embb[$i]['BenefitCategory'];
 
                         // Search mob_rider_info table to find rider ID matching prop_id and rider_code
-                        if(isset($beneficiaries_embb[$i]['rider_code']) && !empty($beneficiaries_embb[$i]['rider_code'])) {
+                        if (isset($beneficiaries_embb[$i]['rider_code']) && !empty($beneficiaries_embb[$i]['rider_code'])) {
                             $rider_info = $this->smartlife_db->table('mob_rider_info')
                                 ->where('prop_id', $record_id)
                                 ->where('rider', $beneficiaries_embb[$i]['rider_code'])
                                 ->first();
-                                
+
                             $beneficiaries_array[$i]['rider_code'] = $rider_info ? $rider_info->id : null;
-                            
                         }
 
                         $beneficiaries_id = $this->smartlife_db->table('mob_beneficiary_info')->insertGetId($beneficiaries_array[$i]);
@@ -1081,9 +1089,9 @@ class syncController extends Controller
                     for ($i = 0; $i < sizeof($family_health_arr); $i++) {
                         $family_health_array[$i]['prop_id'] = $record_id;
                         $family_health_array[$i]['Relationship'] = $family_health_arr[$i]['Relationship'];
-                        $family_health_array[$i]['state'] = $family_health_arr[$i]['state'];
+                        $family_health_array[$i]['state'] = $family_health_arr[$i]['state'] ?? null;
                         $family_health_array[$i]['age'] = $family_health_arr[$i]['age'] ?? null;
-                        $family_health_array[$i]['state_health'] = $family_health_arr[$i]['state_health'];
+                        $family_health_array[$i]['state_health'] = strtoupper($family_health_arr[$i]['state_health']??'') ?? null;
                         $family_health_id = $this->smartlife_db->table('mob_family_healthinfo')->insertGetId($family_health_array[$i]);
                     }
                 }
@@ -1615,8 +1623,8 @@ class syncController extends Controller
         $file->getMimeType();
         //Move Uploaded File
         //FileCategoriesStore
-        $destinationPath = 'C:\xampp\htdocs\SmartLifeDocuments\PolicyDocuments';
-        //$destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', 1, 'FileStoreLocationPath');
+        //$destinationPath = 'C:\xampp\htdocs\SmartLifeDocuments\PolicyDocuments';
+        $destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', 1, 'FileStoreLocationPath');
         $file->move($destinationPath, $file->getClientOriginalName());
         $uuid = Uuid::uuid4();
         $uuid = $uuid->toString();
@@ -1652,7 +1660,7 @@ class syncController extends Controller
             'Size' => $file_size,
         );
         $record_id = $this->smartlife_db->table('Mob_ProposalStoreObject')->insertGetId($table_data);
-        if ($file_type == 1) {
+        /*if ($file_type == 1) {
             //insert photo 
             $image_path = $destinationPath . "\\" . $fileName;
             $image_binary = file_get_contents($image_path);
@@ -1691,7 +1699,7 @@ class syncController extends Controller
             $this->smartlife_db->table('mob_prop_info')
                 ->where('ID', $proposal_id)
                 ->update(['PayslipCopy' => DB::raw("0x" . bin2hex($image_binary))]);
-        }
+        }*/
     }
 
     public function testVarBinary(Request $request)

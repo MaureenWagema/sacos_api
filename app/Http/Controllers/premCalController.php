@@ -330,6 +330,8 @@ class premCalController extends Controller
                 ]);
             }
 
+            $useCurrAge = $plan_info->useCurrAge ?? true;
+            if(!$useCurrAge) $age++;
             $FemaleRateIsDiscounted = $plan_info->FemaleRateIsDiscounted ?? false;
             if(isset($gender) && $gender == "F" && $FemaleRateIsDiscounted){
                 $age = $age - (float)$plan_info->FemaleDiscountRate;
@@ -606,7 +608,7 @@ class premCalController extends Controller
                 'total_rider_prem' => number_format((float)$total_rider_prem, 2, '.', ''),
                 'PTDRiderPrem' => number_format((float)$PTDRiderPrem, 2, '.', ''),
                 'premDiscount' => number_format((float)$premDiscount, 2, '.', ''),
-                'TotalPremium' => number_format((float)$TotalPremium, 2, '.', ''),
+                'TotalPremium' => round((float)$TotalPremium),
                 'Prem_rate' => $dblPrmRate,
                 'rate_basis' => $dblRateBasis,
                 //'ReinsuranceAlert' => $ReinsuranceAlert,

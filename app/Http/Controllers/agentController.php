@@ -236,8 +236,8 @@ class agentController extends Controller
             $agentId = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'id');
 
             //count mob_proposals
-            $total_submitted_proposals = $this->smartlife_db->table('proposalinfo')
-            ->where('agent_no', $agentId)
+            $total_submitted_proposals = $this->smartlife_db->table('mob_prop_info')
+            ->where('agent_code', $agentId)
             ->count();
             
             //count policies

@@ -280,7 +280,7 @@ class loginController extends Controller
                 return $res;
             }
 
-            
+
 
             $sql = "SELECT p.id,p.name,p.Telephone,p.IsActive,p.email FROM Intermediaryinfo p WHERE p.IsActive=1 AND p.Telephone LIKE '$mobile_no'";
             $Broker = DbHelper::getTableRawData($sql);
@@ -306,7 +306,7 @@ class loginController extends Controller
                 $record_id = $this->smartlife_db->table('PortalUsers')->insertGetId($table_data);
                 $msg = 'You have been successfully onboarded. Your login credentials for Name: ' . $Broker[0]->name . ' and Password: ' . $password;
 
-                $mobile_no = "0545412010";//$Broker[0]->Telephone;
+                $mobile_no = "0545412010"; //$Broker[0]->Telephone;
 
 
 
@@ -628,7 +628,7 @@ class loginController extends Controller
             //TODO
             //1. check if Agent is active..
             $policy_no_mobile_no = $request->input('policy_no_mobile_no');
-            
+
             //check if client exists
             if (isset($policy_no_mobile_no)) {
                 //use policy
@@ -639,7 +639,7 @@ class loginController extends Controller
                 }
 
                 //use mobile number..
-                if(empty($client_no)){
+                if (empty($client_no)) {
                     $client_no = DbHelper::getColumnValue('clientinfo', 'mobile', $policy_no_mobile_no, 'client_number');
                 }
                 //check if start is 0 or  2
@@ -656,7 +656,6 @@ class loginController extends Controller
                     }
                     $client_no = DbHelper::getColumnValue('clientinfo', 'mobile', $policy_no_mobile_no, 'client_number');
                 }
-                
             }
             if (empty($client_no)) {
                 $res = array(
@@ -664,7 +663,7 @@ class loginController extends Controller
                     'msg' => "Mobile No/Policy No Not Registered. Contact GLICO to register",
                 );
                 return $res;
-            } 
+            }
 
             //check if client has an account
             /*$id = DbHelper::getColumnValue('PortalUsers', 'client_no', $client_no, 'id');
@@ -876,32 +875,32 @@ class loginController extends Controller
             $column_key = "agent_no";
             $column_val = "";
             $agent_no = $request->input('agent_no');
-            if(isset($agent_no)) $column_val = $agent_no;
+            if (isset($agent_no)) $column_val = $agent_no;
             $mobile_no = $request->input('mobile_no');
-            if(isset($mobile_no)) $column_val = $mobile_no;
+            if (isset($mobile_no)) $column_val = $mobile_no;
             $scheme_no = $request->input('scheme_no');
-            if(isset($scheme_no)) $column_val = $scheme_no;
+            if (isset($scheme_no)) $column_val = $scheme_no;
             $n = $request->input('n');
 
             $policy_no_mobile_no = $request->input('policy_no_mobile_no');
             //do a search to fetch the mobile_no
-            if(isset($policy_no_mobile_no) && !empty($policy_no_mobile_no)){
+            if (isset($policy_no_mobile_no) && !empty($policy_no_mobile_no)) {
                 $mobile_no = DbHelper::getColumnValue('clientinfo', 'mobile', $policy_no_mobile_no, 'mobile');
-                if(!isset($mobile_no)){
+                if (!isset($mobile_no)) {
                     $tmp_policy_no_mobile_no = $policy_no_mobile_no;
                     if (substr($tmp_policy_no_mobile_no, 0, 1) == '2') {
                         $tmp_policy_no_mobile_no = "0" . substr($tmp_policy_no_mobile_no, 3);
                     }
                     $mobile_no = DbHelper::getColumnValue('clientinfo', 'mobile', $tmp_policy_no_mobile_no, 'mobile');
-                    if(isset($mobile_no) && !empty($mobile_no)){
+                    if (isset($mobile_no) && !empty($mobile_no)) {
                         $policy_no_mobile_no = $tmp_policy_no_mobile_no;
                     }
                 }
-                if(!isset($mobile_no)){
+                if (!isset($mobile_no)) {
                     //fetch mobile no from policy no
                     //life
                     $client_no = DbHelper::getColumnValue('polinfo', 'policy_no', $policy_no_mobile_no, 'client_number');
-                    if(!isset($client_no)){
+                    if (!isset($client_no)) {
                         $client_no = DbHelper::getColumnValue('MicroPolicyInfo', 'PolicyNumber', $policy_no_mobile_no, 'Client');
                     }
                     $mobile_no = DbHelper::getColumnValue('clientinfo', 'client_number', $client_no, 'mobile');
@@ -1013,7 +1012,7 @@ class loginController extends Controller
 
             //2. Login with agent_no and password
             $sql = "SELECT * FROM PortalUsers p WHERE p.AgentNo='$agent_no' AND p.password='$password'";
-         
+
             $Agent = DbHelper::getTableRawData($sql);
 
 
@@ -1029,12 +1028,11 @@ class loginController extends Controller
 
                 ///if position is sector manager..
                 //assign unitId to sectorId and office to sector name..
-                if($positionId == "7"){
+                if ($positionId == "7") {
                     $BranchId = DbHelper::getColumnValue('AgentsunitsInfo', 'id', $unitId, 'AgentsBranchIdKey');
                     $unitId = DbHelper::getColumnValue('AgentsBranchInfo', 'id', $BranchId, 'AgentsRegionIdKey');
                     $office = DbHelper::getColumnValue('AgentsRegionInfo', 'id', $unitId, 'Description');
                 }
-
             } else {
                 $res = array(
                     'success' => false,
@@ -1048,7 +1046,7 @@ class loginController extends Controller
             //fetch the passport photo..
             $photo = '';
             $photo_binaray = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'photo');
-            if(isset($photo)){
+            if (isset($photo)) {
                 $photo = base64_encode($photo_binaray);
             }
 
@@ -1250,16 +1248,16 @@ class loginController extends Controller
 
             if (empty($client_no)) {
                 $client_no = DbHelper::getColumnValue('clientinfo', 'mobile', $policy_no_mobile_no, 'client_number');
-                if(!empty($client_no)){
+                if (!empty($client_no)) {
                     $is_mobile_no = true;
-                }else{
+                } else {
                     //check if start is 0 or  2
                     if (empty($client_no)) {
                         if (substr($policy_no_mobile_no, 0, 1) == '0') {
                             $policy_no_mobile_no = "233" . ltrim($policy_no_mobile_no, '0');
                         }
                         $client_no = DbHelper::getColumnValue('clientinfo', 'mobile', $policy_no_mobile_no, 'client_number');
-                        if(!empty($client_no)) $is_mobile_no = true;
+                        if (!empty($client_no)) $is_mobile_no = true;
                     }
                     if (empty($client_no)) {
                         if (substr($policy_no_mobile_no, 0, 1) === '2') {
@@ -1267,13 +1265,13 @@ class loginController extends Controller
                             $policy_no_mobile_no = '0' . substr($policy_no_mobile_no, 3);
                         }
                         $client_no = DbHelper::getColumnValue('clientinfo', 'mobile', $policy_no_mobile_no, 'client_number');
-                        if(!empty($client_no)) $is_mobile_no = true;
+                        if (!empty($client_no)) $is_mobile_no = true;
                     }
                 }
                 $user_id = DbHelper::getColumnValue('PortalUsers', 'client_no', $client_no, 'id');
-            }else{
+            } else {
                 $is_policy = true;
-            } 
+            }
             /*else {
                 $res = array(
                     'success' => false,
@@ -1281,7 +1279,7 @@ class loginController extends Controller
                 );
                 return $res;
             }*/
-            if(empty($client_no)){
+            if (empty($client_no)) {
 
                 $res = array(
                     'success' => false,
@@ -1302,7 +1300,7 @@ class loginController extends Controller
             //check if there is a mobile no
             $mobile_no = DbHelper::getColumnValue('clientinfo', 'client_number', $client_no, 'mobile');
             //exit();
-            if(empty($mobile_no)){
+            if (empty($mobile_no)) {
                 $res = array(
                     'success' => false,
                     'message' => "Client's Mobile Number is not registered. Kindly Contact GLICO to Register your mobile number"
@@ -1370,7 +1368,6 @@ class loginController extends Controller
 
                 $client = new \GuzzleHttp\Client;
                 $smsRequest = $client->get($url_path);
-
             } else {
                 //terminate (agent no doesn't exist)
                 $res = array(
@@ -1425,8 +1422,8 @@ class loginController extends Controller
                 if (!isset($client_no)) {
                     $client_no = DbHelper::getColumnValue('clientinfo', 'mobile', $mobile_no, 'client_number');
                     $user_id = DbHelper::getColumnValue('PortalUsers', 'client_no', $client_no, 'id');
-                }else{
-                    $user_id = DbHelper::getColumnValue('PortalUsers', 'client_no', $client_no, 'id');              
+                } else {
+                    $user_id = DbHelper::getColumnValue('PortalUsers', 'client_no', $client_no, 'id');
                 }
             } else {
                 $res = array(
@@ -1519,10 +1516,17 @@ class loginController extends Controller
 
                 //http://192.168.1.248:85/api/Report/Authentication?Username=User&password=Delivered%2C15
                 //TODO - If not successfull then, use Dante's endpoint first
-                $url_path = "http://192.168.133.31:120/slamslife/api/v1/Report/Authentication?Username=" . $username . "&password=" . $pass;
+                $url_path = "http://192.168.133.31:120/slamslife/api/v1/IsUser/validate";
+
+                $params = ['json' => [
+                    'UserName' => $username,
+                    'Password' => $pass
+                ]];
+
+                //print_r($params);
 
                 $client = new \GuzzleHttp\Client;
-                $response = $client->get($url_path);
+                $response = $client->post($url_path, $params);
 
                 if ($response->getStatusCode() == 200) {
                     $is_correct = $response->getBody()->getContents();
@@ -1532,18 +1536,18 @@ class loginController extends Controller
                         //echo "Its here";
                         $POSID = DbHelper::getColumnValue('PortalUsers', 'Username', $username, 'id');
                         //if its not set the insert them into table PortalUsers
-                        if(!isset($POSID)){
+                        if (!isset($POSID)) {
                             //user query builder
                             $table_data = array(
                                 'Username' => $username,
                                 'Password' => $password
                             );
                             $POSID = $this->smartlife_db->table('PortalUsers')->insertGetId($table_data);
-                        }else {
+                        } else {
                             //update the password
                             $this->smartlife_db->table('PortalUsers')->where('Username', $username)->update(['Password' => $password]);
                         }
-                        
+
                         $res = array(
                             'success' => true,
                             'user_id' => $POSID
@@ -1559,7 +1563,7 @@ class loginController extends Controller
                     }
                 } else {
                     //get the name of Client
-                    
+
                     $res = array(
                         'success' => false,
                         'msg' => "Wrong Password",
@@ -1649,6 +1653,4 @@ class loginController extends Controller
         }
         return response()->json($res);
     }
-
-
 }

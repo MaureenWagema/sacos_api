@@ -2613,15 +2613,15 @@ class policyController extends Controller
                     $sql .= " WHERE T1.policy_no LIKE '%$search_entry%'";
                 } else if (isset($criteria) && $criteria == '3') { //mobile no
                     //get the client number first....to know the momo number to use
-                    $client_no = DbHelper::getColumnValue('clientinfo', 'mobile', $search_entry, 'client_number');
-                    if (!isset($search_entry)) {
-                        if (substr($search_entry, 0, 1) == '0') {
-                            $search_entry = "233" . ltrim($search_entry, '0');
-                        }
-                        $client_no = DbHelper::getColumnValue('clientinfo', 'mobile', $search_entry, 'client_number');
-                    }
+                    // $client_no = DbHelper::getColumnValue('clientinfo', 'mobile', $search_entry, 'client_number');
+                    // if (!isset($search_entry)) {
+                    //     if (substr($search_entry, 0, 1) == '0') {
+                    //         $search_entry = "233" . ltrim($search_entry, '0');
+                    //     }
+                    //     $client_no = DbHelper::getColumnValue('clientinfo', 'mobile', $search_entry, 'client_number');
+                    // }
 
-                    $sql .= " WHERE T4.mobile LIKE '%$search_entry%'";
+                    $sql .= " WHERE T4.IdNumber LIKE '%$search_entry%'";
                 } else if (isset($criteria) && $criteria == '4') { //staff_no
                     $sql .= " WHERE T1.SearchReferenceNumber LIKE '%$search_entry%'";
                 } else if (isset($criteria) && $criteria == '5') { //agent_no
