@@ -282,6 +282,24 @@ class syncController extends Controller
         return response()->json($res);
     }
 
+    //Log the action of capturing a new business
+    //public function posLog($created_by,$nin, $narration, $created_by, $proposal_id)
+    public function PosLog($ClientName, $nin, $narration, $created_by, $proposal_id)
+    {
+        //save into table: Pos_Log
+        $pos_log_data = array(
+            'ClientName' => $ClientName,
+            'StaffNumber' => $nin,
+            'Activity' => 5,
+            'Narration' => $narration,
+            'eClaimId' => null,
+            'eEndorsementId' => null,
+            'created_on' => Carbon::now(),
+            'created_by' => $created_by,
+            'MobPropId' => $proposal_id
+        );
+        $pos_log_id = $this->smartlife_db->table('Pos_Log')->insertGetId($pos_log_data);
+    }
 
     //
     public function synProposal(Request $request)
@@ -839,11 +857,7 @@ class syncController extends Controller
                     'RiskRating' => $request->input('RiskRating')
                 );
 
-                //PepClassifications?: PepClassificationType[];
-                //they are arrays just like riders
 
-
-                //PepDefinitions?: PepDefinitionType[];
 
 
 
@@ -864,7 +878,12 @@ class syncController extends Controller
 
                 if (isset($record_id) && $record_id > 0) {
                     //update
-                    //echo "Updating Record ID: " . $record_id;
+                    //lets check if created_by is set
+                    $created_by = DbHelper::getColumnValue('mob_prop_info', 'ID', $record_id, 'created_by');
+                    $crm_user = $request->input('created_by');
+                    if (!isset($created_by) && isset($crm_user)) {
+                        $table_data['created_by'] = $crm_user;
+                    }
                     $this->smartlife_db->table('mob_prop_info')
                         ->where(
                             array(
@@ -872,12 +891,22 @@ class syncController extends Controller
                             )
                         )
                         ->update($table_data);
+                    $posLogId = DbHelper::getColumnValue('Pos_Log', 'MobPropId', $record_id, 'id');
+                    if (!isset($posLogId)  && isset($crm_user)) {
+                        $narration = "PROPOSAL NO: " . $proposal_no;
+                        $this->PosLog(strtoupper($request->input('surname')) . ' ' . strtoupper($request->input('other_name')), $request->input('IdNumber'), $narration, $crm_user, $record_id);
+                    }
                 } else {
 
                     if (sizeof($MobProposalsArr) > 0) {
                         $record_id = $MobProposalsArr[0]->ID;
                         $proposal_no = $MobProposalsArr[0]->proposal_no;
                         //update..
+                        $created_by = DbHelper::getColumnValue('mob_prop_info', 'ID', $record_id, 'created_by');
+                        $crm_user = $request->input('created_by');
+                        if (!isset($created_by) && isset($crm_user)) {
+                            $table_data['created_by'] = $crm_user;
+                        }
                         $this->smartlife_db->table('mob_prop_info')
                             ->where(
                                 array(
@@ -885,9 +914,24 @@ class syncController extends Controller
                                 )
                             )
                             ->update($table_data);
+                        $posLogId = DbHelper::getColumnValue('Pos_Log', 'MobPropId', $record_id, 'id');
+                        if (!isset($posLogId) && isset($crm_user)) {
+                            $narration = "PROPOSAL NO: " . $proposal_no;
+                            $this->PosLog(strtoupper($request->input('surname')) . ' ' . strtoupper($request->input('other_name')), $request->input('IdNumber'), $narration, $crm_user, $record_id);
+                        }
                     } else {
                         //insert
+                        $created_by = DbHelper::getColumnValue('mob_prop_info', 'ID', $record_id, 'created_by');
+                        $crm_user = $request->input('created_by');
+                        if (!isset($created_by) && isset($crm_user)) {
+                            $table_data['created_by'] = $crm_user;
+                        }
                         $record_id = $this->smartlife_db->table('mob_prop_info')->insertGetId($table_data);
+                        $posLogId = DbHelper::getColumnValue('Pos_Log', 'MobPropId', $record_id, 'id');
+                        if (!isset($posLogId)  && isset($crm_user)) {
+                            $narration = "PROPOSAL NO: " . $proposal_no;
+                            $this->PosLog(strtoupper($request->input('surname')) . ' ' . strtoupper($request->input('other_name')), $request->input('IdNumber'), $narration, $crm_user, $record_id);
+                        }
                     }
                 }
 
@@ -1091,7 +1135,7 @@ class syncController extends Controller
                         $family_health_array[$i]['Relationship'] = $family_health_arr[$i]['Relationship'];
                         $family_health_array[$i]['state'] = $family_health_arr[$i]['state'] ?? null;
                         $family_health_array[$i]['age'] = $family_health_arr[$i]['age'] ?? null;
-                        $family_health_array[$i]['state_health'] = strtoupper($family_health_arr[$i]['state_health']??'') ?? null;
+                        $family_health_array[$i]['state_health'] = strtoupper($family_health_arr[$i]['state_health'] ?? '') ?? null;
                         $family_health_id = $this->smartlife_db->table('mob_family_healthinfo')->insertGetId($family_health_array[$i]);
                     }
                 }

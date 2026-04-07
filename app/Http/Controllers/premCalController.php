@@ -106,7 +106,7 @@ class premCalController extends Controller
                                 if (isset($recRow->rate_basis) && $recRow->rate_basis != null) {
                                     $dblRateBasis = (float)$recRow->rate_basis;
                                 }
-                            }else{
+                            } else {
                                 $dblRateBasis = $rate_basis2;
                             }
                         }
@@ -331,12 +331,16 @@ class premCalController extends Controller
             }
 
             $useCurrAge = $plan_info->useCurrAge ?? true;
-            if(!$useCurrAge) $age++;
+            if (!$useCurrAge) $age++;
             $FemaleRateIsDiscounted = $plan_info->FemaleRateIsDiscounted ?? false;
-            if(isset($gender) && $gender == "F" && $FemaleRateIsDiscounted){
+            if (isset($gender) && $gender == "F" && $FemaleRateIsDiscounted) {
                 $age = $age - (float)$plan_info->FemaleDiscountRate;
             }
 
+            $FemaleRateIsDiscounted2 = $plan_info->FemaleRateIsDiscounted2 ?? false;
+            if ($FemaleRateIsDiscounted2) {
+                $age = $age - (float)$plan_info->FemaleDiscountRate2;
+            }
             $Funeral_cover = $plan_info->Funeral_cover ?? false;
             $UseFixedPremRate = $plan_info->UseFixedPremRate ?? false;
             $premium_table = $plan_info->premium_table ?? 0;
@@ -403,23 +407,31 @@ class premCalController extends Controller
                         $dblPrmRate = $plan_info->Prem_rate;
                     }
                 } else {
-                    $CategoryCodeRel = DbHelper::getColumnValue('RelationshipCategory', 'description', $relationship_code, 'id');
+                    //if its funeral policy
+                    $CategoryCode = DbHelper::getColumnValue('relationship_mainteinance', 'code', $relationship_code, 'CategoryCode');
+                    $CategoryCodeRelObj = $this->smartlife_db->table('funeralcateginfo')
+                        ->where('plan_code', $plan_code)
+                        ->where('RelationCategory', $CategoryCode)
+                        ->first();
+                    $CategoryCodeRel = $CategoryCodeRelObj->Id;
 
                     if ($UseAgeRangeFuneralRates == true) {
                         $sql = "SELECT t1.* FROM funeralratesinfo t1 
-                                WHERE t1.CategoryCode = $CategoryCodeRel 
+                                WHERE t1.RelationCategory = $CategoryCodeRel 
                                 AND t1.plan_code = $plan_code 
                                 AND t1.SumAssured = $sa 
                                 AND $age BETWEEN t1.min_age AND t1.max_age 
                                 AND t1.tableCode = $FuneralRateTable";
                     } else {
                         $sql = "SELECT t1.* FROM funeralratesinfo t1 
-                                WHERE t1.CategoryCode = $CategoryCodeRel 
+                                WHERE t1.RelationCategory = $CategoryCodeRel 
                                 AND t1.plan_code = $plan_code 
                                 AND t1.SumAssured = $sa 
                                 AND t1.min_age = $age 
                                 AND t1.tableCode = $FuneralRateTable";
                     }
+
+
 
                     $_dataSet = DbHelper::getTableRawData($sql);
 

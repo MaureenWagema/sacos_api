@@ -382,9 +382,11 @@ class policyController extends Controller
                     $agentId = $results->agent_code;
                     //get the agent no
                     $agent_code = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'AgentNoCode');
+                    $agent_name = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'name');
 
                     $organised_arr[] = array(
                         'ID' => (int)$results->ID,
+                        'created_by' => $results->created_by,
                         //,
                         'HasBeenPicked' => $results->HasBeenPicked,
                         'IsWebComplete' => $results->IsWebComplete,
@@ -525,7 +527,7 @@ class policyController extends Controller
                         'DependantPremium' => $results->DependantPremium,
 
                         'agent_code' => $agent_code,
-                        //'agent_name' => $results->agent_name,
+                        'agent_name' => $agent_name,
                         'reasons_for_exposure' => $pep_details,
 
                         'Height' => $results->Height,
@@ -3382,7 +3384,7 @@ class policyController extends Controller
                 'eEndorsementId' => null,
                 'created_on' => date('Y-m-d H:i:s'),
                 'created_by' => $request->input('created_by'),
-                'UserName' => $request->input('UserName'),
+                //'UserName' => $request->input('UserName'),
                 'ComplaintType' => $request->input('ComplaintType')
             );
             $pos_log_id = $this->smartlife_db->table('pos_log')->insertGetId($pos_log_data);
