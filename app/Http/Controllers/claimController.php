@@ -200,7 +200,7 @@ class claimController extends Controller
                 ];
 
                 // Log activity if eClaimId doesn't exist in Pos_Log (for both new and updated records)
-                $this->logClaimActivity($record_id, $table_data, ['client_number' => $client_number], $policy_no,$IdNumber);
+                $this->logClaimActivity($record_id, $table_data, ['client_number' => $client_number], $policy_no,$IdNumber,$request->input('created_by'));
                 
                 // Handle file uploads if any files are sent with the request
                 if ($request->hasFile('myFile') || $request->hasFile('doc_id')) {
@@ -280,7 +280,7 @@ class claimController extends Controller
 
     /// TODO: add username and createdby as created_by both as the username ya login
 
-    private function logClaimActivity($recordId, array $claimData, array $clientInfo, $policy_no,$IdNumber)
+    private function logClaimActivity($recordId, array $claimData, array $clientInfo, $policy_no,$IdNumber,$created_by)
 
     {
 
@@ -319,7 +319,8 @@ class claimController extends Controller
 
             'created_on' => Carbon::now(),
 
-            'created_by' => request()->input('user_id')
+            'created_by' => $created_by,
+            //'UserName' => $created_by
 
         ];
 

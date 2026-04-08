@@ -296,6 +296,7 @@ class syncController extends Controller
             'eEndorsementId' => null,
             'created_on' => Carbon::now(),
             'created_by' => $created_by,
+            //'UserName' => $created_by,
             'MobPropId' => $proposal_id
         );
         $pos_log_id = $this->smartlife_db->table('Pos_Log')->insertGetId($pos_log_data);

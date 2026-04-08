@@ -3462,9 +3462,9 @@ class policyController extends Controller
                     unset($table_data->mobile);
                 } //
                 $username = "";
-                if (isset($table_data->user_id)) { //user_id
-                    $user_id = $table_data->user_id;
-                    unset($table_data->user_id);
+                if (isset($table_data->created_by)) { //user_id
+                    $user_id = $table_data->created_by;
+                    unset($table_data->created_by);
                     //get the Branch id here
                     $username = $user_id; //DbHelper::getColumnValue('portal_users', 'id',$user_id,'username');
                     $branch_id = DbHelper::getColumnValue('PermissionPolicyUser', 'UserName', $username, 'Branch');

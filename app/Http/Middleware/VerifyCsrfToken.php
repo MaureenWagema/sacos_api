@@ -130,6 +130,7 @@ class VerifyCsrfToken extends Middleware
         'client/getClientPremiums',
         'client/getClientInvestment',
         'client/getClientDetails',
+        'client/fetchExistingClient',
 
         'claims/insertClaimEntries',
         'claims/insertGroupClaimEntries',

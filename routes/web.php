@@ -203,11 +203,12 @@ Route::get('sms/SMS', [collectionsController::class, 'SMS']);
 
 Route::post('quotation/saveQuote', [quotationController::class, 'saveQuote']);
 
-//client
+//client - 
 Route::get('client/getClientPolicies', [clientController::class, 'getClientPolicies']);
 Route::get('client/getClientPremiums', [clientController::class, 'getClientPremiums']);
 Route::get('client/getClientInvestment', [clientController::class, 'getClientInvestment']);
 Route::get('client/getClientDetails', [clientController::class, 'getClientDetails']);
+Route::get('client/fetchExistingClient', [clientController::class, 'fetchExistingClient']);
 
 //agents  
 Route::get('agents/getAgentsPaymentMethods', [agentController::class, 'getAgentsPaymentMethods']);
