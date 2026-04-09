@@ -58,6 +58,15 @@ class clientController extends Controller
                 ->where(array('IdNumber' => $idNumber))
                 ->first();
 
+            if(!isset($Client)){
+                //remove special characters form $idNumber then
+                $idNumber = preg_replace('/[^A-Za-z0-9]/', '', $idNumber);
+                $Client = $this->smartlife_db->table('clientinfo')
+                ->select('*')
+                ->where(array('IdNumber' => $idNumber))
+                ->first();
+            }
+
             $res = array(
                 'success' => true,
                 'Client' => $Client

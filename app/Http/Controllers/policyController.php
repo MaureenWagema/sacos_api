@@ -2527,12 +2527,12 @@ class policyController extends Controller
                 $prem_due_dateVAR = DbHelper::getColumnValue('polinfo', 'id', $policyId, 'prem_due_date');
                 $pay_mode = DbHelper::getColumnValue('polinfo', 'id', $policyId, 'pay_mode');
                 $coverperiod = DbHelper::getColumnValue('paymentmodeinfo', 'id', $pay_mode, 'coverperiod');
-                
+
                 // Prevent division by zero - set default coverperiod if null or zero
                 if ($coverperiod == null || $coverperiod == 0) {
                     $coverperiod = 1; // Default to 1 month to prevent division by zero
                 }
-                
+
                 $prem_due_dateVARX = $this->addMonthsToDate($prem_due_dateVAR, $coverperiod);
                 $effective_dateVAR = DbHelper::getColumnValue('polinfo', 'id', $policyId, 'effective_date');
                 $MonthDateUsedVAR = date('Y-m-d');
@@ -2629,7 +2629,7 @@ class policyController extends Controller
                 } else if (isset($criteria) && $criteria == '5') { //agent_no
                     $agentId = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $search_entry, 'id');
                     //get_position
-                    $positionId = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'CurrentManagerLevel');
+                    /*$positionId = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'CurrentManagerLevel');
                     $UnitNameId = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'UnitName');
 
                     //$sql .= " LEFT JOIN agents_info recruiter ON g.RecruitedBy = $agentId WHERE T1.agent_no = $agentId";
@@ -2649,7 +2649,10 @@ class policyController extends Controller
 
                     if (isset($date_from) && isset($date_to)) {
                         $sql .= " AND (CAST(T1.issued_date AS DATE) BETWEEN '$date_from' AND '$date_to')";
-                    }
+                    }*/
+
+                    $sql .= " WHERE T1.agent_no IN 
+                        (SELECT t8.id  FROM agents_info t8 WHERE t8.id=$agentId)";
                 } else if (isset($criteria) && $criteria == '6') {
                     //staff_no
                     //perform a search and get all the client_nos...
@@ -3303,7 +3306,7 @@ class policyController extends Controller
 
             // Commented out date filter to get all data
             /*$sql .= " CAST(p.created_on AS DATE)  BETWEEN '$date_from' AND '$date_to' */
-            
+
             $sql .= " 1=1 
             GROUP BY p.id,p.ClientName,p.StaffNumber,p.Activity,p.Narration,p.created_on,
             p.created_by,d.Branch,g.glbranch_name,p.ComplaintType,p.UserName,ct.Description
@@ -3357,7 +3360,7 @@ class policyController extends Controller
         try {
             $sql = "SELECT id, Description FROM POSComplaintType ORDER BY Description";
             $complaintTypes = DbHelper::getTableRawData($sql);
-            
+
             $res = array(
                 'success' => true,
                 'complaintTypes' => $complaintTypes
@@ -3665,12 +3668,12 @@ class policyController extends Controller
         //FileCategoriesStore
         //$destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', $category_id, 'FileStoreLocationPath');
         $destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', 1, 'FileStoreLocationPath');
-        
+
         // Create directory if it doesn't exist
         if (!file_exists($destinationPath)) {
             mkdir($destinationPath, 0777, true);
         }
-        
+
         $file->move($destinationPath, $file->getClientOriginalName());
         $uuid = Uuid::uuid4();
         $uuid = $uuid->toString();
