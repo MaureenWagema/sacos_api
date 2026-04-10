@@ -431,6 +431,9 @@ class parametersController extends Controller
                 $sql = "SELECT id,plan_code,SAOption FROM PlanSumAssuredOptions";
                 $PlanSumAssuredOptions = DbHelper::getTableRawData($sql);
 
+                $sql = "SELECT * FROM EmploymentStatus WHERE [Description] IS NOT NULL";
+                $EmploymentStatus = DbHelper::getTableRawData($sql);
+
                 return response()->json(
                     array(
                         "success" => true,
@@ -519,7 +522,8 @@ class parametersController extends Controller
                         "PlanCheckListDetails" => $PlanCheckListDetails,
                         "mob_FamilyStateRelation" => $mob_FamilyStateRelation,
                         "PlanTermOptions" => $PlanTermOptions,
-                        "PlanSumAssuredOptions" => $PlanSumAssuredOptions
+                        "PlanSumAssuredOptions" => $PlanSumAssuredOptions,
+                        "EmploymentStatus" => $EmploymentStatus
                     )
                 );
 

@@ -450,8 +450,8 @@ class syncController extends Controller
                 $agent_codeSecond = $request->input('agent_codeSecond');
                 $agent_codeSecondId = null;
                 if (isset($agent_codeSecond)) {
-                    $agent_codeSecondId = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_codeSecond, 'id');
-                    $isActive = DbHelper::getColumnValue('agents_info', 'id', $agent_codeSecondId, 'IsActive');
+                    //$agent_codeSecondId = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_codeSecond, 'id');
+                    $isActive = DbHelper::getColumnValue('agents_info', 'id', $agent_codeSecond, 'IsActive');
                     if (!$isActive) {
                         $res = array(
                             'status' => false,
@@ -459,8 +459,6 @@ class syncController extends Controller
                         );
                         return response()->json($res);
                     }
-                } else {
-                    $agent_codeSecond = null;
                 }
 
                 $HasBeenPicked = $request->input('HasBeenPicked');
@@ -792,7 +790,7 @@ class syncController extends Controller
                     'EntryCategory' => $EntryCategory,
                     'PackageCode' => $request->input('InsuranceType'),
                     'agent_code' => $agent_code,
-                    'agent_codeSecond' => $agent_codeSecondId,
+                    'agent_codeSecond' => $agent_codeSecond,
 
                     //telco,momo_no
                     'momo_no' => $request->input('momo_no'),
@@ -1203,6 +1201,10 @@ class syncController extends Controller
                         $mob_health_intermediary[$i]['answer'] = "N";
                         if ($checklistIntermediary[$i]['isYesChecked']) {
                             $mob_health_intermediary[$i]['answer'] = "Y";
+                            if(isset($checklistIntermediary[$i]['comments']) && !empty($checklistIntermediary[$i]['comments'])){
+                                //comments
+                                $mob_health_intermediary[$i]['MoreDetails'] = $checklistIntermediary[$i]['comments'];
+                            }
                         }
                         $mob_health_intermediary[$i]['IsFromMproposal'] = 1;
                         $mob_health_intermediary[$i]['created_on'] = Carbon::now();

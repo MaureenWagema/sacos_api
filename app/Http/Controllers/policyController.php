@@ -384,10 +384,21 @@ class policyController extends Controller
                     $agent_code = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'AgentNoCode');
                     $agent_name = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'name');
 
+                    $proposal_status = "Draft";
+                    if((bool)$results->HasBeenPicked && (bool)$results->IsWebComplete){
+                        $proposal_status = "Submitted";
+                    }
+                    if((bool)$results->AllowMproposalEdit){
+                        $proposal_status = "Returned to Agent/Broker";
+                    }
+
                     $organised_arr[] = array(
+                        'agent_codeSecond' => $results->agent_codeSecond,
                         'ID' => (int)$results->ID,
                         'created_by' => $results->created_by,
                         //,
+                        'AllowMproposalEdit' => $results->AllowMproposalEdit,
+                        'proposal_status' => $proposal_status,
                         'HasBeenPicked' => $results->HasBeenPicked,
                         'IsWebComplete' => $results->IsWebComplete,
                         //'MicroProposal' => $results->MicroProposal,
@@ -397,7 +408,7 @@ class policyController extends Controller
                         //'uw_reason' => $results->uw_reason,
                         'Status' => $results->Status,
                         'StatusName' => $results->StatusName,
-                        'IncomeType' => (int)$results->employment_status ?? null,
+                        'IncomeType' => $results->employment_status ?? null,
 
                         'isApproved' => $results->isApproved,
                         'mobile_id' => $results->mobile_id,
@@ -675,7 +686,7 @@ class policyController extends Controller
                         $beneficiaries_arr[$i]['IsForMainbenefit'] = (bool)$row_arr[$i]->IsForMainbenefit;
                         $beneficiaries_arr[$i]['IsForRiderBenefit'] = (bool)$row_arr[$i]->IsForRiderBenefit;
                         $beneficiaries_arr[$i]['rider_code'] = null; // Initialize rider_code BenefitCategory
-                        $beneficiaries_arr[$i]['BenefitCategory'] = $mob_rider_info->BenefitCategory ?? null;
+                        $beneficiaries_arr[$i]['BenefitCategory'] = $row_arr[$i]->BenefitCategory ?? null;
 
                         $mob_rider_info = null;
                         if (isset($row_arr[$i]->rider_code) && !empty($row_arr[$i]->rider_code)) {
@@ -744,7 +755,7 @@ class policyController extends Controller
                     if (isset($record_id)) {
                         //TODO-
                         //1.Just query mob_health_intermediary
-                        $sql = "SELECT p.id,p.disease_id,p.DependantName,p.answer FROM mob_health_intermediary p 
+                        $sql = "SELECT p.id,p.disease_id,p.DependantName,p.answer,p.MoreDetails AS comments FROM mob_health_intermediary p 
                         WHERE p.prop_id=$record_id";
                         $MobIntermediary = DbHelper::getTableRawData($sql);
                         //2.Just query mob_health_conditions

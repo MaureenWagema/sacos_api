@@ -622,6 +622,8 @@ class premCalController extends Controller
                 'premDiscount' => number_format((float)$premDiscount, 2, '.', ''),
                 'TotalPremium' => round((float)$TotalPremium),
                 'Prem_rate' => $dblPrmRate,
+                'Prem_rateValue' => $dblPrmRate,
+                'age_anb' => $age,
                 'rate_basis' => $dblRateBasis,
                 //'ReinsuranceAlert' => $ReinsuranceAlert,
                 'loading_factor' => $loadingFactorVAR,
