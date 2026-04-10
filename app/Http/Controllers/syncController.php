@@ -1107,6 +1107,10 @@ class syncController extends Controller
                         // Initialize rider_code
                         $beneficiaries_array[$i]['rider_code'] = null;
                         $beneficiaries_array[$i]['BenefitCategory'] = $beneficiaries_embb[$i]['BenefitCategory'];
+                        //GuardianSurname
+                        if (isset($beneficiaries_embb[$i]['GuardianSurname'])) {
+                            $beneficiaries_array[$i]['GuardianSurname'] = $beneficiaries_embb[$i]['GuardianSurname'];
+                        }
 
                         // Search mob_rider_info table to find rider ID matching prop_id and rider_code
                         if (isset($beneficiaries_embb[$i]['rider_code']) && !empty($beneficiaries_embb[$i]['rider_code'])) {
@@ -1201,7 +1205,7 @@ class syncController extends Controller
                         $mob_health_intermediary[$i]['answer'] = "N";
                         if ($checklistIntermediary[$i]['isYesChecked']) {
                             $mob_health_intermediary[$i]['answer'] = "Y";
-                            if(isset($checklistIntermediary[$i]['comments']) && !empty($checklistIntermediary[$i]['comments'])){
+                            if (isset($checklistIntermediary[$i]['comments']) && !empty($checklistIntermediary[$i]['comments'])) {
                                 //comments
                                 $mob_health_intermediary[$i]['MoreDetails'] = $checklistIntermediary[$i]['comments'];
                             }

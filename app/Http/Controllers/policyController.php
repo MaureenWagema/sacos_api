@@ -480,8 +480,8 @@ class policyController extends Controller
                         'inv_premium' => $results->inv_premium,
                         'basic_premium' => $results->basic_premium,
                         'modal_premium' => $results->modal_premium,
-                        'TotalPremium' => $results->TotalPremium,
-                        'rider_premium' => $results->rider_premium,
+                        'TotalPremium' =>  $results->TotalPremium,
+                        'rider_premium' => number_format((float)$results->rider_premium, 2, '.', ''),
                         'Vat' => $results->Vat,
 
                         'pol_fee' => $results->pol_fee,
@@ -687,6 +687,7 @@ class policyController extends Controller
                         $beneficiaries_arr[$i]['IsForRiderBenefit'] = (bool)$row_arr[$i]->IsForRiderBenefit;
                         $beneficiaries_arr[$i]['rider_code'] = null; // Initialize rider_code BenefitCategory
                         $beneficiaries_arr[$i]['BenefitCategory'] = $row_arr[$i]->BenefitCategory ?? null;
+                        $beneficiaries_arr[$i]['GuardianSurname'] = $row_arr[$i]->GuardianSurname ?? null;
 
                         $mob_rider_info = null;
                         if (isset($row_arr[$i]->rider_code) && !empty($row_arr[$i]->rider_code)) {
