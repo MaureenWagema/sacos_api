@@ -136,6 +136,8 @@ Route::get('policy/getMicroCashValue', [policyController::class, 'getMicroCashVa
 Route::get('policy/getLifeCashValue', [policyController::class, 'getLifeCashValue']);
 Route::get('policy/getClientAccount', [policyController::class, 'getClientAccount']);
 Route::get('policy/getPropDepInfo', [policyController::class, 'getPropDepInfo']);
+Route::get('policy/getSurvivorBenefits', [policyController::class, 'getSurvivorBenefits']);
+Route::get('policy/getPremiumPenalties', [policyController::class, 'getPremiumPenalties']);
 
 Route::get('policy/getProposalDetails', [policyController::class, 'getProposalDetails']);
 Route::get('policy/getMicroProposalDetails', [policyController::class, 'getMicroProposalDetails']);

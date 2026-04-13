@@ -30,17 +30,18 @@ class agentController extends Controller
         $diff = $today->diff(Carbon::parse($birthdate));
         return $diff->format('%y');
     }
-    
-    public function parseFullName($fullName) {
+
+    public function parseFullName($fullName)
+    {
         // Split the full name into an array of words
         $nameArray = explode(' ', $fullName);
-    
+
         // The last element of the array is considered the surname
         $surname = array_pop($nameArray);
-    
+
         // The remaining elements are part of the other names
         $otherNames = implode(' ', $nameArray);
-    
+
         // Return an associative array with surname and other names
         return ['surname' => $surname, 'otherNames' => $otherNames];
     }
@@ -146,7 +147,7 @@ class agentController extends Controller
                     'RecordSaved' => 1,
                     'EntryAge' => $this->calculateAge($request->input('birthdate')),
 
-                    
+
                     'CurrentManagerLevel' => DbHelper::getColumnValue('ManagerPromotionLevel', 'LevelCode', 1, 'id'),
                     'IsforMicro' => 0,
                     'DateSynched' => Carbon::now()
@@ -160,7 +161,7 @@ class agentController extends Controller
                 //$input['record_id'] = $record_id;
 
 
-                $this->migrateAgentImage($request,$record_id);
+                $this->migrateAgentImage($request, $record_id);
                 //TODO save all beneficiaries as well...
                 //post agent beneficiary
 
@@ -208,7 +209,6 @@ class agentController extends Controller
                     'agent_no' => $agent_no,
                     'message' => 'Agent Registered Successfully!!'
                 );
-
             }, 5);
         } catch (\Exception $exception) {
             $res = array(
@@ -237,15 +237,15 @@ class agentController extends Controller
 
             //count mob_proposals
             $total_submitted_proposals = $this->smartlife_db->table('mob_prop_info')
-            ->where('agent_code', $agentId)
-            ->count();
-            
+                ->where('agent_code', $agentId)
+                ->count();
+
             //count policies
             $total_policies = $this->smartlife_db->table('polinfo')
-            ->where('agent_no', $agentId)
-            ->count();
-            
-            
+                ->where('agent_no', $agentId)
+                ->count();
+
+
             $AgentDetails = $this->smartlife_db->table('agents_info as p')
                 ->select(
                     'p.AgentNoCode',
@@ -307,7 +307,7 @@ class agentController extends Controller
                     $id = $table_data->id;
                     unset($table_data->id);
                 }
-                
+
                 $table_data = json_decode(json_encode($table_data), true);
                 $this->smartlife_db->table('agents_info')
                     ->where(
@@ -322,7 +322,6 @@ class agentController extends Controller
                     //'record_id' => $record_id,
                     'message' => 'Agent Details Edit Successfully'
                 );
-
             }, 5);
         } catch (\Exception $exception) {
             $res = array(
@@ -340,11 +339,11 @@ class agentController extends Controller
         return response()->json($res);
     }
 
-    public function migrateAgentImage(Request $request,$rcd_id=null)
+    public function migrateAgentImage(Request $request, $rcd_id = null)
     {
         try {
             $record_id = $request->input('record_id');
-            if(!isset($record_id)) $record_id = $rcd_id;
+            if (!isset($record_id)) $record_id = $rcd_id;
             $photo = $request->input('photo');
             $id_front = $request->input('id_front');
 
@@ -362,7 +361,6 @@ class agentController extends Controller
                 'success' => true,
                 'message' => 'Image synchronization successful'
             );
-
         } catch (\Exception $exception) {
             $res = array(
                 'success' => false,
@@ -382,7 +380,7 @@ class agentController extends Controller
 
 
     ////migrate NIC certificates/////
-    public function migrateAgentNICDocs(Request $request,$rcd_id=null)
+    public function migrateAgentNICDocs(Request $request, $rcd_id = null)
     {
         try {
             $file = $request->file('file');
@@ -391,7 +389,7 @@ class agentController extends Controller
             $StartDate = $request->input('StartDate');
             $ExpiryDate = $request->input('ExpiryDate');
 
-            if(!isset($agent_no)){
+            if (!isset($agent_no)) {
                 return $res = array(
                     'success' => false,
                     'message' => 'Agent No does not passed'
@@ -399,20 +397,19 @@ class agentController extends Controller
             }
 
             $agentId = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'id');
-            if(!isset($agentId)){
+            if (!isset($agentId)) {
                 return $res = array(
                     'success' => false,
                     'message' => 'Agent Not found'
                 );
             }
 
-            $this->saveNICFile($file, $agentId, $fileTypeId,$StartDate,$ExpiryDate);
+            $this->saveNICFile($file, $agentId, $fileTypeId, $StartDate, $ExpiryDate);
 
             $res = array(
                 'success' => true,
                 'message' => 'NIC docs successfully migrated'
             );
-
         } catch (\Exception $exception) {
             $res = array(
                 'success' => false,
@@ -489,9 +486,9 @@ class agentController extends Controller
 
     }*/
 
-    public function saveNICFile($file, $agentId, $fileTypeId,$StartDate=null,$ExpiryDate=null)
+    public function saveNICFile($file, $agentId, $fileTypeId, $StartDate = null, $ExpiryDate = null)
     {
-        $fileName = $agentId."-".$file->getClientOriginalName();
+        $fileName = $agentId . "-" . $file->getClientOriginalName();
         //Display File Extension
         $file->getClientOriginalExtension();
         //Display File Real Path
@@ -538,21 +535,21 @@ class agentController extends Controller
         $this->smartlife_db->table('AgentsStoreObject')->insertGetId($table_data);
 
         //IF image is photo or ghana card, save in the db....
-        if($fileTypeId == "1" || $fileTypeId == 1){
+        if ($fileTypeId == "1" || $fileTypeId == 1) {
             //ghana card
             $this->smartlife_db->table('agents_info')
-            ->where('id', $agentId)
-            ->update([
-                'IdFront' => DB::raw("0x" . bin2hex($image_binary))
-            ]);
+                ->where('id', $agentId)
+                ->update([
+                    'IdFront' => DB::raw("0x" . bin2hex($image_binary))
+                ]);
         }
-        if($fileTypeId == "9" || $fileTypeId == 9){
+        if ($fileTypeId == "9" || $fileTypeId == 9) {
             //photo
             $this->smartlife_db->table('agents_info')
-            ->where('id', $agentId)
-            ->update([
-                'photo' => DB::raw("0x" . bin2hex($image_binary))
-            ]);
+                ->where('id', $agentId)
+                ->update([
+                    'photo' => DB::raw("0x" . bin2hex($image_binary))
+                ]);
         }
     }
 
@@ -577,7 +574,6 @@ class agentController extends Controller
                 'success' => true,
                 'message' => 'Image synchronization successful'
             );
-
         } catch (\Exception $exception) {
             $res = array(
                 'success' => false,
@@ -673,7 +669,6 @@ class agentController extends Controller
                     'record_id' => $record_id,
                     'message' => 'Loan Request Successfully!!'
                 );
-
             }, 5);
         } catch (\Exception $exception) {
             $res = array(
@@ -797,17 +792,17 @@ class agentController extends Controller
             $period_year = $request->input('period_year');
             $Period_month = $request->input('Period_month');
 
-            
+
             $FinancialAdvisorCategory = $request->input('FinancialAdvisorCategory');
             $PayrollCategory = $request->input('PayrollCategory');
 
 
             //t.period_year= 2022 AND t.Period_month=4 AND 
-            $sql = "SELECT t2.name AS client_name, t1.policy_no, t.FinancialAdvisorCategory,
+            /*$sql = "SELECT t2.name AS client_name, t1.policy_no, t.FinancialAdvisorCategory,
             t.PayrollCategory, t.payment_date, 
             t.ReceiptNoOLD,t.received, t.comm_payable, t.overrideComm1,t.overRate1,
             t3.current_premiums 
-            FROM prmtranscomm t 
+            FROM pyemployeeinfo t 
             LEFT JOIN polinfo t1 ON t.PolicyId=t1.id
             INNER JOIN clientinfo t2 ON t1.client_number = t2.client_number
             INNER JOIN prmtransinfo t3 ON t3.id=t.PrmTransId
@@ -816,11 +811,17 @@ class agentController extends Controller
                 $sql .= " AND t.period_year=$period_year AND t.Period_month=$Period_month 
                  AND t.FinancialAdvisorCategory=$FinancialAdvisorCategory AND 
                  t.PayrollCategory=$PayrollCategory";
-            }
+            }*/
+            $sql = "SELECT * FROM prmtranscomm t1 
+            INNER JOIN agents_info t2 ON t1.agent_no=t2.id  
+            LEFT JOIN polinfo t3 ON t1.PolicyId=t3.id 
+            INNER JOIN clientinfo t4 ON t3.client_number=t4.client_number
+            WHERE t1.period_year = $period_year AND t1.Period_month = $Period_month
+            AND t1.agent_no=".$agentId;
             $AgentCommission = DbHelper::getTableRawData($sql);
 
             //override commission
-            $sql = "SELECT t2.name AS client_name, t1.policy_no, t.FinancialAdvisorCategory,
+            /*$sql = "SELECT t2.name AS client_name, t1.policy_no, t.FinancialAdvisorCategory,
             t.PayrollCategory, t.payment_date, 
             t.ReceiptNoOLD,t.received, 
             ROUND(t.comm_payable,2) 'comm_payable',
@@ -837,13 +838,13 @@ class agentController extends Controller
                  AND t.FinancialAdvisorCategory=$FinancialAdvisorCategory AND 
                  t.PayrollCategory=$PayrollCategory";
             }
-            $AgentOverrideCommission = DbHelper::getTableRawData($sql);
+            $AgentOverrideCommission = DbHelper::getTableRawData($sql);*/
 
             // $sql = "SELECT total_a, total_b, ROUND((total_a + total_b), 2) AS total_sum
             // FROM (
             //     SELECT ROUND(SUM(comm_payable), 2) AS total_a, ROUND(SUM(overrideComm1), 2) AS total_b
             //     FROM prmtranscomm WHERE (agent_no =$agentId OR Direct_agent_no =$agentId) AND 
-			// 	(period_year=$period_year AND Period_month=$Period_month AND 
+            // 	(period_year=$period_year AND Period_month=$Period_month AND 
             //      FinancialAdvisorCategory=$FinancialAdvisorCategory AND PayrollCategory=$PayrollCategory)
             // ) subquery";
             $sql = "SELECT ROUND((t.basic_pay + t.overide_comm + t.overide_comm2), 2) AS total_sum FROM 
@@ -853,8 +854,8 @@ class agentController extends Controller
                 AND t.FinancialAdvisorCategory=$FinancialAdvisorCategory";
             $AgentTotals = DbHelper::getTableRawData($sql);
 
-            $payslip_month =(int)$Period_month + 1;
-            if($payslip_month == 13){
+            $payslip_month = (int)$Period_month + 1;
+            if ($payslip_month == 13) {
                 $payslip_month = 1;
                 $period_year = $period_year + 1;
             }
@@ -868,11 +869,10 @@ class agentController extends Controller
             $PaySlip = DbHelper::getTableRawData($sql);
 
 
-            
+
             $res = array(
                 'success' => true,
                 'AgentCommission' => $AgentCommission,
-                'AgentOverrideCommission' => $AgentOverrideCommission,
                 'AgentTotals' => $AgentTotals,
                 'PaySlip' => $PaySlip
             );
