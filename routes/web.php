@@ -56,6 +56,7 @@ Route::post('auth/BrokerRegistration', [loginController::class, 'BrokerRegistrat
 Route::post('auth/SendClientOTP', [loginController::class, 'SendClientOTP']);
 Route::post('auth/SendBrokerOTP', [loginController::class, 'SendBrokerOTP']);
 Route::post('auth/SendGroupOTP', [loginController::class, 'SendGroupOTP']);
+Route::post('auth/AgentValidate', [loginController::class, 'AgentValidate']);
 
 Route::get('params/getParams', [parametersController::class, 'getCommonParams']);
 Route::get('params/getBankPlans', [parametersController::class, 'getBankPlans']);
@@ -225,6 +226,7 @@ Route::post('agents/syncAgentImage', [agentController::class, 'syncAgentImage'])
 Route::get('agents/getAgentsEmploymentType', [agentController::class, 'getAgentsEmploymentType']);
 Route::post('agents/saveAgentLoanRequest', [agentController::class, 'saveAgentLoanRequest']);
 Route::get('agents/getAgentLoans', [agentController::class, 'getAgentLoans']);
+
 
 Route::get('agents/getRegions', [agentController::class, 'getRegions']);
 Route::get('agents/getBanks', [agentController::class, 'getBanks']); //

@@ -750,7 +750,8 @@ class syncController extends Controller
                     'Prem_rate' => $request->input('Prem_rate'),
 
                     'inv_premium' => $inv_prem,
-                    'basic_premium' => (float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
+                    'basic_premium' => $request->input('basic_premium'),
+                    //'basic_premium' => (float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
                     //$modal_premium,
                     'rider_premium' => $rider_prem,
                     'annual_premium' => $annual_premium,
@@ -759,7 +760,8 @@ class syncController extends Controller
 
                     'Sum_Assured' => $sum_assured,
                     'pol_fee' => $policy_fee,
-                    'modal_premium' => $total_premium, //(float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
+                    'modal_premium' => $request->input('modal_premium'),
+                    //'modal_premium' => $total_premium, //(float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
                     //'cepa' => $request->input('cepa'),
                     'tot_protection' => $request->input('tot_protection'),
                     'transfer_charge' => $request->input('transfer_charge'),

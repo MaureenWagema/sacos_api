@@ -31,6 +31,7 @@ class VerifyCsrfToken extends Middleware
         'auth/SendClientOTP',
         'auth/SendBrokerOTP',
         'auth/SendGroupOTP',
+        'auth/AgentValidate',
 
 
         'reports/getAgentProducts',
@@ -179,6 +180,8 @@ class VerifyCsrfToken extends Middleware
         'agents/editAgentsDetails',
         'agents/migrateAgentImage',
         'agents/migrateAgentNICDocs',
+
+        
 
         'reports/getAgentProducts',
         'reports/getSubsidiaryAccounts',

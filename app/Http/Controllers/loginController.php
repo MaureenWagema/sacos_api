@@ -349,6 +349,93 @@ class loginController extends Controller
         return response()->json($res);
     }
 
+    //Validate Agent
+    public function AgentValidate(Request $request)
+    {
+        try {
+            //should handle for both reset password & account registration
+            $agent_no = $request->input('agent_no');
+            //$IsReset = $request->input('IsReset');
+
+            //check if agent exits
+            $agentId = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'id');
+            if(!isset($agentId)){
+                return $res = array(
+                    'success' => false,
+                    'message' => 'Agent does not exist'
+                );
+            }
+
+            //check if agent is active
+            $IsActive = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'IsActive');
+            if(!$IsActive){
+                return $res = array(
+                    'success' => false,
+                    'message' => 'Agent is not active'
+                );
+            }
+
+
+            //check if agent has email
+            $Emailaddress = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'Emailaddress');
+            if(!isset($Emailaddress)){
+                return $res = array(
+                    'success' => false,
+                    'message' => 'Agent does not have an email address. Kindly setup the email address'
+                );
+            }
+
+            //check if agent_no exists in PortalUsers, if not insert with null password
+            $portalUserId = DbHelper::getColumnValue('PortalUsers', 'AgentNo', $agent_no, 'id');
+            if (!isset($portalUserId)) {
+                $this->smartlife_db->table('PortalUsers')->insert([
+                    'AgentNo' => $agent_no,
+                    'Password' => null,
+                    'MobileNo' => DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'mobile') ?? null,
+                    'Email' => $Emailaddress,
+                    'CreatedOn' => Carbon::now(),
+                ]);
+            }
+
+            //generate OTP & OTP Expiry....
+            //generate random 4 digit number
+            $otp = rand(1000, 9999);
+            //OtpExpiryDate is 10 mins
+            $OtpExpiryDate = Carbon::now()->addMinutes(10);
+
+            //save OTP & OTP Expiry to agents_info
+            $this->smartlife_db->table('PortalUsers')
+                ->where('AgentNo', $agent_no)
+                ->update([
+                    'Otp' => $otp,
+                    'OtpExpiryDate' => $OtpExpiryDate
+                ]);
+
+            //send OTP to email....
+            $subject = 'Your OTP Code';
+            $message = "Your OTP code is: <b>$otp</b>. It expires in 10 minutes.";
+            $this->sendEmail($Emailaddress, $subject, $message);
+
+            $res = array(
+                'success' => true,
+                'message' => 'OTP sent successfully to your email address.'
+            );
+        } catch (\Exception $exception) {
+            $res = array(
+                'success' => false,
+                'message' => $exception->getMessage()
+            );
+            return response()->json($res);
+        } catch (\Throwable $throwable) {
+            $res = array(
+                'success' => false,
+                'message' => $throwable->getMessage()
+            );
+            return response()->json($res);
+        }
+        return response()->json($res);
+    }
+
     //Register Agent 
     public function AgentRegistration(Request $request)
     {
@@ -358,126 +445,65 @@ class loginController extends Controller
             //1. Search in Agents info if exists
             $agent_no = $request->input('agent_no');
             $is_forgot = $request->input('is_forgot');
+            $password = md5($request->input('password'));
+            $otp = $request->input('otp');
 
-            //check if agent_no exists
-            $user_id = DbHelper::getColumnValue('PortalUsers', 'agent_no', $agent_no, 'id');
-            if (isset($user_id) && (int) $user_id > 0) {
-                if (isset($is_forgot) && $is_forgot == 1) {
-                    //change password here
-                    /*$password = $this->generateRandomFileName();
-                    $table_data = array(
-                        "password" => $password
-                    );
-                    $this->smartlife_db->table('PortalUsers')
-                            ->where(array(
-                                "agent_no" => $agent_no
-                            ))
-                            ->update($table_data);
-                    $msg = 'Your login credentials across all Agent systems shall be; Agent No: '.$agent_no.' and Password: '.$password;
-                
-                    $mobile_no = DbHelper::getColumnValue('agents_info', 'AgentNoCode',$agent_no,'mobile');
-                    if(substr($mobile_no, 0, 1) == '0'){
-                        $mobile_no = "233".ltrim($mobile_no, '0');
-                    }
-                    $url_path = "http://193.105.74.59/api/sendsms/plain?user=Glico2018&password=glicosmpp&sender=GLICO&SMSText=".$msg."&GSM=".$mobile_no;
-                
-                    $client = new \GuzzleHttp\Client;
-                    $smsRequest =  $client->get($url_path);*/
+            //check if otp is correct
+            $portalUser = $this->smartlife_db->table('PortalUsers')
+                ->where('AgentNo', $agent_no)
+                ->first();
 
-                    $res = array(
-                        'success' => true,
-                        'msg' => "Agent Confirmed Sucessfully",
-                    );
-                    return $res;
-                } else {
-                    $mobile_no = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'mobile');
-                    $msg = 'You are already Registered. Access forgot Password on Mproposal / Agents Portal ';
-                    if (substr($mobile_no, 0, 1) == '0') {
-                        $mobile_no = "233" . ltrim($mobile_no, '0');
-                    }
-                    $url_path = "http://193.105.74.59/api/sendsms/plain?user=Glico2018&password=glicosmpp&sender=GLICO&SMSText=" . $msg . "&GSM=" . $mobile_no;
-
-                    $client = new \GuzzleHttp\Client;
-                    $smsRequest = $client->get($url_path);
-                    $res = array(
-                        'success' => false,
-                        'msg' => "Agent is already Registered",
-                    );
-                    return $res;
-                }
-            }
-
-            //check if Agent is active..
-            $isActive = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'IsActive');
-            if (!$isActive) {
-                //check if Agent is active..
-                $res = array(
+            if (!$portalUser) {
+                return response()->json([
                     'success' => false,
-                    'msg' => "Agent is inactive",
-                );
-                return $res;
+                    'message' => 'Agent not found. Please validate first.'
+                ]);
             }
 
-            $mobile_no = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'mobile');
-            if (empty($mobile_no)) {
-                $res = array(
+            if ($portalUser->Otp != $otp) {
+                return response()->json([
                     'success' => false,
-                    'msg' => "Share your Mobile Number with the Administrator",
-                );
-                return $res;
+                    'message' => 'Invalid OTP. Please try again.'
+                ]);
             }
 
-            $sql = "SELECT p.AgentNoCode,p.mobile,p.Ismanager,p.BusinessChannel,p.IsActive,p.Emailaddress FROM agents_info p WHERE p.IsActive=1 AND AgentNoCode='$agent_no'";
-            $Agent = DbHelper::getTableRawData($sql);
+            if (Carbon::now()->greaterThan(Carbon::parse($portalUser->OtpExpiryDate))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'OTP has expired. Please request a new one.'
+                ]);
+            }
 
+            if (isset($is_forgot) && (bool)$is_forgot) {
+                //update the password
+                $this->smartlife_db->table('PortalUsers')
+                    ->where('AgentNo', $agent_no)
+                    ->update([
+                        'Password' => $password,
+                        'Otp' => null,
+                        'OtpExpiryDate' => null,
+                    ]);
 
-            if (sizeof($Agent) > 0) {
-                //2. If true, Insert details and send sms & email with the default password
-                //agent_no, password,mobile_no,email,created_on
-                $password = $this->generateRandomFileName();
-                $table_data = array(
-                    'agent_no' => $Agent[0]->AgentNoCode,
-                    'password' => md5($password),
-                    'mobile_no' => $Agent[0]->mobile,
-                    'email' => $Agent[0]->Emailaddress,
-                    'created_on' => Carbon::now(),
-                    'pos_type' => 0,
-                    'report_group' => 0,
-                    'is_first_time' => 0
+                $res = array(
+                    'success' => true,
+                    'message' => 'Password reset successfully.'
                 );
-
-                //insert or update..
-
-                $record_id = $this->smartlife_db->table('PortalUsers')->insertGetId($table_data);
-                $msg = 'You have been successfully onboarded as a Glico Life agent. Your login credentials across all Agent systems shall be; Agent No: ' . $Agent[0]->AgentNoCode . ' and Password: ' . $password;
-
-                $mobile_no = $Agent[0]->mobile;
-
-
-
-                if (substr($mobile_no, 0, 1) == '0') {
-                    $mobile_no = "233" . ltrim($mobile_no, '0');
-                }
-                $url_path = "http://193.105.74.59/api/sendsms/plain?user=Glico2018&password=glicosmpp&sender=GLICO&SMSText=" . $msg . "&GSM=" . $mobile_no;
-
-                $client = new \GuzzleHttp\Client;
-                $smsRequest = $client->get($url_path);
             } else {
-                //terminate (agent no doesn't exist)
+                //set password for new registration
+                $this->smartlife_db->table('PortalUsers')
+                    ->where('AgentNo', $agent_no)
+                    ->update([
+                        'Password' => $password,
+                        'Otp' => null,
+                        'OtpExpiryDate' => null,
+                        'CreatedOn' => Carbon::now(),
+                    ]);
+
                 $res = array(
-                    'success' => false,
-                    'msg' => "Provide a valid Agent no or the Agent is deactivated",
+                    'success' => true,
+                    'message' => 'Agent Registered Successfully.'
                 );
-                return $res;
             }
-            //3. 
-            //health questionnaire
-            $res = array(
-                'success' => true,
-                'user_id' => $record_id,
-                'mobile_no' => $mobile_no,
-                'password' => $password
-            );
         } catch (\Exception $exception) {
             $res = array(
                 'success' => false,
