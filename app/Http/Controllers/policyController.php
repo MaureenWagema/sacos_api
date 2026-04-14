@@ -396,7 +396,8 @@ class policyController extends Controller
                         'agent_codeSecond' => $results->agent_codeSecond,
                         'ID' => (int)$results->ID,
                         'created_by' => $results->created_by,
-                        //,
+                        'ProposerId' => (int)$results->ID,
+                        
                         'AllowMproposalEdit' => $results->AllowMproposalEdit,
                         'proposal_status' => $proposal_status,
                         'HasBeenPicked' => $results->HasBeenPicked,

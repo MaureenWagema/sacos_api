@@ -19,14 +19,14 @@ class syncController extends Controller
             ->select('p.PlanDesc')
             ->where(array('p.plan_code' => $plan_code));
         $results = $qry->first();
-        
+
         //update policy serial...
-        $policy_serial = DbHelper::getColumnValue('CompanyInfo', 'id',1,'next_policy_no');
+        $policy_serial = DbHelper::getColumnValue('CompanyInfo', 'id', 1, 'next_policy_no');
 
         $twoDigitYear = date("y");
         $policy_no = $results->PlanDesc . '-' . str_pad($policy_serial, 4, '0', STR_PAD_LEFT) . '-' . $twoDigitYear;
 
-        
+
         //update policy serial here
         $this->smartlife_db->table('CompanyInfo')
             ->update(array('next_policy_no' => $policy_serial + 1));
@@ -280,22 +280,24 @@ class syncController extends Controller
 
     //Log the action of capturing a new business
     //public function posLog($created_by,$nin, $narration, $created_by, $proposal_id)
-    public function PosLog($ClientName, $nin, $narration, $created_by, $proposal_id)
+    public function PosLog($ClientName, $nin, $narration, $created_by, $proposal_id, $ProposerId)
     {
-        //save into table: Pos_Log
-        $pos_log_data = array(
-            'ClientName' => $ClientName,
-            'StaffNumber' => $nin,
-            'Activity' => 5,
-            'Narration' => $narration,
-            'eClaimId' => null,
-            'eEndorsementId' => null,
-            'created_on' => Carbon::now(),
-            'created_by' => $created_by,
-            //'UserName' => $created_by,
-            'MobPropId' => $proposal_id
-        );
-        $pos_log_id = $this->smartlife_db->table('Pos_Log')->insertGetId($pos_log_data);
+        if (!isset($ProposerId)) {
+            //save into table: Pos_Log
+            $pos_log_data = array(
+                'ClientName' => $ClientName,
+                'StaffNumber' => $nin,
+                'Activity' => 5,
+                'Narration' => $narration,
+                'eClaimId' => null,
+                'eEndorsementId' => null,
+                'created_on' => Carbon::now(),
+                'created_by' => $created_by,
+                //'UserName' => $created_by,
+                'MobPropId' => $proposal_id
+            );
+            $pos_log_id = $this->smartlife_db->table('Pos_Log')->insertGetId($pos_log_data);
+        }
     }
 
     //
@@ -691,14 +693,16 @@ class syncController extends Controller
                 //UsePredefinedTerm,p.UsePredefinedSumAssured
                 $TermOptionId = null;
                 $UsePredefinedTerm = DbHelper::getColumnValue('planinfo', 'plan_code', $plan_code, 'UsePredefinedTerm');
-                if($UsePredefinedTerm){
+                if ($UsePredefinedTerm) {
                     $TermOptionId = DbHelper::getColumnValue('PlanTermOptions', 'TermOption', $term, 'id');
                 }
                 $SAOptionId = null;
                 $UsePredefinedSumAssured = DbHelper::getColumnValue('planinfo', 'plan_code', $plan_code, 'UsePredefinedSumAssured');
-                if($UsePredefinedSumAssured){
+                if ($UsePredefinedSumAssured) {
                     $SAOptionId = DbHelper::getColumnValue('PlanSumAssuredOptions', 'SAOption', $sum_assured, 'id');
                 }
+
+                $ProposerId = $request->input('ProposerId');
 
 
                 $table_data = array(
@@ -706,6 +710,8 @@ class syncController extends Controller
                     //'confirmed_otp' => $confirmed_otp,
                     'TermOption' => $TermOptionId,
                     'SAOption' => $SAOptionId,
+
+                    'ProposerId' => $ProposerId,
 
                     'mobile_id' => $request->input('mobile_id'),
                     'surname' => strtoupper($request->input('surname')),
@@ -907,7 +913,7 @@ class syncController extends Controller
                     $posLogId = DbHelper::getColumnValue('Pos_Log', 'MobPropId', $record_id, 'id');
                     if (!isset($posLogId)  && isset($crm_user)) {
                         $narration = "PROPOSAL NO: " . $proposal_no;
-                        $this->PosLog(strtoupper($request->input('surname')) . ' ' . strtoupper($request->input('other_name')), $request->input('IdNumber'), $narration, $crm_user, $record_id);
+                        $this->PosLog(strtoupper($request->input('surname')) . ' ' . strtoupper($request->input('other_name')), $request->input('IdNumber'), $narration, $crm_user, $record_id, $ProposerId);
                     }
                 } else {
 
@@ -930,7 +936,7 @@ class syncController extends Controller
                         $posLogId = DbHelper::getColumnValue('Pos_Log', 'MobPropId', $record_id, 'id');
                         if (!isset($posLogId) && isset($crm_user)) {
                             $narration = "PROPOSAL NO: " . $proposal_no;
-                            $this->PosLog(strtoupper($request->input('surname')) . ' ' . strtoupper($request->input('other_name')), $request->input('IdNumber'), $narration, $crm_user, $record_id);
+                            $this->PosLog(strtoupper($request->input('surname')) . ' ' . strtoupper($request->input('other_name')), $request->input('IdNumber'), $narration, $crm_user, $record_id, $ProposerId);
                         }
                     } else {
                         //insert
@@ -940,11 +946,11 @@ class syncController extends Controller
                             $table_data['created_by'] = $crm_user;
                         }
                         $record_id = $this->smartlife_db->table('mob_prop_info')->insertGetId($table_data);
-                        $posLogId = DbHelper::getColumnValue('Pos_Log', 'MobPropId', $record_id, 'id');
+                        /*$posLogId = DbHelper::getColumnValue('Pos_Log', 'MobPropId', $record_id, 'id');
                         if (!isset($posLogId)  && isset($crm_user)) {
                             $narration = "PROPOSAL NO: " . $proposal_no;
-                            $this->PosLog(strtoupper($request->input('surname')) . ' ' . strtoupper($request->input('other_name')), $request->input('IdNumber'), $narration, $crm_user, $record_id);
-                        }
+                            $this->PosLog(strtoupper($request->input('surname')) . ' ' . strtoupper($request->input('other_name')), $request->input('IdNumber'), $narration, $crm_user, $record_id, $ProposerId);
+                        }*/
                     }
                 }
 

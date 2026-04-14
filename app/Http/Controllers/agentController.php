@@ -817,7 +817,7 @@ class agentController extends Controller
             LEFT JOIN polinfo t3 ON t1.PolicyId=t3.id 
             INNER JOIN clientinfo t4 ON t3.client_number=t4.client_number
             WHERE t1.period_year = $period_year AND t1.Period_month = $Period_month
-            AND t1.agent_no=".$agentId;
+            AND t1.agent_no=" . $agentId;
             $AgentCommission = DbHelper::getTableRawData($sql);
 
             //override commission
@@ -847,12 +847,13 @@ class agentController extends Controller
             // 	(period_year=$period_year AND Period_month=$Period_month AND 
             //      FinancialAdvisorCategory=$FinancialAdvisorCategory AND PayrollCategory=$PayrollCategory)
             // ) subquery";
-            $sql = "SELECT ROUND((t.basic_pay + t.overide_comm + t.overide_comm2), 2) AS total_sum FROM 
+
+            /*$sql = "SELECT ROUND((t.basic_pay + t.overide_comm + t.overide_comm2), 2) AS total_sum FROM 
                 pyemployeeinfo t 
                 WHERE t.pay_no=$agentId AND t.period_year=$period_year AND 
                 t.period_month=$Period_month  AND t.PayrollCategory=$PayrollCategory 
                 AND t.FinancialAdvisorCategory=$FinancialAdvisorCategory";
-            $AgentTotals = DbHelper::getTableRawData($sql);
+            $AgentTotals = DbHelper::getTableRawData($sql);*/
 
             $payslip_month = (int)$Period_month + 1;
             if ($payslip_month == 13) {
@@ -860,9 +861,10 @@ class agentController extends Controller
                 $period_year = $period_year + 1;
             }
             //PaySlip
-            $sql = "SELECT t2.para_name 'PAYSLIP_NAME',t1.amount 'AMOUNT' FROM pytransinfo t1 
-                    INNER JOIN pyparainfo t2 ON t1.para_code = t2.id 
-                    LEFT JOIN  agents_info t3 ON t1.pay_no=t3.id
+            $sql = "SELECT t4.short_name, t2.para_name 'PAYSLIP_NAME',t1.amount 'AMOUNT' FROM pytransinfo t1
+                    INNER JOIN pyparainfo t2 ON t1.para_code = t2.id
+                    LEFT JOIN agents_info t3 ON t1.pay_no=t3.id
+                    INNER JOIN PayslipCategory t4 ON t2.Category=t4.id
                     WHERE t1.period_year =$period_year AND t1.period_month = $payslip_month 
                     AND t3.AgentNoCode='$agent_no' AND t1.PayrollCategory=$PayrollCategory 
                     ORDER BY t2.seq_no";
@@ -873,7 +875,7 @@ class agentController extends Controller
             $res = array(
                 'success' => true,
                 'AgentCommission' => $AgentCommission,
-                'AgentTotals' => $AgentTotals,
+                //'AgentTotals' => $AgentTotals,
                 'PaySlip' => $PaySlip
             );
         } catch (\Exception $exception) {
