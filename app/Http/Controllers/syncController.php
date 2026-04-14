@@ -16,24 +16,20 @@ class syncController extends Controller
         $policy_no = null;
         //get the policy_serial
         $qry = $this->smartlife_db->table('planinfo as p')
-            ->select('p.policy_serial', 'p.PlanDesc')
+            ->select('p.PlanDesc')
             ->where(array('p.plan_code' => $plan_code));
         $results = $qry->first();
-        //BusinessChannel
-        //$BusinessChannel = DbHelper::getColumnValue('agents_info', 'id', $agent_code, 'BusinessChannel');
-
-
-        $policy_no = $results->PlanDesc . '-' . date("Y") . '-' . str_pad($results->policy_serial, 5, 0, STR_PAD_LEFT);
-
+        
         //update policy serial...
-        $policy_serial = $results->policy_serial;
+        $policy_serial = DbHelper::getColumnValue('CompanyInfo', 'id',1,'next_policy_no');
+
+        $twoDigitYear = date("y");
+        $policy_no = $results->PlanDesc . '-' . str_pad($policy_serial, 4, '0', STR_PAD_LEFT) . '-' . $twoDigitYear;
+
+        
         //update policy serial here
-        $this->smartlife_db->table('planinfo')
-            ->where(
-                array(
-                    "plan_code" => $plan_code
-                )
-            )->update(array('policy_serial' => $policy_serial + 1));
+        $this->smartlife_db->table('CompanyInfo')
+            ->update(array('next_policy_no' => $policy_serial + 1));
 
         return $policy_no;
     }
@@ -691,10 +687,26 @@ class syncController extends Controller
                 }
                 $confirmed_otp = $request->input('confirmed_otp');
 
+                //fetch p.TermOption, p.SAOption
+                //UsePredefinedTerm,p.UsePredefinedSumAssured
+                $TermOptionId = null;
+                $UsePredefinedTerm = DbHelper::getColumnValue('planinfo', 'plan_code', $plan_code, 'UsePredefinedTerm');
+                if($UsePredefinedTerm){
+                    $TermOptionId = DbHelper::getColumnValue('PlanTermOptions', 'TermOption', $term, 'id');
+                }
+                $SAOptionId = null;
+                $UsePredefinedSumAssured = DbHelper::getColumnValue('planinfo', 'plan_code', $plan_code, 'UsePredefinedSumAssured');
+                if($UsePredefinedSumAssured){
+                    $SAOptionId = DbHelper::getColumnValue('PlanSumAssuredOptions', 'SAOption', $sum_assured, 'id');
+                }
+
 
                 $table_data = array(
                     //'confirmed_otp_date' => $confirmed_otp_date,
                     //'confirmed_otp' => $confirmed_otp,
+                    'TermOption' => $TermOptionId,
+                    'SAOption' => $SAOptionId,
+
                     'mobile_id' => $request->input('mobile_id'),
                     'surname' => strtoupper($request->input('surname')),
                     'other_name' => strtoupper($request->input('other_name')),
@@ -750,7 +762,8 @@ class syncController extends Controller
                     'Prem_rate' => $request->input('Prem_rate'),
 
                     'inv_premium' => $inv_prem,
-                    'basic_premium' => (float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
+                    'basic_premium' => $request->input('basic_premium'),
+                    //'basic_premium' => (float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
                     //$modal_premium,
                     'rider_premium' => $rider_prem,
                     'annual_premium' => $annual_premium,
@@ -759,7 +772,8 @@ class syncController extends Controller
 
                     'Sum_Assured' => $sum_assured,
                     'pol_fee' => $policy_fee,
-                    'modal_premium' => $total_premium, //(float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
+                    'modal_premium' => $request->input('modal_premium'),
+                    //'modal_premium' => $total_premium, //(float)$total_premium - ((float)$request->input('Vat') + (float)$policy_fee + ((float)$rider_prem ?? 0)),
                     //'cepa' => $request->input('cepa'),
                     'tot_protection' => $request->input('tot_protection'),
                     'transfer_charge' => $request->input('transfer_charge'),

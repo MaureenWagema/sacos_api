@@ -56,6 +56,7 @@ Route::post('auth/BrokerRegistration', [loginController::class, 'BrokerRegistrat
 Route::post('auth/SendClientOTP', [loginController::class, 'SendClientOTP']);
 Route::post('auth/SendBrokerOTP', [loginController::class, 'SendBrokerOTP']);
 Route::post('auth/SendGroupOTP', [loginController::class, 'SendGroupOTP']);
+Route::post('auth/AgentValidate', [loginController::class, 'AgentValidate']);
 
 Route::get('params/getParams', [parametersController::class, 'getCommonParams']);
 Route::get('params/getBankPlans', [parametersController::class, 'getBankPlans']);
@@ -135,6 +136,8 @@ Route::get('policy/getMicroCashValue', [policyController::class, 'getMicroCashVa
 Route::get('policy/getLifeCashValue', [policyController::class, 'getLifeCashValue']);
 Route::get('policy/getClientAccount', [policyController::class, 'getClientAccount']);
 Route::get('policy/getPropDepInfo', [policyController::class, 'getPropDepInfo']);
+Route::get('policy/getSurvivorBenefits', [policyController::class, 'getSurvivorBenefits']);
+Route::get('policy/getPremiumPenalties', [policyController::class, 'getPremiumPenalties']);
 
 Route::get('policy/getProposalDetails', [policyController::class, 'getProposalDetails']);
 Route::get('policy/getMicroProposalDetails', [policyController::class, 'getMicroProposalDetails']);
@@ -225,6 +228,7 @@ Route::post('agents/syncAgentImage', [agentController::class, 'syncAgentImage'])
 Route::get('agents/getAgentsEmploymentType', [agentController::class, 'getAgentsEmploymentType']);
 Route::post('agents/saveAgentLoanRequest', [agentController::class, 'saveAgentLoanRequest']);
 Route::get('agents/getAgentLoans', [agentController::class, 'getAgentLoans']);
+
 
 Route::get('agents/getRegions', [agentController::class, 'getRegions']);
 Route::get('agents/getBanks', [agentController::class, 'getBanks']); //

@@ -817,6 +817,73 @@ class policyController extends Controller
         return response()->json($res);
     }
 
+    //get premium penalties
+    public function getPremiumPenalties(Request $request)
+    {
+        try {
+            $policy_no = $request->input('policy_no');
+            $policyId = DbHelper::getColumnValue('polinfo', 'policy_no', $policy_no, 'id');
+
+            //get from installment_info
+            $Penalties = $this->smartlife_db->table('PremPenaltiesDetails')
+                        ->select('*')
+                        ->where('PolicyNumber', $policyId)
+                        ->get();
+
+
+            $res = array(
+                'success' => true,
+                'PremiumPenalties' => $Penalties
+            );
+        } catch (\Exception $exception) {
+            $res = array(
+                'success' => false,
+                'message' => $exception->getMessage()
+            );
+            return response()->json($res);
+        } catch (\Throwable $throwable) {
+            $res = array(
+                'success' => false,
+                'message' => $throwable->getMessage()
+            );
+            return response()->json($res);
+        }
+        return response()->json($res);
+    }
+
+    //get survivor details...
+    public function getSurvivorBenefits(Request $request)
+    {
+        try {
+            $policy_no = $request->input('policy_no');
+            $policyId = DbHelper::getColumnValue('polinfo', 'policy_no', $policy_no, 'id');
+
+            //get from installment_info
+            $Benefits = $this->smartlife_db->table('installment_info')
+                        ->select('*')
+                        ->where('policyId', $policyId)
+                        ->get();
+
+            $res = array(
+                'success' => true,
+                'SurvivorBenefits' => $Benefits
+            );
+        } catch (\Exception $exception) {
+            $res = array(
+                'success' => false,
+                'message' => $exception->getMessage()
+            );
+            return response()->json($res);
+        } catch (\Throwable $throwable) {
+            $res = array(
+                'success' => false,
+                'message' => $throwable->getMessage()
+            );
+            return response()->json($res);
+        }
+        return response()->json($res);
+    }
+
     //get policy dependants
     public function getPolicyDependants(Request $request)
     {

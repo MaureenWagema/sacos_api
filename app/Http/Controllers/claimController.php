@@ -147,6 +147,7 @@ class claimController extends Controller
                 $statusText = ($statuscode == 14) ? 'Draft' : 'Submitted';
 
                 $table_data = array(
+                    'RequestDate' => Carbon::now(),
                     'claim_type' => $claim_type,
                     'PolicyId' => $policyId,
                     'statuscode' => $statuscode,

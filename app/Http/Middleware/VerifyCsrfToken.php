@@ -31,6 +31,7 @@ class VerifyCsrfToken extends Middleware
         'auth/SendClientOTP',
         'auth/SendBrokerOTP',
         'auth/SendGroupOTP',
+        'auth/AgentValidate',
 
 
         'reports/getAgentProducts',
@@ -98,6 +99,9 @@ class VerifyCsrfToken extends Middleware
         'policy/validatePWDLoan',
 
         'policy/validatePolicyNumber',
+
+        'policy/getSurvivorBenefits',
+        'policy/getPremiumPenalties',
 
         'proposal/relatedProposals',
 
@@ -179,6 +183,8 @@ class VerifyCsrfToken extends Middleware
         'agents/editAgentsDetails',
         'agents/migrateAgentImage',
         'agents/migrateAgentNICDocs',
+
+        
 
         'reports/getAgentProducts',
         'reports/getSubsidiaryAccounts',
