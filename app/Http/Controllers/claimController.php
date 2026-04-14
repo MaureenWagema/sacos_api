@@ -107,10 +107,10 @@ class claimController extends Controller
                 $client_number = DbHelper::getColumnValue('polinfo', 'policy_no', $policy_no, 'client_number');
                 $plan_code = $request->input('plan_code');
                 $plan_description = $request->input('plan_description');
-                $ClaimantName = $request->input('ClaimantName');
+                $ClaimantName = $request->input('ClaimantName') ?? '';
                 $ClaimantMobile =  $request->input('ClaimantMobile');
                 $IdNumber = $request->input('IdNumber');
-                $client_name = $request->input('name');
+                $client_name = $request->input('name') ?? '';
                 $id_type = $request->input('id_type');
                 $ClaimCause =  $request->input('ClaimCause');
                 $DoctorName = $request->input('DoctorName');
@@ -124,6 +124,10 @@ class claimController extends Controller
                 $ClaimDefaultCashRecipient = $request->input('ClaimDefaultCashRecipient');
                 $ClaimDefaultCashContact = $request->input('ClaimDefaultCashContact');
                 $IsWebComplete = $request->input('IsWebComplete');
+                $PreviousLoanAmount = $request->input('PreviousLoanAmount');
+                $AmountAppliedFor = $request->input('AmountAppliedFor');
+                $TermInMonths = $request->input('TermInMonths');
+                $TotalLoanAmount = $request->input('TotalLoanAmount');
 
                 // Debug logging to check the actual values
                 Log::debug('insertClaimEntries - Status code logic:', [
@@ -160,6 +164,10 @@ class claimController extends Controller
                     'ClaimDefaultEFTBankBranchCode' => $ClaimDefaultEFTBankBranchCode,
                     'ClaimDefaultEftBankaccountName' => $ClaimDefaultEFTBank_accountName,
                     'ClaimDefaultEFTBank_account' => $ClaimDefaultEFTBank_account,
+                    'PreviousLoanAmount' => $PreviousLoanAmount,
+                    'AmountAppliedFor' => $AmountAppliedFor,
+                    'TermInMonths' => $TermInMonths,
+                    'TotalLoanAmount' => $TotalLoanAmount,
                     'created_on' => Carbon::now() 
                 );
 
