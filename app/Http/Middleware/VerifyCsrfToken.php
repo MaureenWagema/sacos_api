@@ -227,6 +227,9 @@ class VerifyCsrfToken extends Middleware
 
         'reports/getSacosRpt',
 
+        'reports/fetchLoanDetails',
+        'reports/fetchLoanAmortizationDetails',
+
         'email/sendEmail',
         'email/smsPOST',
         'email/sendLink',

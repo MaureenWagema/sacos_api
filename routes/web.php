@@ -111,8 +111,10 @@ Route::get('reports/checkIsMicro', [reportsController::class, 'checkIsMicro']);
 Route::get('reports/getMDsDashboard', [reportsController::class, 'getMDsDashboard']);
 Route::get('reports/policyNoMicro', [reportsController::class, 'policyNoMicro']);
 Route::post('reports/getSacosRpt', [reportsController::class, 'getSacosRpt']);
+Route::post('reports/fetchLoanDetails', [reportsController::class, 'fetchLoanDetails']);
+Route::post('reports/fetchLoanAmortizationDetails', [reportsController::class, 'fetchLoanAmortizationDetails']);
 
-//policy getSalesGridRange getActivitiesTotalsRange 
+//policy getSalesGridRange getActivitiesTotalsRange  fetchLoanDetails 
 Route::get('policy/getMicroProducts', [policyController::class, 'getMicroProducts']);
 Route::get('policy/getProposal', [policyController::class, 'getProposal']);
 Route::get('policy/getPolicyDependants', [policyController::class, 'getPolicyDependants']);

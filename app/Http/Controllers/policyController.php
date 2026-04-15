@@ -152,6 +152,7 @@ class policyController extends Controller
                 //get the record data
                 $is_dashboard = $request->input('is_dashboard');
                 $record_id = $request->input('record_id');
+                $is_second_life = $request->input('is_second_life');
                 $agent_code = $request->input('agent_code');
                 $pos_type = $request->input('pos_type');
 
@@ -177,12 +178,12 @@ class policyController extends Controller
                 //TODO get data from mob_prop_info...  ,'' AS uw_reason
                 if (isset($record_id) && $record_id > 0) {
                     $qry = $this->smartlife_db->table('mob_prop_info')
-                        ->select('*', DB::raw('NULL AS UwCode'), DB::raw('\'\' AS uw_name'), DB::raw('NULL AS Status'), DB::raw('\'\' AS StatusName'), DB::raw('\'\' AS uw_reason'), DB::raw('\'\' AS agent_name'))
-                        ->where(
-                            array(
-                                'ID' => $record_id
-                            )
-                        );
+                        ->select('*', DB::raw('NULL AS UwCode'), DB::raw('\'\' AS uw_name'), DB::raw('NULL AS Status'), DB::raw('\'\' AS StatusName'), DB::raw('\'\' AS uw_reason'), DB::raw('\'\' AS agent_name'));
+                    if ($is_second_life == 1 || $is_second_life == '1') {
+                        $qry->where('ProposerId', $record_id);
+                    } else {
+                        $qry->where('ID', $record_id);
+                    }
                     $row_arr = $qry->get();
                 } else if ((isset($agent_code) && !empty($agent_code))) {
                     $date_from = $request->input('date_from');
@@ -228,7 +229,7 @@ class policyController extends Controller
                             LEFT  JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code " . $sql_inject . "
                             LEFT JOIN proposalinfo ON proposalinfo.MproposalNumber=mob_prop_info.ID
                             LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
-                            WHERE mob_prop_info.agent_code = $agentId
+                            WHERE mob_prop_info.agent_code = $agentId AND mob_prop_info.ProposerId IS NULL
                             ORDER BY mob_prop_info.ID DESC'
                             EXEC (@sql)";
 
@@ -326,6 +327,7 @@ class policyController extends Controller
                             LEFT  JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code " . $sql_inject . "
                             LEFT JOIN proposalinfo ON proposalinfo.MproposalNumber=mob_prop_info.ID
                             LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
+                            WHERE mob_prop_info.ProposerId IS NULL
                             ORDER BY mob_prop_info.ID DESC'
                             EXEC (@sql)";
                     }
@@ -346,7 +348,7 @@ class policyController extends Controller
                             LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
                             LEFT JOIN AppraisalHistory ON AppraisalHistory.proposal_no = proposalinfo.proposal_no
                             LEFT JOIN agents_info ON agents_info.id=mob_prop_info.agent_code 
-                            WHERE (mob_prop_info.HasBeenPicked=0 OR mob_prop_info.isWebCompleted=0) ORDER BY AppraisalHistory.id DESC,mob_prop_info.ID DESC'
+                            WHERE (mob_prop_info.HasBeenPicked=0 OR mob_prop_info.isWebCompleted=0 AND mob_prop_info.ProposerId IS NULL) ORDER BY AppraisalHistory.id DESC,mob_prop_info.ID DESC'
                             
                             EXEC (@sql)";
 
@@ -385,10 +387,10 @@ class policyController extends Controller
                     $agent_name = DbHelper::getColumnValue('agents_info', 'id', $agentId, 'name');
 
                     $proposal_status = "Draft";
-                    if((bool)$results->HasBeenPicked && (bool)$results->IsWebComplete){
+                    if ((bool)$results->HasBeenPicked && (bool)$results->IsWebComplete) {
                         $proposal_status = "Submitted";
                     }
-                    if((bool)$results->AllowMproposalEdit){
+                    if ((bool)$results->AllowMproposalEdit) {
                         $proposal_status = "Returned to Agent/Broker";
                     }
 
@@ -396,8 +398,8 @@ class policyController extends Controller
                         'agent_codeSecond' => $results->agent_codeSecond,
                         'ID' => (int)$results->ID,
                         'created_by' => $results->created_by,
-                        'ProposerId' => (int)$results->ID,
-                        
+                        'ProposerId' => (int)$results->ProposerId,
+
                         'AllowMproposalEdit' => $results->AllowMproposalEdit,
                         'proposal_status' => $proposal_status,
                         'HasBeenPicked' => $results->HasBeenPicked,
@@ -827,9 +829,9 @@ class policyController extends Controller
 
             //get from installment_info
             $Penalties = $this->smartlife_db->table('PremPenaltiesDetails')
-                        ->select('*')
-                        ->where('PolicyNumber', $policyId)
-                        ->get();
+                ->select('*')
+                ->where('PolicyNumber', $policyId)
+                ->get();
 
 
             $res = array(
@@ -861,9 +863,9 @@ class policyController extends Controller
 
             //get from installment_info
             $Benefits = $this->smartlife_db->table('installment_info')
-                        ->select('*')
-                        ->where('policyId', $policyId)
-                        ->get();
+                ->select('*')
+                ->where('policyId', $policyId)
+                ->get();
 
             $res = array(
                 'success' => true,

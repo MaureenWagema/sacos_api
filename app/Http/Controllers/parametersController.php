@@ -523,7 +523,7 @@ class parametersController extends Controller
                         "mob_FamilyStateRelation" => $mob_FamilyStateRelation,
                         "PlanTermOptions" => $PlanTermOptions,
                         "PlanSumAssuredOptions" => $PlanSumAssuredOptions,
-                        "EmploymentStatus" => $EmploymentStatus
+                        "EmploymentStatus" => $EmploymentStatus,
                     )
                 );
 

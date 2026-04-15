@@ -75,18 +75,6 @@ class premCalController extends Controller
                             'message' => "Rider SUM Assured Must be Less than or equal to $MaxSa Please Check"
                         ]);
                     }
-                } else {
-                    if ($sum_assured < $main_sa) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => "Rider SUM Assured Must be greater or equal to $main_sa Please Check"
-                        ]);
-                    } else if ($sum_assured > $main_sa) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => "Rider SUM Assured Must be Less than or equal to $main_sa Please Check"
-                        ]);
-                    }
                 }
 
                 //pick configs from rider_info

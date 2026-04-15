@@ -107,8 +107,8 @@ class claimController extends Controller
                 $client_number = DbHelper::getColumnValue('polinfo', 'policy_no', $policy_no, 'client_number');
                 $plan_code = $request->input('plan_code');
                 $plan_description = $request->input('plan_description');
-                $ClaimantName = $request->input('ClaimantName') ?? '';
-                $ClaimantMobile =  $request->input('ClaimantMobile');
+                $ClaimantName = $request->input('ClaimantName') ?? $request->input('name');
+                $ClaimantMobile =  $request->input('ClaimantMobile') ?? $request->input('mobile');
                 $IdNumber = $request->input('IdNumber');
                 $client_name = $request->input('name') ?? '';
                 $id_type = $request->input('id_type');
@@ -124,10 +124,11 @@ class claimController extends Controller
                 $ClaimDefaultCashRecipient = $request->input('ClaimDefaultCashRecipient');
                 $ClaimDefaultCashContact = $request->input('ClaimDefaultCashContact');
                 $IsWebComplete = $request->input('IsWebComplete');
-                $PreviousLoanAmount = $request->input('PreviousLoanAmount');
-                $AmountAppliedFor = $request->input('AmountAppliedFor');
-                $TermInMonths = $request->input('TermInMonths');
-                $TotalLoanAmount = $request->input('TotalLoanAmount');
+
+                // $PreviousLoanAmount = $request->input('PreviousLoanAmount') ?? 0;
+                // $AmountAppliedFor = $request->input('AmountAppliedFor') ?? 0;
+                // $TermInMonths = $request->input('TermInMonths') ?? 0;
+                // $TotalLoanAmount = $request->input('TotalLoanAmount') ?? 0;
 
                 // Debug logging to check the actual values
                 Log::debug('insertClaimEntries - Status code logic:', [
@@ -164,12 +165,20 @@ class claimController extends Controller
                     'ClaimDefaultEFTBankBranchCode' => $ClaimDefaultEFTBankBranchCode,
                     'ClaimDefaultEftBankaccountName' => $ClaimDefaultEFTBank_accountName,
                     'ClaimDefaultEFTBank_account' => $ClaimDefaultEFTBank_account,
-                    'PreviousLoanAmount' => $PreviousLoanAmount,
-                    'AmountAppliedFor' => $AmountAppliedFor,
-                    'TermInMonths' => $TermInMonths,
-                    'TotalLoanAmount' => $TotalLoanAmount,
+
+                    'AmountAvailable' => $request->input('AmountAvailable') ?? 0,
+                    'AmountAppliedFor' => $request->input('AmountAppliedFor') ?? 0,
+                    'TotalLoanInterest' => $request->input('TotalLoanInterest') ?? 0,
+                    'AdminChargeLoan' => $request->input('AdminChargeLoan') ?? 0,
+                    'LoanTerm' => $request->input('LoanTerm') ?? 0,
+                    'TotalLoanAmount' => $request->input('TotalLoanAmount') ?? 0,
+                    'MonthlyLoanRepayment' => $request->input('MonthlyLoanRepayment') ?? 0,
+                    'NetSalary' => $request->input('NetSalary') ?? 0,
+                    'PercentageOfRepayment' => $request->input('PercentageOfRepayment') ?? 0,
                     'created_on' => Carbon::now() 
                 );
+
+                //print_r($table_data);
 
 
                 //select where policyId, claim_type are the same (exclude statuscode to allow status updates)
@@ -186,7 +195,6 @@ class claimController extends Controller
                     $isUpdate = true;
                     $record_id = $eClaimsObj->id;
                     
-                    
                     $this->smartlife_db->table('eClaimsEntries')
                         ->where(
                             array(
@@ -197,9 +205,7 @@ class claimController extends Controller
                         
                 } else {
                     //else insert (put in the Pos_Log)
-                    
                     $record_id = $this->smartlife_db->table('eClaimsEntries')->insertGetId($table_data);
-                    
                 }
 
                 $res = [
@@ -221,14 +227,14 @@ class claimController extends Controller
                     'success' => false,
                     'message' => $exception->getMessage()
                 ];
-                return response()->json($res, 400);
+                return response()->json($res, 200);
             }
             return response()->json($res);
         } catch (\Exception $exception) {
             return response()->json([
                 'success' => false,
                 'message' => $exception->getMessage()
-            ], 400);
+            ], 200);
         }
     }
 

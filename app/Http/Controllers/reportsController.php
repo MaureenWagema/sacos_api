@@ -11,6 +11,147 @@ use Illuminate\Support\Facades\File;
 class reportsController extends Controller
 {
 
+    public function fetchLoanDetails(Request $request)
+    {
+        try {
+            // return array(
+            //     "AvailableLoanValueAR" => 879
+            // );
+            $res = array();
+
+            $policy_no = $request->input('policy_no');
+            $policyId = DbHelper::getColumnValue('polinfo', 'policy_no', $policy_no, 'id');
+
+            $url_path = "http://192.168.133.31:120/slamslife/api/v1/Loans/loanValue";
+
+            $params = ['json' => [
+                'policyId' => $policyId,
+            ]];
+
+            //print_r($params);
+
+            $client = new \GuzzleHttp\Client;
+            $response = $client->post($url_path, $params);
+
+            $rawResponse = array();
+            if ($response->getStatusCode() == 200) {
+                $rawResponse = json_decode($response->getBody()->getContents());
+                //$base64Rpt = $rawResponse->Report;
+            } else {
+                return array(
+                    "AvailableLoanValueAR" => 879
+                );
+            }
+
+            return $rawResponse;
+
+            //   $res = array(
+            //         'success' => true,
+            //         'message' => 'Report successfully fetched'
+            //     );
+        } catch (\Exception $exception) {
+            $res = array(
+                'success' => false,
+                'message' => $exception->getMessage()
+            );
+            return response()->json($res);
+        } catch (\Throwable $throwable) {
+            $res = array(
+                'success' => false,
+                'message' => $throwable->getMessage()
+            );
+            return response()->json($res);
+        }
+    }
+
+    public function fetchLoanAmortizationDetails(Request $request)
+    {
+        try {
+            $res = array();
+            // return array(
+            //     "AmortizationTotalLoanVAR" => 106608,
+            //     "AmortizationTotalInterestVAR" => 6613,
+            //     "AmortizationMonthlyRepaymentVAR" => 8884,
+            //     "totaRecoveryVAR" => 8884.88
+            // );
+
+            $amtAppliedFor = $request->input('amtAppliedFor');
+            $claimId = $request->input('eClaimId');
+            $loanTermMonths = $request->input('loanTermMonths');
+            $currentDate = date('Y-m-d');
+            //$policyId = DbHelper::getColumnValue('polinfo', 'policy_no', $policy_no, 'id');
+
+            $url_path = "http://192.168.133.31:120/slamslife/api/v1/Loans/LoanAmortizationSchedule";
+
+            /*{
+  "EntryCode": 3,
+  "PrimaryKeyValue": 37,
+  "StartDate": "2026-04-16",
+  "Principal": 100000,
+  "Term": 12,
+  "InterestRate": 12,
+  "OutstandingBalance": 0
+}*/
+
+            $params = ['json' => [
+                "EntryCode" => 3,
+                "PrimaryKeyValue" => $claimId,
+                "StartDate" => $currentDate,
+                "Principal" => $amtAppliedFor,
+                "Term" => $loanTermMonths,
+                "InterestRate" => 12,
+                "OutstandingBalance" => 0
+            ]];
+
+            // $params = ['json' => [
+            //     "EntryCode" => 3,
+            //     "PrimaryKeyValue" => 37,
+            //     "StartDate" => "2026-04-16",
+            //     "Principal" => 100000,
+            //     "Term" => 12,
+            //     "InterestRate" => 12,
+            //     "OutstandingBalance" => 0
+            // ]];
+
+
+            //print_r($params);
+
+            $client = new \GuzzleHttp\Client;
+            $response = $client->post($url_path, $params);
+
+            $rawResponse = array();
+            if ($response->getStatusCode() == 200) {
+                $rawResponse = json_decode($response->getBody()->getContents());
+                //$base64Rpt = $rawResponse->Report;
+            } else {
+                return array(
+                    "AmortizationTotalLoanVAR" => 106608,
+                    "AmortizationTotalInterestVAR" => 6613,
+                    "AmortizationMonthlyRepaymentVAR" => 8884,
+                    "totaRecoveryVAR" => 8884.88
+                );
+            }
+
+            return $rawResponse;
+
+            //   $res = array(
+            //         'success' => true,
+            //         'message' => 'Report successfully fetched'
+            //     );
+        } catch (\Exception $exception) {
+            $res = array(
+                'success' => false,
+                'message' => $exception->getMessage()
+            );
+            return response()->json($res);
+        } catch (\Throwable $throwable) {
+            $res = array(
+                'success' => false,
+                'message' => $throwable->getMessage()
+            );
+            return response()->json($res);
+        }
+    }
 
     public function getSacosRpt(Request $request)
     {
@@ -27,10 +168,10 @@ class reportsController extends Controller
             $url_path = "http://192.168.133.31:120/slamslife/api/v1/Report/GenerateByPolicy";
 
             $params = ['json' => [
-                    'policy_no' => $policy_no,
-                    'ReportName' => $ReportName,
-                    'FileType' => $FileType,
-                    'Criteria' => $Criteria,
+                'policy_no' => $policy_no,
+                'ReportName' => $ReportName,
+                'FileType' => $FileType,
+                'Criteria' => $Criteria,
             ]];
 
             //print_r($params);
@@ -276,24 +417,24 @@ class reportsController extends Controller
                         $settings = DbHelper::getColumnValue('Email_sms_Settings', 'EmailSubject', $report_name, 'id');
 
                         //$url_path = "http://192.168.1.248:85/api/Report/Report?PolicyNumber=" . $policyId . "&settings=" . $settings;
-                    } else if($settings == "10"){
+                    } else if ($settings == "10") {
                         //from defaults info check the 
                         $UseInvestmentTable = DbHelper::getColumnValue('defaultsinfo', 'id', 0, 'UseInvestmentTable');
-                        if($UseInvestmentTable == 1){
+                        if ($UseInvestmentTable == 1) {
                             $settings = 10;
-                        }else{
+                        } else {
                             $settings = 31;
                         }
 
                         //$url_path = "http://192.168.1.248:85/api/Report/Report?PolicyNumber=" . $policy_no . "&settings=" . $settings;
-                    }else if ($settings == "18") {
+                    } else if ($settings == "18") {
                         //is premium arreas....
                         //send the sms to client...
                         $units = $request->input('units');
                         $outstanding_premium = $request->input('outstanding_premium');
                         //$msg = "Dear Client, you owe " .$units . " months of premiums (GHS " . $outstanding_premium . ") for Policy No: " . $policy_no . ". Kindly settle the outstanding amount to avoid any issues";
-                        
-                        $msg = "Dear Client, Your arrears on ".$policy_no." is ".$outstanding_premium." for ".$units." months. Kindly use*713* 209 # to make payment  or contact us on 0202222113 for further enquiries.GLICO, we cushion you for life.";
+
+                        $msg = "Dear Client, Your arrears on " . $policy_no . " is " . $outstanding_premium . " for " . $units . " months. Kindly use*713* 209 # to make payment  or contact us on 0202222113 for further enquiries.GLICO, we cushion you for life.";
                         //TODO - fetch the mobile_no of the client from clientinfo...
                         $client_no = DbHelper::getColumnValue('polinfo', 'id', $policyId, 'client_number');
                         $mobile_no = DbHelper::getColumnValue('clientinfo', 'client_number', $client_no, 'mobile');
@@ -317,7 +458,7 @@ class reportsController extends Controller
                 if ($response->getStatusCode() == 200) {
                     $base64Rpt = $response->getBody()->getContents();
                     // Process the retrieved data as needed
-                    if(isset($isFromClientApp) && $isFromClientApp == "1"){
+                    if (isset($isFromClientApp) && $isFromClientApp == "1") {
                         $fileName = $policyId . '.pdf';
                         $this->saveBase64PdfToPublic($base64Rpt, $fileName);
                         $res = array(
@@ -1387,7 +1528,7 @@ class reportsController extends Controller
                         FROM polschemeinfo p
                 INNER JOIN glifeclass d ON d.class_code=p.class_code
                 WHERE 1=1 ";*/
-                
+
             $gl_life_sql = "SELECT 
                         'GROUP LIFE' AS source_type, 
                         p.class_code, d.Description 'description',
@@ -1483,7 +1624,7 @@ class reportsController extends Controller
             //     $date_to = date("Y-m-d");
             // }
 
-            if($source_type == "1" || $source_type == "2"){
+            if ($source_type == "1" || $source_type == "2") {
                 if ($n == "1") {
                     $sql = "SELECT 
                             'CLAIMS' AS source_type,
@@ -1584,11 +1725,9 @@ class reportsController extends Controller
                             AND p.StatusDescription <> 'DRAFT' AND p.StatusDescription <> 'SUBMITTED'
                             GROUP BY p.Endorsementtype";
                 }
-    
-                
-            } else if($source_type == "3"){
+            } else if ($source_type == "3") {
                 //display for group life
-                if ($n == "1"){
+                if ($n == "1") {
                     $sql = "SELECT 
                             'CLAIMS' AS source_type,
                             p.claim_type,
@@ -1599,7 +1738,7 @@ class reportsController extends Controller
                             WHERE CAST(p.notification_date AS DATE) BETWEEN '$date_from' AND '$date_to'					
                             GROUP BY p.claim_type";
                 }
-                if ($n == "2"){
+                if ($n == "2") {
                     $sql = "SELECT 
                             'CLAIMS' AS source_type,
                             p.claim_type,
@@ -1612,7 +1751,7 @@ class reportsController extends Controller
                             t3.id<>6
                             GROUP BY p.claim_type";
                 }
-                if ($n == "3"){
+                if ($n == "3") {
                     $sql = "SELECT 
                             'CLAIMS' AS source_type,
                             1 AS currency,
@@ -1628,9 +1767,9 @@ class reportsController extends Controller
                             GROUP BY p.claim_type";
                 }
             }
-            
 
-            
+
+
 
 
 
@@ -1706,7 +1845,7 @@ class reportsController extends Controller
             $premiumGroup = DbHelper::getTableRawData($sql);
 
 
-            
+
 
             $res = array(
                 'success' => true,
@@ -1750,7 +1889,7 @@ class reportsController extends Controller
             //     $date_from = date("Y-m-d");
             //     $date_to = date("Y-m-d");
             // } 
-            if($n == "1" || $n == "2"){
+            if ($n == "1" || $n == "2") {
                 $sql = "SELECT COUNT(p.id) AS total FROM eClaimsEntries p 
                 WHERE (CAST(p.created_on AS DATE) BETWEEN '$date_from' AND '$date_to') 
                 AND p.statuscode <> 14 ";
@@ -1760,12 +1899,12 @@ class reportsController extends Controller
                 if ($n == "2") {
                     $sql .= " AND (p.MicroPolicy IS NOT NULL AND p.PolicyId IS NULL)";
                 }
-            } 
-            if($n == "3"){
+            }
+            if ($n == "3") {
                 $sql = "SELECT COUNT(p.id) AS total FROM glifeclaimsnotification p 
                 WHERE (CAST(p.notification_date AS DATE) BETWEEN '$date_from' AND '$date_to') ";
             }
-            
+
 
             $SubmittedClaims = DbHelper::getTableRawData($sql);
 
@@ -1784,7 +1923,7 @@ class reportsController extends Controller
                     AND p.IsDeclined=0";
             }
 
-            if($n == "3"){
+            if ($n == "3") {
                 $sql = "SELECT COUNT(t1.id) AS total FROM glifeclaimsnotification t1
                     WHERE t1.processed = 1 AND 
                     (CAST(t1.notification_date AS DATE) BETWEEN '$date_from' AND '$date_to')";
@@ -1807,7 +1946,7 @@ class reportsController extends Controller
                     AND p.IsDeclined=0";
             }
 
-            if($n == "3"){
+            if ($n == "3") {
                 $sql = "SELECT COUNT(t1.id) AS total FROM glifeclaimsnotification t1
                     INNER JOIN ClaimHistoryInfo t2 ON t1.id=t2.GlifeClaim_no
                     INNER JOIN ClaimStatusInfo t3 ON t2.statuscode=t3.id
@@ -1990,7 +2129,7 @@ class reportsController extends Controller
     {
         try {
             $Periods = array();
-            
+
             $sql = "SELECT p.* FROM ReinsuranceAccountPeriod p ";
 
             $Periods = DbHelper::getTableRawData($sql);
@@ -2025,7 +2164,7 @@ class reportsController extends Controller
             $SourceType = $request->input('SourceType');
 
             $sql = "";
-            if($SourceType == "2"){
+            if ($SourceType == "2") {
                 //creditLife
                 $sql = "SELECT t2.policy_no 'POLICY NUMBER',t1.policyHolderName 'NAME',
                 t1.local_sa 'SUM ASSURED',(t1.local_sa - t1.local_reins_sum_insured) 'CEDANT RETENTION', 
@@ -2035,9 +2174,9 @@ class reportsController extends Controller
                 INNER JOIN polinfo t2 ON t1.policyId = t2.id 
                 LEFT JOIN planinfo t3 ON t2.plan_code=t3.plan_code
                 LEFT JOIN treatymasterinfo t4 ON t1.TreatyMasterId=t4.id
-                WHERE t1.uw_year=".$year." AND t1.Quarter=".$QuaterId." AND t3.IsCreditLife=1";
+                WHERE t1.uw_year=" . $year . " AND t1.Quarter=" . $QuaterId . " AND t3.IsCreditLife=1";
             }
-            if($SourceType == "1"){
+            if ($SourceType == "1") {
                 $sql = "SELECT t2.policy_no 'POLICY NUMBER',  t1.policyHolderName 'NAME',
                     t2.effective_date 'COMMENCEMENT DATE',t2.maturity_date 'MATURITY DATE',
                     t2.term_of_policy 'TERM', 
@@ -2048,16 +2187,16 @@ class reportsController extends Controller
                     INNER JOIN polinfo t2 ON t1.policyId = t2.id 
                     INNER JOIN planinfo t3 ON t2.plan_code=t3.plan_code
                     LEFT JOIN treatymasterinfo t4 ON t1.TreatyMasterId=t4.id 
-                    WHERE t1.uw_year=".$year." AND t1.Quarter=".$QuaterId." AND t3.IsCreditLife=0";
+                    WHERE t1.uw_year=" . $year . " AND t1.Quarter=" . $QuaterId . " AND t3.IsCreditLife=0";
             }
-            
+
 
             // if (!isset($date_from) || !isset($date_to)) {
             //     $date_from = date("Y-m-d");
             //     $date_to = date("Y-m-d");
             // } 
 
-           /* _myDataSet = GlobalCommonCodes.Mysql_Select_Querry("SELECT t2.policy_no 'POLICY NUMBER', " +
+            /* _myDataSet = GlobalCommonCodes.Mysql_Select_Querry("SELECT t2.policy_no 'POLICY NUMBER', " +
           " t1.policyHolderName 'NAME',t1.local_sa 'SUM ASSURED',(t1.local_sa - t1.local_reins_sum_insured) 'CEDANT RETENTION', " +
           " t1.local_reins_sum_insured 'CEDED AMOUNT',t1.LocalReinsPremiumRates 'PREMIUM RATE', t1.local_reins_premium 'R/I PREMIUM'  " +
           " FROM polreinsmasterinfo t1 " +
@@ -2083,12 +2222,12 @@ class reportsController extends Controller
          "  " + IndividualLifeFilterVAR + "" + CrediLifeFilterVAR + "" + BancassuranceFilterVAR + " " + CombinedVAR + "  ");
             */
 
-            
 
-            if($sql != ""){
+
+            if ($sql != "") {
                 $ReinsuranceData = DbHelper::getTableRawData($sql);
             }
-            
+
 
             $res = array(
                 'success' => true,
@@ -2115,13 +2254,13 @@ class reportsController extends Controller
     {
         $policy_no = $request->input('policy_no');
         $isMicroObj = $this->smartlife_db->table('polinfo', 'g')
-                ->join('planinfo as p', 'p.plan_code', '=', 'g.plan_code')
-                ->where('g.policy_no', $policy_no)
-                ->select('p.microassurance')
-                ->first();
-        
-        
-        if(!isset($isMicroObj)){
+            ->join('planinfo as p', 'p.plan_code', '=', 'g.plan_code')
+            ->where('g.policy_no', $policy_no)
+            ->select('p.microassurance')
+            ->first();
+
+
+        if (!isset($isMicroObj)) {
             //check micro...
             $isMicroObj = $this->smartlife_db->table('MicroPolicyInfo', 'g')
                 ->join('planinfo as p', 'p.plan_code', '=', 'g.Plan')
@@ -2131,12 +2270,12 @@ class reportsController extends Controller
         }
 
         //check if its in mproposal
-        if(!isset($isMicroObj)){
+        if (!isset($isMicroObj)) {
             $isMicroObj = $this->smartlife_db->table('mob_prop_info', 'g')
-            ->join('planinfo as p', 'p.plan_code', '=', 'g.plan_code')
-            ->where('g.proposal_no', $policy_no)
-            ->select('p.microassurance')
-            ->first();
+                ->join('planinfo as p', 'p.plan_code', '=', 'g.plan_code')
+                ->where('g.proposal_no', $policy_no)
+                ->select('p.microassurance')
+                ->first();
         }
 
         return $res = array(
@@ -2150,20 +2289,20 @@ class reportsController extends Controller
         $policy_no = $request->input('policy_no');
 
         //1. Determine if its a policy...
-        $PolicyId = DbHelper::getColumnValue('MicroPolicyInfo', 'PolicyNumber', $policy_no, 'Id');       
-        if(isset($PolicyId) && (int)$PolicyId > 0){
+        $PolicyId = DbHelper::getColumnValue('MicroPolicyInfo', 'PolicyNumber', $policy_no, 'Id');
+        if (isset($PolicyId) && (int)$PolicyId > 0) {
             $edwaPolicyId = DbHelper::getColumnValue('MicroPolicyInfo', 'PolicyNumber', $policy_no, 'EdwankosoPolicy');
-            if(isset($edwaPolicyId) && (int)$edwaPolicyId > 0){
+            if (isset($edwaPolicyId) && (int)$edwaPolicyId > 0) {
                 $PlanId = DbHelper::getColumnValue('MicroPolicyInfo', 'Id', $edwaPolicyId, 'Plan');
                 //fetch the policy_no
-                if($PlanId == "13" || $PlanId == 13){
+                if ($PlanId == "13" || $PlanId == 13) {
                     $policy_no = DbHelper::getColumnValue('MicroPolicyInfo', 'Id', $edwaPolicyId, 'PolicyNumber');
                 }
             }
-        } else{
+        } else {
             //its a proposal,
             $LinkedProposal = DbHelper::getColumnValue('mob_prop_info', 'proposal_no', $policy_no, 'LinkedProposal');
-            if(isset($LinkedProposal)){
+            if (isset($LinkedProposal)) {
                 $policy_no = $LinkedProposal;
             }
         }
@@ -2191,13 +2330,13 @@ class reportsController extends Controller
             //     $date_to = date("Y-m-d");
             // }
             //(CAST(p.date_synced AS DATE) BETWEEN '$date_from' AND '$date_to')
-            if($SourceType == "1"){
+            if ($SourceType == "1") {
                 $sql = "SELECT p.id,p.Currency_code,p.frontofficepolholder,p.EmpsumKey,p.[DeductBatch],
                 p.policy_no,p.current_premiums,p.TotalPremium,p.received,p.Rider_Prem,p.investment_prem,
                 p.TransferFee,p.pol_fee,p.modal_premium,p.payment_date,p.period_year,p.period_month
                 FROM prmtransinfo p 
                 WHERE 1=1 ";
-            } else if($SourceType == "3"){
+            } else if ($SourceType == "3") {
                 //fetch Micro premiums...
                 $sql = "SELECT p.id,p.Policy,d.PolicyNumber 'policy_no',p.ModalPremium 'TotalPremium',
                 p.Received 'received',p.RiderPremium 'Rider_Prem',p.InvestmentPremium 'investment_prem',
@@ -2207,7 +2346,7 @@ class reportsController extends Controller
                 INNER JOIN MicroPolicyInfo d ON p.Policy=d.Id
                 WHERE 1=1 ";
             }
-            
+
 
             /*if(isset($period_year) && (int)$period_year > 0 ){
                 if($SourceType == "1"){
@@ -2217,24 +2356,25 @@ class reportsController extends Controller
                 }
             }*/
 
-            if(isset($period_month) && (int)$period_month > 0){
-                if($SourceType == "1"){
-                    $sql .= " AND p.period_month=".$period_month;
-                } else if($SourceType == "3"){
-                    $sql .= " AND p.PeriodMonth=".$period_month;
+            if (isset($period_month) && (int)$period_month > 0) {
+                if ($SourceType == "1") {
+                    $sql .= " AND p.period_month=" . $period_month;
+                } else if ($SourceType == "3") {
+                    $sql .= " AND p.PeriodMonth=" . $period_month;
                 }
             }
 
-            if((isset($date_from) && $date_from != "NaN-NaN-NaN") && 
-            (isset($date_to) && $date_to != "NaN-NaN-NaN") ){
-                if($SourceType == "1"){
+            if ((isset($date_from) && $date_from != "NaN-NaN-NaN") &&
+                (isset($date_to) && $date_to != "NaN-NaN-NaN")
+            ) {
+                if ($SourceType == "1") {
                     $sql .= " AND (p.payment_date BETWEEN '$date_from' AND '$date_to')";
-                } else if($SourceType == "3"){
+                } else if ($SourceType == "3") {
                     $sql .= " AND (p.PaymentDate BETWEEN '$date_from' AND '$date_to')";
                 }
             }
-            
-            if($SourceType == "2"){
+
+            if ($SourceType == "2") {
                 /*$sql = "SELECT 
                     t3.[reference], 
                     t2.policy_no,
@@ -2251,7 +2391,7 @@ class reportsController extends Controller
                 GROUP BY t3.[reference], t1.Debit_ID, t4.[name], t2.policy_no";
                 */
 
-                $sql="SELECT   
+                $sql = "SELECT   
                         t4.[name], 
                         SUM(CASE WHEN t1.DrCr = 'DR' THEN t1.LocalAmount ELSE 0 END) AS Premium, 
                         SUM(CASE WHEN t1.DrCr = 'CR' THEN t1.LocalAmount ELSE 0 END) AS Receipts, 
@@ -2264,7 +2404,7 @@ class reportsController extends Controller
                     INNER JOIN glifeclass t5 ON t5.class_code = t2.class_code 
                     WHERE (CAST(t1.EffectiveDate AS DATE) BETWEEN '$date_from' AND '$date_to')
                     GROUP BY t4.[name],t5.Description";
-            } 
+            }
 
 
             $Premiums = DbHelper::getTableRawData($sql);
