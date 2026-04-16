@@ -72,7 +72,8 @@ class reportsController extends Controller
             //     "AmortizationTotalLoanVAR" => 106608,
             //     "AmortizationTotalInterestVAR" => 6613,
             //     "AmortizationMonthlyRepaymentVAR" => 8884,
-            //     "totaRecoveryVAR" => 8884.88
+            //     "totaRecoveryVAR" => 8884.88,
+            //     "LoanSchedule" => []
             // );
 
             $amtAppliedFor = $request->input('amtAppliedFor');
@@ -123,21 +124,16 @@ class reportsController extends Controller
             if ($response->getStatusCode() == 200) {
                 $rawResponse = json_decode($response->getBody()->getContents());
                 //$base64Rpt = $rawResponse->Report;
-            } else {
-                return array(
-                    "AmortizationTotalLoanVAR" => 106608,
-                    "AmortizationTotalInterestVAR" => 6613,
-                    "AmortizationMonthlyRepaymentVAR" => 8884,
-                    "totaRecoveryVAR" => 8884.88
-                );
-            }
+            } 
 
+            //Fetch the loan schedule as well
+            $loanSchedule = $this->smartlife_db->table('PolicyLoanSchedule')
+                ->where('claim_no', $claimId)
+                ->get();
+
+            $rawResponse->LoanSchedule = $loanSchedule;
             return $rawResponse;
-
-            //   $res = array(
-            //         'success' => true,
-            //         'message' => 'Report successfully fetched'
-            //     );
+            
         } catch (\Exception $exception) {
             $res = array(
                 'success' => false,

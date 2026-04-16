@@ -1494,7 +1494,7 @@ class syncController extends Controller
                 $is_file = true;
             }
             //$category_id = 3;
-            $category_id = 1;
+            $category_id = DbHelper::getColumnValue('FileCategoriesStore', 'IsProposal',1,'ID');
             $policy_no = $proposal_no; //;
             $proposal_id = $record_id;
             if (!isset($proposal_id)) {

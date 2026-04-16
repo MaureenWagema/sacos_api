@@ -3705,7 +3705,7 @@ class policyController extends Controller
                 $Description = $request->input('Description'); //DbHelper::getColumnValue('claim_requirement', 'reg_code',$req_code,'description');
                 $eEndorsementId = $request->input('eEndorsementId');
                 //$signature = $request->input('signature');
-                $category_id = 3;
+                $category_id = DbHelper::getColumnValue('FileCategoriesStore', 'LifeEndorsement',1,'ID');
 
                 $fileName = $eEndorsementId . ".png"; //"signature.png";
 

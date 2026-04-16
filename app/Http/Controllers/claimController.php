@@ -175,6 +175,18 @@ class claimController extends Controller
                     'MonthlyLoanRepayment' => $request->input('MonthlyLoanRepayment') ?? 0,
                     'NetSalary' => $request->input('NetSalary') ?? 0,
                     'PercentageOfRepayment' => $request->input('PercentageOfRepayment') ?? 0,
+
+
+                    'LoanPayMethod' => $request->input('LoanPayMethod'),
+                    'LoanPayEmpCode' => $request->input('LoanPayEmpCode'),
+                    'LoanPayemployee_no' => $request->input('LoanPayemployee_no'),
+                    'LoanPayBank_code' => $request->input('LoanPayBank_code'),
+                    'LoanPayBankBranchCode' => $request->input('LoanPayBankBranchCode'),
+                    'LoanPayBank_account' => $request->input('LoanPayBank_account'),
+                    'LoanPayBankaccountName' => $request->input('LoanPayBankaccountName'),
+
+                    'Reason' => $request->input('Reason'),
+
                     'created_on' => Carbon::now() 
                 );
 
@@ -931,7 +943,7 @@ class claimController extends Controller
 
                 $IsClientSigned = $request->input('IsClientSigned');
 
-                $category_id = 2;
+                $category_id = DbHelper::getColumnValue('FileCategoriesStore', 'isClaim',1,'ID');
 
 
 

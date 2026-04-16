@@ -414,10 +414,16 @@ class parametersController extends Controller
                 WHERE [description] IS NOT NULL";
                 $ClaimReqDocuments = DbHelper::getTableRawData($sql);
 
-                $sql = "SELECT p.id,p.plan_code,d.description as name,p.IsMandatory,d.WithExpiryDate FROM PlanCheckListDetails p 
+                $sql = "SELECT p.id,p.plan_code,d.description as name,p.IsMandatory,d.WithExpiryDate,d.ShowDocumentDate,d.GracePeriod FROM PlanCheckListDetails p 
                 INNER JOIN PlanDocChecklist d ON d.id=p.Document
                 WHERE [description] IS NOT NULL";
                 $PlanCheckListDetails = DbHelper::getTableRawData($sql);
+
+                //
+                $sql = "SELECT p.id,p.EndorsementLink,d.Description as name,p.IsMandatory,d.WithExpiryDate,d.GracePeriod FROM EndorseCheckListDetails p 
+                INNER JOIN clientDocuments d ON d.id=p.Document
+                WHERE [Description] IS NOT NULL";
+                $EndorseCheckListDetails = DbHelper::getTableRawData($sql);
 
                 //mob_FamilyStateRelation
                 $sql = "SELECT id,Relationship FROM mob_FamilyStateRelation WHERE [Relationship] IS NOT NULL";
@@ -524,6 +530,7 @@ class parametersController extends Controller
                         "PlanTermOptions" => $PlanTermOptions,
                         "PlanSumAssuredOptions" => $PlanSumAssuredOptions,
                         "EmploymentStatus" => $EmploymentStatus,
+                        "EndorseCheckListDetails" => $EndorseCheckListDetails
                     )
                 );
 
