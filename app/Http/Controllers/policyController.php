@@ -575,6 +575,8 @@ class policyController extends Controller
                         'TaxDeclassificationDate' => $results->TaxDeclassificationDate,
 
                         'RiskRating' => $results->RiskRating,
+                        'MobileSecondary3' => $results->MobileSecondary3,
+                        'MobileSecondary2' => $results->MobileSecondary2
 
                     );
                 }
@@ -1040,6 +1042,81 @@ class policyController extends Controller
         }
         return response()->json($res);
     }
+
+    public function getpolicyloan(Request $request)
+    {
+        try {
+            $policyID = $request->input('policyID');
+            $policy_no = $request->input('policy_no');
+
+ 
+
+            // Handle both policyID and policy_no parameters
+            if (!isset($policyID) && !isset($policy_no)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'policyID or policy_no is required'
+                ]);
+            }
+
+ 
+
+            // If policyID is provided, translate it to policy_no
+            if (isset($policyID)) {
+                $policy_no = DbHelper::getColumnValue('polinfo', 'id', $policyID, 'policy_no');
+            }
+
+ 
+
+            if (!isset($policy_no)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Policy not found'
+                ]);
+            }
+
+ 
+
+            $sql = "SELECT p.*,d.name, t.decription FROM loansmasterinfo p
+                INNER JOIN clientinfo d ON d.client_number=p.[Client]
+                INNER JOIN polinfo s ON s.client_number=d.client_number
+                INNER JOIN payment_type t ON t.payment_mode=p.LoanPayMethod
+                WHERE s.policy_no='$policy_no'";
+                        $loans = DbHelper::getTableRawData($sql);
+            $loans = DbHelper::getTableRawData($sql);
+
+ 
+
+            $loanmasterId = $loans[0]->Id ?? 0;
+            $sql = "SELECT m.outstandingBalance AS OutstandingBalance, m.ReceiptNoOLD  AS RecepientNumber, m.payment_date AS PaymentDate, m.ImportedBalance AS CurrentBalance , m.ReceivedAmount AS AmountPaid, m.PrincipalAmountAllocated AS PrincipalAmountAllocated, m.InterestAmountAllocated AS InterestAmountAllocated
+             FROM LoanTransInfo m WHERE m.LoanMaster=$loanmasterId AND m.ReceiptNoOLD IS NOT NULL" ;
+              $loanpayment = DbHelper::getTableRawData($sql);
+
+ 
+
+ 
+
+            $res = array(
+                'success' => true,
+                'data' => $loans,
+                'loanpay' => $loanpayment,
+            );
+        } catch (\Exception $exception) {
+            $res = array(
+                'success' => false,
+                'message' => $exception->getMessage()
+            );
+            return response()->json($res);
+        } catch (\Throwable $throwable) {
+            $res = array(
+                'success' => false,
+                'message' => $throwable->getMessage()
+            );
+            return response()->json($res);
+        }
+        return response()->json($res);
+    }
+
 
     //get policy riders
     public function getPolicyRiders(Request $request)
@@ -3705,7 +3782,7 @@ class policyController extends Controller
                 $Description = $request->input('Description'); //DbHelper::getColumnValue('claim_requirement', 'reg_code',$req_code,'description');
                 $eEndorsementId = $request->input('eEndorsementId');
                 //$signature = $request->input('signature');
-                $category_id = DbHelper::getColumnValue('FileCategoriesStore', 'LifeEndorsement',1,'ID');
+                $category_id = DbHelper::getColumnValue('FileCategoriesStore', 'LifeEndorsement', 1, 'ID');
 
                 $fileName = $eEndorsementId . ".png"; //"signature.png";
 
@@ -3735,6 +3812,8 @@ class policyController extends Controller
         return response()->json($res);
     }
 
+
+
     public function savePhysicalFile($file, $category_id, $req_code, $eEndorsementId, $Description)
     {
         $fileName = $file->getClientOriginalName();
@@ -3749,7 +3828,7 @@ class policyController extends Controller
         //Move Uploaded File
         //FileCategoriesStore
         //$destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', $category_id, 'FileStoreLocationPath');
-        $destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', 1, 'FileStoreLocationPath');
+        $destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'LifeEndorsement', true, 'FileStoreLocationPath');
 
         // Create directory if it doesn't exist
         if (!file_exists($destinationPath)) {
@@ -3760,13 +3839,16 @@ class policyController extends Controller
         $uuid = Uuid::uuid4();
         $uuid = $uuid->toString();
 
+        //fetch the 
+        $DocumentId = DbHelper::getColumnValue('EndorseCheckListDetails', 'id', $req_code, 'Document');
+        $DocumentType = DbHelper::getColumnValue('FileCategoriesStore', 'LifeEndorsement', true, 'ID');
         //insert into mob_proposalFileAttachment
         //claim_no,code,received_flag,date_received,MicroClaim,eClaimNumber,File,Description
         $table_data = array(
             'Oid' => $uuid,
-            'created_on' => Carbon::now(),
-            //'claim_no' => $claim_id,
-            //'code' => $req_code,
+            'DocumentType' => $DocumentType,
+            'code' => $DocumentId,
+            'EndorseDocName' => $req_code,
             //'received_flag' => 0,
             'created_on' => Carbon::now(),
             //'MicroClaim' => 0,
@@ -3774,16 +3856,37 @@ class policyController extends Controller
             'File' => $uuid,
             'Description' => $fileName //$Description,
         );
-        $record_id = $this->smartlife_db->table('eEndorsementAttachment')->insertGetId($table_data);
+        //check if we to update or insert...
+        $attachmentObj = $this->smartlife_db->table('LifeFileAttachments')
+            ->where(array(
+                'Endorsement' => $eEndorsementId,
+                'code' => $DocumentId,
+            ))
+            ->first();
+        if (isset($attachmentObj)) {
+            //update
+            $this->smartlife_db->table('LifeFileAttachments')
+                ->where(array(
+                    'Endorsement' => $eEndorsementId,
+                    'code' => $DocumentId,
+                ))
+                ->update($table_data);
+        } else {
+            //insert
+            $record_id = $this->smartlife_db->table('LifeFileAttachments')->insertGetId($table_data);
+        }
+
+
+
         //insert into Mob_ProposalStoreObject
         $table_data = array(
             'Oid' => $uuid,
             //'claimno' => $eClaimId,
             'FileName' => $fileName,
-            'EndorsementRequest' => $eEndorsementId,
+            //'EndorsementRequest' => $eEndorsementId,
             'Size' => $file_size,
         );
-        $record_id = $this->smartlife_db->table('EndorsementStoreObject')->insertGetId($table_data);
+        $record_id = $this->smartlife_db->table('LifeStoreObject')->insertGetId($table_data);
     }
 
     function base64ToVarbinary($base64)
@@ -3845,7 +3948,10 @@ class policyController extends Controller
             //get files for eClaim
             $rcd_id = $request->input('rcd_id');
 
-            $sql = "SELECT p.* from eEndorsementAttachment p WHERE p.Endorsement=$rcd_id";
+            $sql = "SELECT p.*,e.id as doc_id from LifeFileAttachments p 
+            INNER JOIN clientDocuments d ON d.id=p.code
+            INNER JOIN EndorseCheckListDetails e ON e.Document=d.id
+            WHERE p.Endorsement=$rcd_id";
             $Files = DbHelper::getTableRawData($sql);
 
             $res = array(
@@ -3867,6 +3973,14 @@ class policyController extends Controller
         }
         return response()->json($res);
     }
+
+
+
+
+
+
+
+    
 
     public function getPolicyFiles(Request $request)
     {

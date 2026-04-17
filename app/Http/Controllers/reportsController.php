@@ -14,9 +14,9 @@ class reportsController extends Controller
     public function fetchLoanDetails(Request $request)
     {
         try {
-            // return array(
-            //     "AvailableLoanValueAR" => 879
-            // );
+            return array(
+                "AvailableLoanValueAR" => 879
+            );
             $res = array();
 
             $policy_no = $request->input('policy_no');
@@ -68,13 +68,13 @@ class reportsController extends Controller
     {
         try {
             $res = array();
-            // return array(
-            //     "AmortizationTotalLoanVAR" => 106608,
-            //     "AmortizationTotalInterestVAR" => 6613,
-            //     "AmortizationMonthlyRepaymentVAR" => 8884,
-            //     "totaRecoveryVAR" => 8884.88,
-            //     "LoanSchedule" => []
-            // );
+            return array(
+                "AmortizationTotalLoanVAR" => 106608,
+                "AmortizationTotalInterestVAR" => 6613,
+                "AmortizationMonthlyRepaymentVAR" => 8884,
+                "totaRecoveryVAR" => 8884.88,
+                "LoanSchedule" => []
+            );
 
             $amtAppliedFor = $request->input('amtAppliedFor');
             $claimId = $request->input('eClaimId');

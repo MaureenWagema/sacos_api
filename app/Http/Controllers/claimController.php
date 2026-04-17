@@ -943,7 +943,7 @@ class claimController extends Controller
 
                 $IsClientSigned = $request->input('IsClientSigned');
 
-                $category_id = DbHelper::getColumnValue('FileCategoriesStore', 'isClaim',1,'ID');
+                $category_id = DbHelper::getColumnValue('FileCategoriesStore', 'isClaim',true,'ID');
 
 
 

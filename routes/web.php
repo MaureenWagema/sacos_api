@@ -157,6 +157,8 @@ Route::get('policy/validatePWDLoan', [policyController::class, 'validatePWDLoan'
 //validatePolicyNumber
 Route::post('policy/validatePolicyNumber', [policyController::class, 'validatePolicyNumber']);
 //relatedProposals
+Route::get('policy/getpolicyloan', [policyController::class, 'getpolicyloan']);
+
 Route::get('proposal/relatedProposals', [policyController::class, 'relatedProposals']);
 
 //migrateMproposal,migratProposalFiles,migrateMissedFiles validatePWDLoan

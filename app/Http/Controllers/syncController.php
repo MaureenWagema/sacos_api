@@ -877,7 +877,9 @@ class syncController extends Controller
                     'TaxDeclarationDate' => $request->input('TaxDeclarationDate'),
                     'TaxDeclassificationDate' => $request->input('TaxDeclassificationDate'),
                     'RiskRating' => $request->input('RiskRating'),
-                    'IsForSecondLife' => $IsForSecondLife
+                    'IsForSecondLife' => $IsForSecondLife,
+                    'MobileSecondary2' => $request->input('MobileSecondary2'),
+                    'MobileSecondary3' => $request->input('MobileSecondary3'),
                 );
 
 
@@ -1722,7 +1724,7 @@ class syncController extends Controller
         //Move Uploaded File
         //FileCategoriesStore
         //$destinationPath = 'C:\xampp\htdocs\SmartLifeDocuments\PolicyDocuments';
-        $destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', 1, 'FileStoreLocationPath');
+        $destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'IsProposal', true, 'FileStoreLocationPath');
         $file->move($destinationPath, $file->getClientOriginalName());
         $uuid = Uuid::uuid4();
         $uuid = $uuid->toString();
