@@ -1082,19 +1082,13 @@ class policyController extends Controller
                 INNER JOIN polinfo s ON s.client_number=d.client_number
                 INNER JOIN payment_type t ON t.payment_mode=p.LoanPayMethod
                 WHERE s.policy_no='$policy_no'";
-                        $loans = DbHelper::getTableRawData($sql);
             $loans = DbHelper::getTableRawData($sql);
 
- 
-
             $loanmasterId = $loans[0]->Id ?? 0;
-            $sql = "SELECT m.outstandingBalance AS OutstandingBalance, m.ReceiptNoOLD  AS RecepientNumber, m.payment_date AS PaymentDate, m.ImportedBalance AS CurrentBalance , m.ReceivedAmount AS AmountPaid, m.PrincipalAmountAllocated AS PrincipalAmountAllocated, m.InterestAmountAllocated AS InterestAmountAllocated
-             FROM LoanTransInfo m WHERE m.LoanMaster=$loanmasterId AND m.ReceiptNoOLD IS NOT NULL" ;
-              $loanpayment = DbHelper::getTableRawData($sql);
+            $sql = "SELECT m.outstandingBalance AS OutstandingBalance, m.ReceiptNoOLD AS RecepientNumber, m.payment_date AS PaymentDate, m.ImportedBalance AS CurrentBalance, m.ReceivedAmount AS AmountPaid, m.PrincipalAmountAllocated AS PrincipalAmountAllocated, m.InterestAmountAllocated AS InterestAmountAllocated
+                FROM LoanTransInfo m WHERE m.LoanMaster=$loanmasterId AND m.ReceiptNoOLD IS NOT NULL";
+            $loanpayment = DbHelper::getTableRawData($sql);
 
- 
-
- 
 
             $res = array(
                 'success' => true,
@@ -3622,16 +3616,16 @@ class policyController extends Controller
                 }
                 if (isset($table_data->mobile) || empty($table_data->mobile)) { //mobile
                     unset($table_data->mobile);
-                } //
-                $username = "";
-                if (isset($table_data->created_by)) { //user_id
-                    $user_id = $table_data->created_by;
-                    unset($table_data->created_by);
+                } 
+                //$username = $table_data->created_by;
+                //if (isset($table_data->created_by)) { //user_id
+                    //$user_id = $table_data->created_by;
+                    //unset($table_data->created_by);
                     //get the Branch id here
-                    $username = $user_id; //DbHelper::getColumnValue('portal_users', 'id',$user_id,'username');
-                    $branch_id = DbHelper::getColumnValue('PermissionPolicyUser', 'UserName', $username, 'Branch');
-                    $table_data->branch_id = $branch_id;
-                }
+                    //$username = $user_id; //DbHelper::getColumnValue('portal_users', 'id',$user_id,'username');
+                    //$branch_id = DbHelper::getColumnValue('PermissionPolicyUser', 'UserName', $username, 'Branch');
+                    //$table_data->branch_id = $branch_id;
+                //}
 
                 $table_data->RequestDate = date('Y-m-d H:i:s');
                 $table_data->date_synced = date('Y-m-d H:i:s');
@@ -3692,7 +3686,7 @@ class policyController extends Controller
                 //save here
 
                 if (isset($id) && (int) $id > 0) {
-                    $table_data->altered_by = $username;
+                    $table_data->altered_by = $table_data->created_by;
                     $table_data->dola = date('Y-m-d H:i:s');
                     //update
                     $table_data = json_decode(json_encode($table_data), true);
@@ -3705,7 +3699,7 @@ class policyController extends Controller
                         ->update($table_data);
                     $record_id = $id;
                 } else {
-                    $table_data->created_by = $username;
+                    //$table_data->created_by = $username;
                     $table_data->created_on = date('Y-m-d H:i:s');
                     //insert
                     $table_data = json_decode(json_encode($table_data), true);
@@ -3741,7 +3735,7 @@ class policyController extends Controller
                         'eClaimId' => null,
                         'eEndorsementId' => $record_id,
                         'created_on' => date('Y-m-d H:i:s'),
-                        'created_by' => $user_id
+                        'created_by' => $table_data->created_by
                     );
                     $pos_log_id = $this->smartlife_db->table('pos_log')->insertGetId($pos_log_data);
                 }
@@ -3830,6 +3824,7 @@ class policyController extends Controller
         //$destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'ID', $category_id, 'FileStoreLocationPath');
         $destinationPath = DbHelper::getColumnValue('FileCategoriesStore', 'LifeEndorsement', true, 'FileStoreLocationPath');
 
+        //$destinationPath = 'C:\xampp\htdocs\SmartLifeDocuments\PolicyDocuments';
         // Create directory if it doesn't exist
         if (!file_exists($destinationPath)) {
             mkdir($destinationPath, 0777, true);
@@ -3840,14 +3835,14 @@ class policyController extends Controller
         $uuid = $uuid->toString();
 
         //fetch the 
-        $DocumentId = DbHelper::getColumnValue('EndorseCheckListDetails', 'id', $req_code, 'Document');
+        //$DocumentId = DbHelper::getColumnValue('EndorseCheckListDetails', 'id', $req_code, 'Document');
         $DocumentType = DbHelper::getColumnValue('FileCategoriesStore', 'LifeEndorsement', true, 'ID');
         //insert into mob_proposalFileAttachment
         //claim_no,code,received_flag,date_received,MicroClaim,eClaimNumber,File,Description
         $table_data = array(
             'Oid' => $uuid,
             'DocumentType' => $DocumentType,
-            'code' => $DocumentId,
+            //'code' => $DocumentId,
             'EndorseDocName' => $req_code,
             //'received_flag' => 0,
             'created_on' => Carbon::now(),
@@ -3859,16 +3854,14 @@ class policyController extends Controller
         //check if we to update or insert...
         $attachmentObj = $this->smartlife_db->table('LifeFileAttachments')
             ->where(array(
-                'Endorsement' => $eEndorsementId,
-                'code' => $DocumentId,
+                'EndorseDocName' => $req_code,
             ))
             ->first();
         if (isset($attachmentObj)) {
             //update
             $this->smartlife_db->table('LifeFileAttachments')
                 ->where(array(
-                    'Endorsement' => $eEndorsementId,
-                    'code' => $DocumentId,
+                    'EndorseDocName' => $req_code,
                 ))
                 ->update($table_data);
         } else {
@@ -3948,9 +3941,7 @@ class policyController extends Controller
             //get files for eClaim
             $rcd_id = $request->input('rcd_id');
 
-            $sql = "SELECT p.*,e.id as doc_id from LifeFileAttachments p 
-            INNER JOIN clientDocuments d ON d.id=p.code
-            INNER JOIN EndorseCheckListDetails e ON e.Document=d.id
+            $sql = "SELECT p.*,p.EndorseDocName as doc_id from LifeFileAttachments p 
             WHERE p.Endorsement=$rcd_id";
             $Files = DbHelper::getTableRawData($sql);
 

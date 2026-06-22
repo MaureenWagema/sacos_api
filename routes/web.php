@@ -113,6 +113,8 @@ Route::get('reports/policyNoMicro', [reportsController::class, 'policyNoMicro'])
 Route::post('reports/getSacosRpt', [reportsController::class, 'getSacosRpt']);
 Route::post('reports/fetchLoanDetails', [reportsController::class, 'fetchLoanDetails']);
 Route::post('reports/fetchLoanAmortizationDetails', [reportsController::class, 'fetchLoanAmortizationDetails']);
+Route::post('reports/getAgentLoanAmount', [reportsController::class, 'getAgentLoanAmount']);
+Route::post('reports/getAgentLoanAmortization', [reportsController::class, 'getAgentLoanAmortization']);
 
 //policy getSalesGridRange getActivitiesTotalsRange  fetchLoanDetails 
 Route::get('policy/getMicroProducts', [policyController::class, 'getMicroProducts']);

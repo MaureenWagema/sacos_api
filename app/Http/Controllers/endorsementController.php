@@ -35,6 +35,7 @@ class EndorsementController extends Controller
                 $endorsement_data->narration = $request->input('narration');
                 $endorsement_data->status_code = $request->input('status_code');
                 $endorsement_data->ID = $request->input('ID');
+                $endorsement_data->created_by = $request->input('created_by');
             }
             
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -74,6 +75,7 @@ class EndorsementController extends Controller
                 $EffectiveDate = $endorsement_data->EffectiveDate ?? Carbon::now()->format('Y-m-d');
                 $Reason = $endorsement_data->Reason ?? null;
                 $status_code = $endorsement_data->status_code;
+                $created_by = $endorsement_data->created_by;
                 
                 Log::info('Fields extracted', ['policy_no' => $policy_no]);
                 
@@ -91,6 +93,7 @@ class EndorsementController extends Controller
                     'Endorsementtype' => $Endorsementtype,
                     'PolicyNumber' => $PolicyNumber,
                     'RequestDate' => Carbon::now(),
+                    'created_by' => $created_by,
                     'created_on' => Carbon::now(),
                     'ClientName' => $name,
                     'Statuscode1' => $status_code,
@@ -123,6 +126,8 @@ class EndorsementController extends Controller
                 } elseif ($existingEndorsement) {
                     // Update existing endorsement found by duplicate check
                     $id = $existingEndorsement->id;
+                    //'created_by' => $created_by,
+                    $endorsementData['altered_by'] = $created_by;
                     $endorsementData['dola'] = Carbon::now();
                     
                     Log::info('Updating existing endorsement (duplicate found)', ['id' => $id]);
@@ -134,6 +139,7 @@ class EndorsementController extends Controller
                 } else {
                     // Insert new endorsement
                     $endorsementData['date_synced'] = Carbon::now();
+                    $endorsementData['created_by'] = $created_by;
                     
                     Log::info('Inserting new endorsement');
                     $id = $this->smartlife_db->table('eEndorsementEntries')->insertGetId($endorsementData);
@@ -149,7 +155,7 @@ class EndorsementController extends Controller
                 );
                 
                 // Log endorsement activity to pos_log
-                $this->logEndorsementActivity($id, $endorsementData, $policy_no);
+                $this->logEndorsementActivity($id, $endorsementData, $policy_no,$created_by);
             });
             
             Log::info('Transaction completed successfully', ['result' => $res]);
@@ -169,7 +175,7 @@ class EndorsementController extends Controller
         }
     }
     
-    private function logEndorsementActivity($recordId, array $endorsementData, $policy_no)
+    private function logEndorsementActivity($recordId, array $endorsementData, $policy_no,$created_by)
     {
         // Check if eEndorsementId already exists to ensure uniqueness
         $existingLog = $this->smartlife_db->table('Pos_Log')
@@ -189,7 +195,7 @@ class EndorsementController extends Controller
             'Narration' => $endorsementTypeDesc . " (Policy Number: " . $policy_no . ") ",
             'eEndorsementId' => $recordId,
             'created_on' => Carbon::now(),
-            'created_by' => request()->input('user_id')
+            'created_by' => $created_by
         ];
 
         if ($existingLog) {

@@ -232,6 +232,9 @@ class VerifyCsrfToken extends Middleware
         'reports/fetchLoanDetails',
         'reports/fetchLoanAmortizationDetails',
 
+        'reports/getAgentLoanAmount',
+        'reports/getAgentLoanAmortization',
+
         'email/sendEmail',
         'email/smsPOST',
         'email/sendLink',

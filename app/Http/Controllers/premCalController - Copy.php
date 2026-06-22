@@ -59,13 +59,11 @@ class premCalController extends Controller
                 $TaxRateIsPerc = $plan_rider_config->TaxRateIsPerc ?? false;
                 $policyFee = $plan_rider_config->policyFee ?? 0;
                 $policyFeeRateIsPerc = $plan_rider_config->policyFeeRateIsPerc ?? false;
-                $SAIsPercentageOfMainCover = $plan_rider_config->SAIsPercentageOfMainCover ?? false;
-                $MAXSaIsMultipleOfSA = $plan_rider_config->MAXSaIsMultipleOfSA ?? false;
-                $MultipleSaRate = $plan_rider_config->MultipleSaRate ?? 0;
+                $SASameAsMainBenefitSa = $plan_rider_config->SASameAsMainBenefitSa ?? false;
                 $MinSa = $plan_rider_config->MinSa ?? 0;
                 $MaxSa = $plan_rider_config->MaxSa ?? 0;
 
-                if ($SAIsPercentageOfMainCover == false) {
+                if ($SASameAsMainBenefitSa == false) {
                     if ($sum_assured < $MinSa && $MinSa > 0) {
                         return response()->json([
                             'success' => false,
@@ -76,19 +74,6 @@ class premCalController extends Controller
                             'success' => false,
                             'message' => "Rider SUM Assured Must be Less than or equal to $MaxSa Please Check"
                         ]);
-                    }
-                }
-
-                if ($MAXSaIsMultipleOfSA == true) {
-                    $MainCoverSA = $main_sa;
-                    if ($MainCoverSA > 0) {
-                        $MultipleofSA = (int)round($sum_assured / $MainCoverSA);
-                        if ($MultipleSaRate > 0 && $MultipleofSA > $MultipleSaRate) {
-                            return response()->json([
-                                'success' => false,
-                                'message' => "Rider Sum Assured must be a multiple of the Main Cover Sum Assured, up to $MultipleSaRate times. Please check."
-                            ]);
-                        }
                     }
                 }
 
@@ -177,23 +162,11 @@ class premCalController extends Controller
                 }
 
                 $loadingFactorVAR = 1;
-                $coverperiod = 1;
                 if ($pay_mode_id) {
-                    $paymode_info = $this->smartlife_db->table('paymentmodeinfo')
-                        ->where('id', $pay_mode_id)
-                        ->first();
-                    if ($paymode_info) {
-                        $loadingFactorVAR = ($paymode_info->loadingfactor > 0) ? $paymode_info->loadingfactor : 1;
-                        $coverperiod = $paymode_info->coverperiod ?? 1;
+                    $paymode_loading = DbHelper::getColumnValue('paymentmodeinfo', 'id', $pay_mode_id, 'loadingfactor');
+                    if ($paymode_loading && $paymode_loading > 0) {
+                        $loadingFactorVAR = $paymode_loading;
                     }
-                }
-
-                $Funeral_cover = false;
-                $plan_info = $this->smartlife_db->table('planinfo')
-                    ->where('plan_code', $plan_code)
-                    ->first();
-                if ($plan_info) {
-                    $Funeral_cover = $plan_info->Funeral_cover ?? false;
                 }
 
                 $PolicyFeeVAR = 0;
@@ -210,21 +183,62 @@ class premCalController extends Controller
                 $Z = 0;
                 $RiderBasicPremVAR = 0;
 
-                if ($Funeral_cover == false) {
+                if ($adb == true) {
                     $X = ($dblPrmRate / $dblRateBasis) * $sum_assured;
+                    $RiderBasicPremVAR = $X;
+                    $Y = $X + $PolicyFeeVAR;
+                    $Z = ($Y * $loadingFactorVAR);
+                    $w_temp = $Z;
+                } else if ($acdb == true) {
+                    $X = ($dblPrmRate / $dblRateBasis) * $sum_assured;
+                    $RiderBasicPremVAR = $X;
+                    $Y = $X + $PolicyFeeVAR;
+                    $Z = ($Y * $loadingFactorVAR);
+                    $w_temp = $Z;
+                } else if ($ptd == true) {
+                    $X = ($dblPrmRate / $dblRateBasis) * $sum_assured;
+                    $RiderBasicPremVAR = $X;
+                    $Y = $X + $PolicyFeeVAR;
+                    $Z = ($Y * $loadingFactorVAR);
+                    $w_temp = $Z;
+                } else if ($cic == true) {
+                    $X = ($dblPrmRate / $dblRateBasis) * $sum_assured;
+                    $RiderBasicPremVAR = $X;
+                    $Y = $X + $PolicyFeeVAR;
+                    $Z = ($Y * $loadingFactorVAR);
+                    $w_temp = $Z;
+                } else if ($wp == true) {
+                    $X = ($dblPrmRate / $dblRateBasis) * $sum_assured;
+                    $RiderBasicPremVAR = $X;
+                    $Y = $X + $PolicyFeeVAR;
+                    $Z = ($Y * $loadingFactorVAR);
+                    $w_temp = $Z;
+                } else if ($FIBDeath == true) {
+                    $X = ($dblPrmRate / $dblRateBasis) * ((3 / 100) * $sum_assured);
+                    $Y = $X + $PolicyFeeVAR;
+                    $Z = ($Y * $loadingFactorVAR);
+                    $w_temp = $Z;
+                } else if ($FIBDisability == true) {
+                    $X = ($dblPrmRate / $dblRateBasis) * ((3 / 100) * $sum_assured);
+                    $RiderBasicPremVAR = $X;
                     $Y = $X + $PolicyFeeVAR;
                     $Z = ($Y * $loadingFactorVAR);
                     $w_temp = $Z;
                 } else {
-                    //Funeral
-                    $w_temp = ceil($dblPrmRate * $coverperiod);
+                    $w_temp = 0;
                 }
-                $RiderBasicPremVAR = $w_temp;
 
-                $policyFeeResult = $PolicyFeeVAR;
-                $basic_prem = round($RiderBasicPremVAR);
-                $modal_prem = round($basic_prem);
-                $premium = ceil($basic_prem);
+                $basic_prem = ceil($RiderBasicPremVAR);
+                $policyFeeResult = ceil($PolicyFeeVAR);
+
+                if ($TaxRateIsPerc == false) {
+                    $VatAmount = $TaxVAR;
+                } else {
+                    $VatAmount = ceil(($w_temp) * $TaxVAR);
+                }
+
+                $modal_prem = ceil($basic_prem + $policyFeeResult);
+                $premium = ceil($basic_prem + $PolicyFeeVAR + $VatAmount);
 
                 $res = array(
                     'success' => true,
@@ -232,6 +246,7 @@ class premCalController extends Controller
                     'basic_prem' => number_format((float)$basic_prem, 2, '.', ''),
                     'modal_prem' => number_format((float)$modal_prem, 2, '.', ''),
                     'policyFee' => number_format((float)$policyFeeResult, 2, '.', ''),
+                    'Vat' => number_format((float)$VatAmount, 2, '.', ''),
                     'Prem_rateValue' => $dblPrmRate,
                     'rate' => $dblPrmRate,
                     'rate_basis' => $dblRateBasis,
@@ -324,8 +339,6 @@ class premCalController extends Controller
             $mortgage_option = $request->input('mortgage_option');
             $age2 = $request->input('age2');
             $DiscountRate = $request->input('DiscountRate') ?? 0;
-            $SupplimentaryAmount = $request->input('SupplimentaryAmount') ?? 0;
-            $CommPayable = $request->input('CommPayable') ?? 0;
             //$client_number = $request->input('client_number');
 
             $dblPrmRate = 0;
@@ -608,27 +621,18 @@ class premCalController extends Controller
                 $w_temp = $dblPrmRate * $sa;
             }
 
-            $RateBasisUsed = $dblRateBasis;
             $TotalRiderPremVAR = $PTDRiderPrem;
-            if ($PolicyFeeVAR > 0) {
-                $basic_premVAR = ceil($w_temp - $PolicyFeeVAR);
-            } else {
-                $basic_premVAR = ceil($w_temp);
-            }
+            $basic_premVAR = ceil($w_temp - $PolicyFeeVAR);
 
-            $Basic_PolicyFeeVAR = $w_temp + $TotalRiderPremVAR + $SupplimentaryAmount + $CommPayable;
+            $Basic_PolicyFeeVAR = $w_temp + $TotalRiderPremVAR;
             if ($TaxRateIsPerc == false) {
                 $VatAmount = $TaxVAR;
             } else {
                 $VatAmount = ceil($Basic_PolicyFeeVAR * $TaxVAR);
             }
 
-            $TotalPremium = ceil($basic_premVAR + $VatAmount + $PolicyFeeVAR + $TotalRiderPremVAR + $SupplimentaryAmount + $CommPayable);
-            $modal_prem = $TotalPremium - $VatAmount;
-
-            if ($CreditLifeProduct == true) {
-                $basic_premVAR = $TotalPremium - $VatAmount;
-            }
+            $modal_prem = ceil($basic_premVAR + $PolicyFeeVAR);
+            $TotalPremium = ceil($basic_premVAR + $VatAmount + $PolicyFeeVAR + $TotalRiderPremVAR);
 
             $premDiscount = 0;
             if ($DiscountRate > 0) {
@@ -649,11 +653,9 @@ class premCalController extends Controller
                 'Prem_rate' => $dblPrmRate,
                 'Prem_rateValue' => $Prem_rateValue,
                 'age_anb' => $age,
-                'RateBasisUsed' => $RateBasisUsed,
                 'rate_basis' => $dblRateBasis,
+                //'ReinsuranceAlert' => $ReinsuranceAlert,
                 'loading_factor' => $loadingFactorVAR,
-                'SupplimentaryAmount' => $SupplimentaryAmount,
-                'CommPayable' => $CommPayable,
                 'message' => 'Premium Calculated Successfully!'
             );
         } catch (\Exception $exception) {

@@ -259,7 +259,6 @@ class agentController extends Controller
                 ->leftJoin('ManagerPromotionLevel as d', 'd.id', '=', 'p.CurrentManagerLevel')
                 ->leftJoin('AgentsunitsInfo as e', 'e.id', '=', 'p.UnitName')
                 ->where('p.IsActive', 1)
-                ->where('p.BusinessChannel', 1)
                 ->where('p.AgentNoCode', $agent_no)
                 ->first();
 
@@ -640,9 +639,11 @@ class agentController extends Controller
                 //$table_data->date_synced = date('Y-m-d H:i:s');
                 //$table_data->created_on = date('Y-m-d H:i:s');
                 $table_data->RequestDate = date('Y-m-d H:i:s');
-                $table_data->PayNo = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $table_data->PayNo, 'id');
+                $table_data->PayNo = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $table_data->agent_no, 'id');
                 //get the bussinessChannel of agent
-                $BusinessChannel = DbHelper::getColumnValue('agents_info', 'id', $table_data->PayNo, 'BusinessChannel');
+                $BusinessChannel = DbHelper::getColumnValue('agents_info', 'id', $table_data->agent_no, 'BusinessChannel');
+                unset($table_data->agent_no);
+                unset($table_data->created_by);
                 $table_data->CurrentPeriodYear = DbHelper::getColumnValue('CommissionCategoryInfo', 'id', $BusinessChannel, 'period_year');
                 $table_data->CurrentPeriodMonth = DbHelper::getColumnValue('CommissionCategoryInfo', 'id', $BusinessChannel, 'period_month');
 
@@ -867,7 +868,7 @@ class agentController extends Controller
                     INNER JOIN PayslipCategory t4 ON t2.Category=t4.id
                     WHERE t1.period_year =$period_year AND t1.period_month = $payslip_month 
                     AND t3.AgentNoCode='$agent_no' AND t1.PayrollCategory=$PayrollCategory 
-                    ORDER BY t2.seq_no";
+                    ORDER BY t2.seq_no ASC";
             $PaySlip = DbHelper::getTableRawData($sql);
 
 

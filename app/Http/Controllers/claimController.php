@@ -187,7 +187,8 @@ class claimController extends Controller
 
                     'Reason' => $request->input('Reason'),
 
-                    'created_on' => Carbon::now() 
+                    'created_on' => Carbon::now(),
+                    'date_synced' => Carbon::now()
                 );
 
                 //print_r($table_data);

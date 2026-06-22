@@ -69,6 +69,8 @@ class reportsController extends Controller
         try {
             $res = array();
             return array(
+                "success" => true,
+                'message' => "Loan amortization details fetched successfully",
                 "AmortizationTotalLoanVAR" => 106608,
                 "AmortizationTotalInterestVAR" => 6613,
                 "AmortizationMonthlyRepaymentVAR" => 8884,
@@ -124,7 +126,7 @@ class reportsController extends Controller
             if ($response->getStatusCode() == 200) {
                 $rawResponse = json_decode($response->getBody()->getContents());
                 //$base64Rpt = $rawResponse->Report;
-            } 
+            }
 
             //Fetch the loan schedule as well
             $loanSchedule = $this->smartlife_db->table('PolicyLoanSchedule')
@@ -133,7 +135,137 @@ class reportsController extends Controller
 
             $rawResponse->LoanSchedule = $loanSchedule;
             return $rawResponse;
-            
+        } catch (\Exception $exception) {
+            $res = array(
+                'success' => false,
+                'message' => $exception->getMessage()
+            );
+            return response()->json($res);
+        } catch (\Throwable $throwable) {
+            $res = array(
+                'success' => false,
+                'message' => $throwable->getMessage()
+            );
+            return response()->json($res);
+        }
+    }
+
+    public function getAgentLoanAmount(Request $request)
+    {
+        try {
+            return array(
+                "success" => true,
+                'message' => "Agent loan amount fetched successfully",
+                "CurrentPeriodYear" => 2025,
+                "CurrentPeriodMonth" => 4,
+                "AVGCommission" => 4681.87,
+                "PreviousLoanBalance" => 0,
+                "CurrentDeductions" => 2366,
+                "LoanInterest" => 12,
+                "AmountAvailable" => 47634
+            );
+
+            //lets get the agent Loan amount from the webhook
+            $res = array();
+
+            $agent_no = $request->input('agent_no');
+
+            $url_path = "http://192.168.133.31:120/slamslife/api/v1/Loans/AgentLoanParameters";
+
+            $params = ['json' => [
+                'Agent_no' => $agent_no,
+                'currentLoanId' => 0,
+                'paraCode' => 12
+            ]];
+
+            //print_r($params);
+
+            $client = new \GuzzleHttp\Client;
+            $response = $client->post($url_path, $params);
+
+            $rawResponse = array();
+            if ($response->getStatusCode() == 200) {
+                $rawResponse = json_decode($response->getBody()->getContents());
+                //$base64Rpt = $rawResponse->Report;
+            } else {
+                return array(
+                    "CurrentPeriodYear" => 2025,
+                    "CurrentPeriodMonth" => 4,
+                    "AVGCommission" => 4681.87,
+                    "PreviousLoanBalance" => 0,
+                    "CurrentDeductions" => 2366,
+                    "LoanInterest" => 12,
+                    "AmountAvailable" => 47634
+                );
+            }
+
+            return $rawResponse;
+        } catch (\Exception $exception) {
+            $res = array(
+                'success' => false,
+                'message' => $exception->getMessage()
+            );
+            return response()->json($res);
+        } catch (\Throwable $throwable) {
+            $res = array(
+                'success' => false,
+                'message' => $throwable->getMessage()
+            );
+            return response()->json($res);
+        }
+    }
+
+    public function getAgentLoanAmortization(Request $request)
+    {
+        try {
+            return array(
+                "TotalLoanToBeRecovered" => 22584,
+                "TotalInterestRecoverty" => 2584,
+                "MonthlyRepayment" => 941
+            );
+
+            //lets get the agent Loan amount from the webhook
+            $res = array();
+
+            $agent_no = $request->input('agent_no');
+            $TotalAmount = $request->input('TotalAmount');
+            $RepaymentPeriod = $request->input('RepaymentPeriod');
+            $LoanInterest = 12;
+            $paraCode = 12;
+            $currentLoadId = 0;
+            //$policyId = DbHelper::getColumnValue('polinfo', 'policy_no', $policy_no, 'id');
+
+            $url_path = "http://192.168.133.31:120/slamslife/api/v1/Loans/AgentAmortizationSchedule";
+
+            $params = ['json' => [
+                'Agent_no' => $agent_no,
+                'CurrentPeriodYear' => date('Y'),
+                'CurrentPeriodMonth' => date('m'),
+                'TotalAmount' => $TotalAmount,
+                'RepaymentPeriod' => $RepaymentPeriod,
+                'LoanInterest' => $LoanInterest,
+                'paraCode' => $paraCode,
+                'currentLoadId' => $currentLoadId,
+            ]];
+
+            //print_r($params);
+
+            $client = new \GuzzleHttp\Client;
+            $response = $client->post($url_path, $params);
+
+            $rawResponse = array();
+            if ($response->getStatusCode() == 200) {
+                $rawResponse = json_decode($response->getBody()->getContents());
+                //$base64Rpt = $rawResponse->Report;
+            } else {
+                return array(
+                    "TotalLoanToBeRecovered" => 22584,
+                    "TotalInterestRecoverty" => 2584,
+                    "MonthlyRepayment" => 941
+                );
+            }
+
+            return $rawResponse;
         } catch (\Exception $exception) {
             $res = array(
                 'success' => false,
