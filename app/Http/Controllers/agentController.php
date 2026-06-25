@@ -641,11 +641,11 @@ class agentController extends Controller
                 $table_data->RequestDate = date('Y-m-d H:i:s');
                 $table_data->PayNo = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $table_data->agent_no, 'id');
                 //get the bussinessChannel of agent
-                $BusinessChannel = DbHelper::getColumnValue('agents_info', 'id', $table_data->agent_no, 'BusinessChannel');
+                //$BusinessChannel = DbHelper::getColumnValue('agents_info', 'id', $table_data->agent_no, 'BusinessChannel');
                 unset($table_data->agent_no);
                 unset($table_data->created_by);
-                $table_data->CurrentPeriodYear = DbHelper::getColumnValue('CommissionCategoryInfo', 'id', $BusinessChannel, 'period_year');
-                $table_data->CurrentPeriodMonth = DbHelper::getColumnValue('CommissionCategoryInfo', 'id', $BusinessChannel, 'period_month');
+                //$table_data->CurrentPeriodYear = DbHelper::getColumnValue('CommissionCategoryInfo', 'id', $BusinessChannel, 'period_year');
+                //$table_data->CurrentPeriodMonth = DbHelper::getColumnValue('CommissionCategoryInfo', 'id', $BusinessChannel, 'period_month');
 
                 $table_data = json_decode(json_encode($table_data), true);
 

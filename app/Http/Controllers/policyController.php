@@ -169,10 +169,10 @@ class policyController extends Controller
                 derived.bank_account_no, derived.BankaccountName, derived.momo_no ";
 
 
-                $sql_inject = " AND planinfo.mortgage = 0 AND planinfo.is_keyman=0 AND planinfo.IsLoanProtection=0 ";
+                $sql_inject = " AND ProductTypeDetails.mortgage = 0 AND ProductTypeDetails.is_keyman=0 AND ProductTypeDetails.IsLoanProtection=0 ";
                 $IsCreditLifeUser = $request->input('IsCreditLifeUser');
                 if (isset($IsCreditLifeUser) && $IsCreditLifeUser == 1) {
-                    $sql_inject = " AND (planinfo.mortgage = 1 OR planinfo.is_keyman=1 OR planinfo.IsLoanProtection=1) ";
+                    $sql_inject = " AND (ProductTypeDetails.mortgage = 1 OR ProductTypeDetails.is_keyman=1 OR ProductTypeDetails.IsLoanProtection=1) ";
                 }
 
                 //TODO get data from mob_prop_info...  ,'' AS uw_reason
@@ -226,7 +226,8 @@ class policyController extends Controller
                             null AS agent_name
                             FROM mob_prop_info 
                             LEFT JOIN agents_info ON agents_info.id = mob_prop_info.agent_code 
-                            LEFT  JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code " . $sql_inject . "
+                            LEFT  JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code
+                            LEFT JOIN ProductTypeDetails ON mob_prop_info.plan_code = planinfo.plan_code " . $sql_inject . "
                             LEFT JOIN proposalinfo ON proposalinfo.MproposalNumber=mob_prop_info.ID
                             LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
                             WHERE mob_prop_info.agent_code = $agentId AND mob_prop_info.ProposerId IS NULL
@@ -324,7 +325,8 @@ class policyController extends Controller
                             null AS agent_name
                             FROM mob_prop_info 
                             LEFT JOIN agents_info ON agents_info.id = mob_prop_info.agent_code 
-                            LEFT  JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code " . $sql_inject . "
+                            LEFT JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code
+                            LEFT JOIN ProductTypeDetails ON mob_prop_info.plan_code = planinfo.plan_code " . $sql_inject . "
                             LEFT JOIN proposalinfo ON proposalinfo.MproposalNumber=mob_prop_info.ID
                             LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
                             WHERE mob_prop_info.ProposerId IS NULL

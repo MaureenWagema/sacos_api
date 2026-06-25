@@ -153,7 +153,7 @@ class reportsController extends Controller
     public function getAgentLoanAmount(Request $request)
     {
         try {
-            return array(
+            /*return array(
                 "success" => true,
                 'message' => "Agent loan amount fetched successfully",
                 "CurrentPeriodYear" => 2025,
@@ -163,7 +163,7 @@ class reportsController extends Controller
                 "CurrentDeductions" => 2366,
                 "LoanInterest" => 12,
                 "AmountAvailable" => 47634
-            );
+            );*/
 
             //lets get the agent Loan amount from the webhook
             $res = array();
@@ -199,6 +199,11 @@ class reportsController extends Controller
                 );
             }
 
+            if(isset($rawResponse)){
+                $rawResponse->success = true;
+                $rawResponse->message = "Agent loan amount fetched successfully";
+            }
+
             return $rawResponse;
         } catch (\Exception $exception) {
             $res = array(
@@ -218,11 +223,13 @@ class reportsController extends Controller
     public function getAgentLoanAmortization(Request $request)
     {
         try {
-            return array(
+            /*return array(
+                "success" => true,
+                'message' => "Agent loan amortization fetched successfully",
                 "TotalLoanToBeRecovered" => 22584,
-                "TotalInterestRecoverty" => 2584,
+                "TotalInterestRecovery" => 2584,
                 "MonthlyRepayment" => 941
-            );
+            );*/
 
             //lets get the agent Loan amount from the webhook
             $res = array();
@@ -263,6 +270,11 @@ class reportsController extends Controller
                     "TotalInterestRecoverty" => 2584,
                     "MonthlyRepayment" => 941
                 );
+            }
+
+            if(isset($rawResponse)){
+                $rawResponse->success = true;
+                $rawResponse->message = "Agent loan amortization fetched successfully";
             }
 
             return $rawResponse;

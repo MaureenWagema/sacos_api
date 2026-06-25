@@ -426,7 +426,9 @@ class parametersController extends Controller
                 $EndorseCheckListDetails = DbHelper::getTableRawData($sql);
 
                 //mob_FamilyStateRelation
-                $sql = "SELECT id,Relationship FROM mob_FamilyStateRelation WHERE [Relationship] IS NOT NULL";
+                $sql = "SELECT d.code,p.id,p.id AS Relationship, d.description 
+                FROM mob_FamilyStateRelation p 
+                INNER JOIN relationship_mainteinance d on d.code=p.Relationship";
                 $mob_FamilyStateRelation = DbHelper::getTableRawData($sql);
 
                 //PlanTermOptions
@@ -439,6 +441,9 @@ class parametersController extends Controller
 
                 $sql = "SELECT * FROM EmploymentStatus WHERE [Description] IS NOT NULL";
                 $EmploymentStatus = DbHelper::getTableRawData($sql);
+
+                $sql = "SELECT * FROM funeralcateginfo WHERE [Relationship] IS NOT NULL";
+                $FuneralCatInfo = DbHelper::getTableRawData($sql);
 
                 return response()->json(
                     array(
@@ -530,7 +535,8 @@ class parametersController extends Controller
                         "PlanTermOptions" => $PlanTermOptions,
                         "PlanSumAssuredOptions" => $PlanSumAssuredOptions,
                         "EmploymentStatus" => $EmploymentStatus,
-                        "EndorseCheckListDetails" => $EndorseCheckListDetails
+                        "EndorseCheckListDetails" => $EndorseCheckListDetails,
+                        "FuneralCatInfo" => $FuneralCatInfo
                     )
                 );
 
