@@ -326,6 +326,11 @@ class premCalController extends Controller
             $DiscountRate = $request->input('DiscountRate') ?? 0;
             $SupplimentaryAmount = $request->input('SupplimentaryAmount') ?? 0;
             $CommPayable = $request->input('CommPayable') ?? 0;
+            $proposal_date = $request->input('proposal_date');
+            $PremRateTable = $request->input('PremRateTable');
+            $IncludePTD = $request->input('IncludePTD') ?? false;
+            $IsDirectAgent = $request->input('IsDirectAgent') ?? false;
+            $CommissionRate = $request->input('CommissionRate') ?? 0;
             //$client_number = $request->input('client_number');
 
             $dblPrmRate = 0;
@@ -352,7 +357,7 @@ class premCalController extends Controller
             }
 
             $useCurrAge = $plan_info->useCurrAge ?? true;
-            if (!$useCurrAge) $age++;
+            if (!$useCurrAge) $age = $age + 1;
             $FemaleRateIsDiscounted = $plan_info->FemaleRateIsDiscounted ?? false;
             if (isset($gender) && $gender == "F" && $FemaleRateIsDiscounted) {
                 $age = $age - (float)$plan_info->FemaleDiscountRate;
@@ -375,6 +380,12 @@ class premCalController extends Controller
             $UseAgeRangeFuneralRates = $plan_info->UseAgeRangeFuneralRates ?? false;
             $FuneralRateTable = $plan_info->FuneralRateTable ?? 0;
             $ReinsuranceMinSA = $plan_info->ReinsuranceMinSA ?? 0;
+            $UseRateTableHistory = $plan_info->UseRateTableHistory ?? false;
+            $AutoSelectTableOption = $plan_info->AutoSelectTableOption ?? false;
+            $UseDateToSelectRateTable = $plan_info->UseDateToSelectRateTable ?? false;
+            $UseSAToSelectRateTable = $plan_info->UseSAToSelectRateTable ?? false;
+            $RateIsBasedOnTerm = $plan_info->RateIsBasedOnTerm ?? false;
+            $IsEnhanced = $plan_info->IsEnhanced ?? false;
 
             $category_info = $this->smartlife_db->table('plan_prop_category')
                 ->where('prop_code', $CategoryCode)
@@ -385,27 +396,191 @@ class premCalController extends Controller
             $MortgageProduct = $category_info->MortgageProduct ?? false;
             $CreditLifeProduct = $category_info->CreditLifeProduct ?? false;
 
+            // DiscountAgeVAR helper - applies age discounts
+            /*$applyAgeDiscount = function($ageToAdjust, $rateTable = null) use ($plan_info, $gender) {
+                $adjustedAge = $ageToAdjust;
+                $useCurrAge = $rateTable ? ($rateTable->useCurrAge ?? true) : ($plan_info->useCurrAge ?? true);
+                if (!$useCurrAge) $adjustedAge++;
+                
+                $FemaleRateIsDiscounted = $rateTable ? ($rateTable->FemaleRateIsDiscounted ?? false) : ($plan_info->FemaleRateIsDiscounted ?? false);
+                if (isset($gender) && $gender == "F" && $FemaleRateIsDiscounted) {
+                    $discountRate = $rateTable ? ($rateTable->FemaleDiscountRate ?? 0) : ($plan_info->FemaleDiscountRate ?? 0);
+                    $adjustedAge = $adjustedAge - (float)$discountRate;
+                }
+                
+                $FemaleRateIsDiscounted2 = $rateTable ? ($rateTable->FemaleRateIsDiscounted2 ?? false) : ($plan_info->FemaleRateIsDiscounted2 ?? false);
+                if ($FemaleRateIsDiscounted2) {
+                    $discountRate2 = $rateTable ? ($rateTable->FemaleDiscountRate2 ?? 0) : ($plan_info->FemaleDiscountRate2 ?? 0);
+                    $adjustedAge = $adjustedAge - (float)$discountRate2;
+                }
+                
+                return $adjustedAge;
+            };*/
+
+            // Apply age discount to primary age
+            //$age = $applyAgeDiscount($age);
+            $age2 = $age2 ? $applyAgeDiscount($age2) : null;
+
+            $TermPartVAR = "";
+            $rsHistory = null;
+            $table_code = $premium_table;
+            $sql = "";
+            $rateTableInfo = null;
+            
             if ($UseCustomPremRate == false) {
                 if ($Funeral_cover == false) {
                     if ($UseFixedPremRate == false) {
-                        $sql = "SELECT * FROM premium_rate_setup 
-                                WHERE plan_code = '$plan_code' 
-                                AND age = $age 
-                                AND table_code = $premium_table 
-                                AND term = $term";
-
+                        // Check if Premium Rate Table is mandatory
+                        if ($UseRateTableHistory == true && $AutoSelectTableOption == false && !$PremRateTable) {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Premium Rate Table Is Mandatory!'
+                            ]);
+                        }
+                        
+                        if ($UseRateTableHistory == false) {
+                            // OLD setup - use plan's premium_table
+                            if ($RateIsBasedOnTerm == true) {
+                                $TermPartVAR = "AND term = $term";
+                            }
+                            $sql = "SELECT * FROM premium_rate_setup 
+                                    WHERE plan_code = '$plan_code' 
+                                    AND age = $age 
+                                    AND table_code = $premium_table 
+                                    $TermPartVAR";
+                        } else {
+                            // Use RateTableHistory
+                            if ($AutoSelectTableOption == false) {
+                                // Use selected PremRateTable
+                                $rateTableInfo = $this->smartlife_db->table('PremRateTableCode')
+                                    ->where('id', $PremRateTable)
+                                    ->first();
+                                if (!$rateTableInfo) {
+                                    return response()->json([
+                                        'success' => false,
+                                        'message' => 'Premium Rate Table not found'
+                                    ]);
+                                }
+                                
+                                // Apply age discount with rate table
+                                $age = $applyAgeDiscount($age, $rateTableInfo);
+                                
+                                if ($rateTableInfo->RateIsBasedOnTerm ?? false) {
+                                    $TermPartVAR = "AND term = $term";
+                                }
+                                $table_code = $PremRateTable;
+                                $sql = "SELECT * FROM premium_rate_setup 
+                                        WHERE plan_code = '$plan_code' 
+                                        AND age = $age 
+                                        AND table_code = $table_code 
+                                        $TermPartVAR";
+                            } else if ($AutoSelectTableOption == true) {
+                                // AUTO SELECT Rate Table
+                                if ($UseDateToSelectRateTable == true && $proposal_date) {
+                                    // Use DATE to get rate table from RateTableHistory
+                                    $sql = "SELECT id FROM RateTableHistory 
+                                            WHERE [Plan] = '$plan_code' 
+                                            AND '$proposal_date' BETWEEN DateFrom AND DateTo 
+                                            ORDER BY id DESC LIMIT 1";
+                                    $rs1 = DbHelper::getTableRawData($sql);
+                                    if ($rs1 && count($rs1) > 0) {
+                                        $historyId = $rs1[0]->id;
+                                        $rsHistory = $this->smartlife_db->table('RateTableHistory')
+                                            ->where('id', $historyId)
+                                            ->first();
+                                    }
+                                } else if ($UseSAToSelectRateTable == true) {
+                                    // Use SA to select rate table - target maximum sum assured
+                                    $sql = "SELECT id FROM RateTableHistory 
+                                            WHERE [Plan] = '$plan_code' 
+                                            AND $sa BETWEEN MinSa AND MaxSa 
+                                            ORDER BY id DESC LIMIT 1";
+                                    $rs1 = DbHelper::getTableRawData($sql);
+                                    if ($rs1 && count($rs1) > 0) {
+                                        $historyId = $rs1[0]->id;
+                                        $rsHistory = $this->smartlife_db->table('RateTableHistory')
+                                            ->where('id', $historyId)
+                                            ->first();
+                                    }
+                                } else if ($MortgageProduct == true) {
+                                    // Mortgage product - select based on SingleMortality/JointMortality flags
+                                    $FlagNameVAR = "";
+                                    if ($mortgage_option == 'single') {
+                                        $FlagNameVAR = $IncludePTD ? "SingleMortalityPTD" : "SingleMortality";
+                                    } else if ($mortgage_option == 'joint') {
+                                        $FlagNameVAR = $IncludePTD ? "JointMortalityPTD" : "JointMortality";
+                                    }
+                                    if ($FlagNameVAR) {
+                                        $sql = "SELECT t1.id FROM RateTableHistory t1 
+                                                INNER JOIN PremRateTableCode t2 ON t1.table_code = t2.id 
+                                                WHERE t1.[Plan] = '$plan_code' 
+                                                AND t2.$FlagNameVAR = 1 
+                                                ORDER BY t1.id DESC LIMIT 1";
+                                        $rs1 = DbHelper::getTableRawData($sql);
+                                        if ($rs1 && count($rs1) > 0) {
+                                            $historyId = $rs1[0]->id;
+                                            $rsHistory = $this->smartlife_db->table('RateTableHistory')
+                                                ->where('id', $historyId)
+                                                ->first();
+                                        }
+                                    }
+                                }
+                                
+                                if ($rsHistory) {
+                                    // Apply age discount with history table
+                                    $age = $applyAgeDiscount($age, $rsHistory);
+                                    
+                                    // Check age limit for junior
+                                    if ($rsHistory->isage_limit_app ?? false) {
+                                        if ($age2 && ($age2 + $term) > ($rsHistory->max_age ?? 999)) {
+                                            return response()->json([
+                                                'success' => false,
+                                                'message' => "MAX Child Age At Maturity Must be Less than or equal to " . ($rsHistory->max_age ?? 999)
+                                            ]);
+                                        }
+                                    }
+                                    
+                                    if ($rsHistory->RateIsBasedOnTerm ?? false) {
+                                        $TermPartVAR = "AND term = $term";
+                                    }
+                                    $table_code = $rsHistory->table_code;
+                                    $sql = "SELECT * FROM premium_rate_setup 
+                                            WHERE plan_code = '$plan_code' 
+                                            AND age = $age 
+                                            AND table_code = $table_code 
+                                            $TermPartVAR";
+                                } else {
+                                    return response()->json([
+                                        'success' => false,
+                                        'message' => 'Premium Rate Table Is Mandatory!'
+                                    ]);
+                                }
+                            }
+                        }
+                        
                         $_dataSet = DbHelper::getTableRawData($sql);
-
                         if ($_dataSet && count($_dataSet) > 0) {
                             $recRow = $_dataSet[0];
                             $dblPrmRate = (float)$recRow->rate;
-
-                            if ($FixedRateBasis == true) {
-                                $dblRateBasis = $rate_basis_plan;
-                            } else {
-                                $dblRateBasis = (float)$recRow->rate_basis;
+                            $dblRateBasis = (float)$recRow->rate_basis;
+                            
+                            // Handle FixedRateBasis
+                            if ($UseRateTableHistory == false) {
+                                if ($FixedRateBasis == true) {
+                                    $dblRateBasis = $rate_basis_plan;
+                                }
+                            } else if ($UseRateTableHistory == true) {
+                                if ($AutoSelectTableOption == false && $rateTableInfo) {
+                                    if ($rateTableInfo->FixedRateBasis ?? false) {
+                                        $dblRateBasis = $rateTableInfo->rate_basis ?? $dblRateBasis;
+                                    }
+                                } else if ($rsHistory) {
+                                    if ($rsHistory->FixedRateBasis ?? false) {
+                                        $dblRateBasis = $rsHistory->rate_basis ?? $dblRateBasis;
+                                    }
+                                }
                             }
-
+                            
                             if ($dblPrmRate == 0) {
                                 return response()->json([
                                     'success' => false,
@@ -536,76 +711,204 @@ class premCalController extends Controller
             $PTDRiderPrem = 0;
             $total_rider_prem = 0;
             $Prem_rateValue = $dblPrmRate;
+            $Prem_rateValue2 = 0;
+            $PTDRiderRateBasis = 0;
+            $PTDRiderPremRate = 0;
+            $PTDBasicPrem = 0;
+            $PTDModalPrem = 0;
+            $basic_prem = 0;
 
-            if ($OrdinaryLifeProduct == true) {
+            if ($OrdinaryLifeProduct == true || ($MortgageProduct == true && $IsEnhanced == true)) {
+                // ORDINARY PRODUCTS (including enhanced mortgage)
                 $w_temp = ((($dblPrmRate / $dblRateBasis) * $sa) + $PolicyFeeVAR) * $loadingFactorVAR;
-            } else if ($FuneralProduct == true) {
-                $w_temp = round($dblPrmRate * $coverperiod, 2);
-            } else if ($MortgageProduct == true) {
-                if ($mortgage_option == 'single') {
-                    $w_temp2 = ($dblPrmRate / $dblRateBasis) * $sa;
-
-                    $plan_rider = $this->smartlife_db->table('plan_rider_config as prc')
-                        ->join('rider_info as ri', 'ri.rider_code', '=', 'prc.rider_code')
-                        ->where('prc.plan_code', $plan_code)
-                        ->where('ri.ptd', true)
-                        ->where('prc.IsAutomatic', true)
-                        ->first();
-
-                    if ($plan_rider) {
-                        $w_temp3 = ($plan_rider->rate / $plan_rider->rate_basis) * $sa * ((float)$term / 12);
-                        $PTDRiderPrem = ceil($w_temp3);
-                        $total_rider_prem = $PTDRiderPrem;
-                    }
-
-                    $w_temp = ($w_temp2 + $PolicyFeeVAR);
-                } else if ($mortgage_option == 'joint') {
+                $Prem_rateValue = $dblPrmRate;
+                
+                // Mortgage special handling for ordinary life
+                if ($MortgageProduct == true && $mortgage_option == 'joint') {
+                    // Joint life rate lookup for ordinary mortgage
                     $sql = "SELECT * FROM premium_rate_setup 
                             WHERE plan_code = '$plan_code' 
                             AND age = $age2 
-                            AND table_code = $premium_table 
+                            AND table_code = $table_code 
                             AND term = $term";
-
                     $_dataSet = DbHelper::getTableRawData($sql);
-
                     if ($_dataSet && count($_dataSet) > 0) {
                         $recRow = $_dataSet[0];
                         $w_rate2 = (float)$recRow->rate;
-
                         if ($w_rate2 == 0) {
                             return response()->json([
                                 'success' => false,
                                 'message' => "Second Life Rate Not Found! Please Check... For Policy Term: $term"
                             ]);
                         }
-
-                        $w_rate3 = ($dblPrmRate + $w_rate2) * 0.90;
-                        $Prem_rateValue = $w_rate3;
-                        $w_temp2 = ($w_rate3 / $dblRateBasis) * $sa;
-
+                        $GetrateToUse = max($dblPrmRate, $w_rate2);
+                        $w_temp2 = ((($GetrateToUse / $dblRateBasis) * $sa) + $PolicyFeeVAR) * $loadingFactorVAR;
+                        $Prem_rateValue = $dblPrmRate;
+                        $Prem_rateValue2 = $w_rate2;
+                        $PolicyFeeVAR = 0; // Reset for mortgage
+                        $w_temp = $w_temp2;
+                    } else {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Second Life Rate Not Found! Please Check... For Policy Term: $term"
+                        ]);
+                    }
+                }
+            } else if ($FuneralProduct == true) {
+                // FUNERAL PRODUCTS
+                $w_temp = ceil($dblPrmRate * $coverperiod);
+                $Prem_rateValue = $dblPrmRate;
+            } else if ($MortgageProduct == true) {
+                // MORTAGE PRODUCTS
+                // Check rate table type
+                $rateTableCodeInfo = $this->smartlife_db->table('PremRateTableCode')
+                    ->where('id', $table_code)
+                    ->first();
+                $SwanRate = $rateTableCodeInfo->SwanRate ?? false;
+                $EastAfricaReRate = $rateTableCodeInfo->EastAfricaReRate ?? false;
+                
+                if ($SwanRate == true) {
+                    // SwanRate logic
+                    if ($mortgage_option == 'single') {
+                        $w_temp2 = ($dblPrmRate / $dblRateBasis) * $sa;
+                        $Prem_rateValue = $dblPrmRate;
+                        
+                        // Check for PTD rider
                         $plan_rider = $this->smartlife_db->table('plan_rider_config as prc')
                             ->join('rider_info as ri', 'ri.rider_code', '=', 'prc.rider_code')
                             ->where('prc.plan_code', $plan_code)
                             ->where('ri.ptd', true)
                             ->where('prc.IsAutomatic', true)
                             ->first();
-
                         if ($plan_rider) {
-                            $w_temp3 = (($plan_rider->rate * 2) / $plan_rider->rate_basis) * $sa * ((float)$term / 12);
+                            $w_temp3 = ($plan_rider->rate / $plan_rider->rate_basis) * $sa * ((float)$term / 12);
+                            $PTDRiderRateBasis = $plan_rider->rate_basis;
+                            $PTDRiderPremRate = $plan_rider->rate;
                             $PTDRiderPrem = ceil($w_temp3);
+                            $PTDBasicPrem = ceil($w_temp3);
+                            $PTDModalPrem = ceil($w_temp3);
                             $total_rider_prem = $PTDRiderPrem;
                         }
-
                         $w_temp = ($w_temp2 + $PolicyFeeVAR);
-                    } else {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Rate Not Found! Please Check...'
-                        ]);
+                    } else if ($mortgage_option == 'joint') {
+                        // Apply age discount to second life
+                        $age2Adjusted = $age2 ? $applyAgeDiscount($age2, $rateTableInfo ?? $rsHistory) : $age2;
+                        
+                        // Second life rate lookup
+                        $sql = "SELECT * FROM premium_rate_setup 
+                                WHERE plan_code = '$plan_code' 
+                                AND age = $age2Adjusted 
+                                AND table_code = $table_code 
+                                AND term = $term";
+                        $_dataSet = DbHelper::getTableRawData($sql);
+                        if ($_dataSet && count($_dataSet) > 0) {
+                            $recRow = $_dataSet[0];
+                            $w_rate2 = (float)$recRow->rate;
+                            if ($w_rate2 == 0) {
+                                return response()->json([
+                                    'success' => false,
+                                    'message' => "Second Life Rate Not Found! Please Check... For Policy Term: $term"
+                                ]);
+                            }
+                            $Prem_rateValue = $dblPrmRate;
+                            $Prem_rateValue2 = $w_rate2;
+                            $w_rate3 = ($dblPrmRate + $w_rate2) * 0.90; // Combined rates
+                            $w_temp2 = ($w_rate3 / $dblRateBasis) * $sa;
+                            
+                            // PTD rider for joint
+                            $plan_rider = $this->smartlife_db->table('plan_rider_config as prc')
+                                ->join('rider_info as ri', 'ri.rider_code', '=', 'prc.rider_code')
+                                ->where('prc.plan_code', $plan_code)
+                                ->where('ri.ptd', true)
+                                ->where('prc.IsAutomatic', true)
+                                ->first();
+                            if ($plan_rider) {
+                                $PTDPremRate1 = $plan_rider->rate;
+                                $PTDPremRate2 = $plan_rider->rate;
+                                $w_temp3 = (($PTDPremRate1 + $PTDPremRate2) / $plan_rider->rate_basis) * $sa * ((float)$term / 12);
+                                $PTDRiderRateBasis = $plan_rider->rate_basis;
+                                $PTDRiderPremRate = $PTDPremRate1;
+                                $PTDRiderPrem = ceil($w_temp3);
+                                $PTDBasicPrem = ceil($w_temp3);
+                                $PTDModalPrem = ceil($w_temp3);
+                                $total_rider_prem = $PTDRiderPrem;
+                            }
+                            $w_temp = ($w_temp2 + $PolicyFeeVAR);
+                        } else {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Rate Not Found! Please Check...'
+                            ]);
+                        }
+                    }
+                } else if ($EastAfricaReRate == true) {
+                    // East Africa RE logic
+                    $w_temp = (($dblPrmRate / $dblRateBasis) * $sa) * $loadingFactorVAR * $term;
+                    $basic_prem = $w_temp;
+                    $Prem_rateValue = $dblPrmRate;
+                    
+                    if ($mortgage_option == 'single') {
+                        // Get commission rate
+                        if ($IsDirectAgent == false) {
+                            $CommissionRate = 0;
+                            $commissionRateInfo = $this->smartlife_db->table('commission_rates')
+                                ->where('plan_code', $plan_code)
+                                ->first();
+                            if ($commissionRateInfo) {
+                                $CommissionRate = $commissionRateInfo->agent_comm ?? 0;
+                            }
+                        }
+                        $CommPayable = round($basic_prem * ($CommissionRate / 100), 2);
+                        $w_temp = $w_temp + $PolicyFeeVAR;
+                    } else if ($mortgage_option == 'joint') {
+                        // Joint life
+                        $age2Adjusted = $age2 ? $applyAgeDiscount($age2, $rateTableInfo ?? $rsHistory) : $age2;
+                        
+                        $sql = "SELECT * FROM premium_rate_setup 
+                                WHERE plan_code = '$plan_code' 
+                                AND age = $age2Adjusted 
+                                AND table_code = $table_code 
+                                AND term = $term";
+                        $_dataSet = DbHelper::getTableRawData($sql);
+                        if ($_dataSet && count($_dataSet) > 0) {
+                            $recRow = $_dataSet[0];
+                            $w_rate2 = (float)$recRow->rate;
+                            if ($w_rate2 == 0) {
+                                return response()->json([
+                                    'success' => false,
+                                    'message' => "Second Life Rate Not Found! Please Check... For Policy Term: $term"
+                                ]);
+                            }
+                            $Prem_rateValue2 = $w_rate2;
+                            $w_temp2 = (($w_rate2 / $dblRateBasis) * $sa) * $loadingFactorVAR * $term;
+                            $basic_premJoint = $w_temp2;
+                            $basic_prem = $basic_prem + $basic_premJoint;
+                            
+                            // Get commission rate
+                            if ($IsDirectAgent == false) {
+                                $CommissionRate = 0;
+                                $commissionRateInfo = $this->smartlife_db->table('commission_rates')
+                                    ->where('plan_code', $plan_code)
+                                    ->first();
+                                if ($commissionRateInfo) {
+                                    $CommissionRate = $commissionRateInfo->agent_comm ?? 0;
+                                }
+                            }
+                            $CommPayable = round($basic_prem * ($CommissionRate / 100), 2);
+                            $w_temp = $basic_prem;
+                            $w_temp = $w_temp + $PolicyFeeVAR;
+                        } else {
+                            return response()->json([
+                                'success' => false,
+                                'message' => 'Rate Not Found! Please Check...'
+                            ]);
+                        }
                     }
                 }
             } else if ($CreditLifeProduct == true) {
+                // CREDIT LIFE PRODUCTS
                 $w_temp = $dblPrmRate * $sa;
+                $Prem_rateValue = $dblPrmRate;
             }
 
             $RateBasisUsed = $dblRateBasis;
@@ -615,20 +918,23 @@ class premCalController extends Controller
             } else {
                 $basic_premVAR = ceil($w_temp);
             }
-
+            $policyFeeResult = $PolicyFeeVAR;
+            
+            // Basic_PolicyFeeVAR for VAT computation
             $Basic_PolicyFeeVAR = $w_temp + $TotalRiderPremVAR + $SupplimentaryAmount + $CommPayable;
             if ($TaxRateIsPerc == false) {
                 $VatAmount = $TaxVAR;
             } else {
                 $VatAmount = ceil($Basic_PolicyFeeVAR * $TaxVAR);
             }
-
+            
+            // Credit Life special handling
+            if ($CreditLifeProduct == true) {
+                $basic_premVAR = $w_temp - $VatAmount;
+            }
+            
             $TotalPremium = ceil($basic_premVAR + $VatAmount + $PolicyFeeVAR + $TotalRiderPremVAR + $SupplimentaryAmount + $CommPayable);
             $modal_prem = $TotalPremium - $VatAmount;
-
-            if ($CreditLifeProduct == true) {
-                $basic_premVAR = $TotalPremium - $VatAmount;
-            }
 
             $premDiscount = 0;
             if ($DiscountRate > 0) {
@@ -640,7 +946,7 @@ class premCalController extends Controller
                 'success' => true,
                 'basic_prem' => number_format((float)$basic_premVAR, 2, '.', ''),
                 'modal_prem' => number_format((float)$modal_prem, 2, '.', ''),
-                'policyFee' => number_format((float)$PolicyFeeVAR, 2, '.', ''),
+                'policyFee' => number_format((float)$policyFeeResult, 2, '.', ''),
                 'Vat' => number_format((float)$VatAmount, 2, '.', ''),
                 'total_rider_prem' => number_format((float)$total_rider_prem, 2, '.', ''),
                 'PTDRiderPrem' => number_format((float)$PTDRiderPrem, 2, '.', ''),
@@ -648,12 +954,18 @@ class premCalController extends Controller
                 'TotalPremium' => round((float)$TotalPremium),
                 'Prem_rate' => $dblPrmRate,
                 'Prem_rateValue' => $Prem_rateValue,
+                'Prem_rateValue2' => $Prem_rateValue2,
                 'age_anb' => $age,
                 'RateBasisUsed' => $RateBasisUsed,
                 'rate_basis' => $dblRateBasis,
                 'loading_factor' => $loadingFactorVAR,
                 'SupplimentaryAmount' => $SupplimentaryAmount,
                 'CommPayable' => $CommPayable,
+                'PTDRiderRateBasis' => $PTDRiderRateBasis,
+                'PTDRiderPremRate' => $PTDRiderPremRate,
+                'PTDBasicPrem' => $PTDBasicPrem,
+                'PTDModalPrem' => $PTDModalPrem,
+                'basic_prem_extra' => number_format((float)$basic_prem, 2, '.', ''),
                 'message' => 'Premium Calculated Successfully!'
             );
         } catch (\Exception $exception) {
