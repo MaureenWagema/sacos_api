@@ -555,7 +555,7 @@ class policyController extends Controller
                         'PulseRate' => $results->PulseRate,
                         'AbdominalGirth' => $results->AbdominalGirth,
 
-                        'Relationship' => $results->Relationship,
+                        'RelationCategory' => $results->RelationCategory,
                         'RelatedProposal' => $results->RelatedProposal,
 
                         'NatureOfBusiness' => $results->NatureOfBusiness,

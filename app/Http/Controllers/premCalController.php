@@ -358,15 +358,7 @@ class premCalController extends Controller
 
             $useCurrAge = $plan_info->useCurrAge ?? true;
             if (!$useCurrAge) $age = $age + 1;
-            $FemaleRateIsDiscounted = $plan_info->FemaleRateIsDiscounted ?? false;
-            if (isset($gender) && $gender == "F" && $FemaleRateIsDiscounted) {
-                $age = $age - (float)$plan_info->FemaleDiscountRate;
-            }
-
-            $FemaleRateIsDiscounted2 = $plan_info->FemaleRateIsDiscounted2 ?? false;
-            if ($FemaleRateIsDiscounted2) {
-                $age = $age - (float)$plan_info->FemaleDiscountRate2;
-            }
+            
             $Funeral_cover = $plan_info->Funeral_cover ?? false;
             $UseFixedPremRate = $plan_info->UseFixedPremRate ?? false;
             $premium_table = $plan_info->premium_table ?? 0;
@@ -397,7 +389,7 @@ class premCalController extends Controller
             $CreditLifeProduct = $category_info->CreditLifeProduct ?? false;
 
             // DiscountAgeVAR helper - applies age discounts
-            /*$applyAgeDiscount = function($ageToAdjust, $rateTable = null) use ($plan_info, $gender) {
+            $applyAgeDiscount = function($ageToAdjust, $rateTable) use ($plan_info, $gender) {
                 $adjustedAge = $ageToAdjust;
                 $useCurrAge = $rateTable ? ($rateTable->useCurrAge ?? true) : ($plan_info->useCurrAge ?? true);
                 if (!$useCurrAge) $adjustedAge++;
@@ -415,11 +407,11 @@ class premCalController extends Controller
                 }
                 
                 return $adjustedAge;
-            };*/
+            };
 
             // Apply age discount to primary age
             //$age = $applyAgeDiscount($age);
-            $age2 = $age2 ? $applyAgeDiscount($age2) : null;
+            $age2 = $age2 ? $applyAgeDiscount($age2, $plan_info) : null;
 
             $TermPartVAR = "";
             $rsHistory = null;

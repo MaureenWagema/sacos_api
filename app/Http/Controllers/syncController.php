@@ -856,7 +856,7 @@ class syncController extends Controller
                     'PulseRate' => $request->input('PulseRate'),
                     'AbdominalGirth' => $request->input('AbdominalGirth'),
 
-                    'Relationship' => $request->input('Relationship'),
+                    'RelationCategory' => $request->input('RelationCategory'),
                     'RelatedProposal' => $request->input('RelatedProposal'),
 
                     'NatureOfBusiness' => $request->input('NatureOfBusiness'),

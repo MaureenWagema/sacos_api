@@ -49,12 +49,12 @@ class parametersController extends Controller
 
 
             $agent_no = $request->input('agent_no');
-            if(isset($agent_no)){
+            if (isset($agent_no)) {
                 $BusinessChannel = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'BusinessChannel');
             }
             $n = $request->input('n');
 
-            if(isset($n) && (int)$n == 1){
+            if (isset($n) && (int)$n == 1) {
                 //TODO - Create a new field with concanteneted name and policy no
                 //if (isset($_GET['agent_no']) && isset($_GET['n']) && (int) $_GET['n'] == 1) {
                 $sql = "SELECT  t3.coverperiod,T1.term_of_policy,T1.plan_code,T1.id,T1.sa,T1.modal_prem,T1.TotalPremium,
@@ -66,11 +66,11 @@ class parametersController extends Controller
                 left join paymentmodeinfo t3 on t1.plan_code = t3.plan_code and t1.pay_mode=t3.id 
                 left join clientinfo T4 on T1.client_number = T4.client_number
                 INNER JOIN statuscodeinfo d ON d.status_code=T1.status_code";
-                
+
                 $agentId = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'id');
                 $sql .= " WHERE T1.agent_no=$agentId";
                 $Policies = DbHelper::getTableRawData($sql);
-            //}
+                //}
 
                 return response()->json(
                     array(
@@ -78,8 +78,7 @@ class parametersController extends Controller
                         "Policies" => $Policies
                     )
                 );
-
-            }else{
+            } else {
 
                 if (isset($_GET['is_micro']) && $_GET['is_micro'] == "1") {
                     $sql = "SELECT p.*,p.plan_code as plan_id,p.maxMatAge AS maturity_age,p.MinAgeParents AS min_age_parents,
@@ -223,14 +222,16 @@ class parametersController extends Controller
                 $bapackages_rows = DbHelper::getTableRawData($sql);
 
                 //$sql = "SELECT p.id, p.plan_code,p.Description,p.code,p.Min_age AS min_age,p.Max_age AS max_age,p.Min_sa AS min_Sa,p.Max_sa AS max_Sa,p.created_by,p.created_on,p.altered_by,p.dola FROM funeralcateginfo p";
-                $sql = "select * from funeralcateginfo WHERE RelationCategory IS NOT NULL";
-                $funeralcat_rows = DbHelper::getTableRawData($sql);
+                $sql = "SELECT p.*,d.description FROM funeralcateginfo p 
+                        INNER JOIN RelationshipCategory d ON p.RelationCategory = d.id
+                        WHERE d.description IS NOT NULL";
+                $FuneralCatInfo = DbHelper::getTableRawData($sql);
 
                 //$sql = "select * FROM parentspremratesinfo";
                 $parentspremrates_rows = array(); //DbHelper::getTableRawData($sql);
 
                 //$sql = "SELECT * FROM clientinfo p INNER JOIN MicroProposalInfo d ON p.client_number=d.Client WHERE d.Agent='15'";
-                $Clients = array();//DbHelper::getTableRawData($sql);
+                $Clients = array(); //DbHelper::getTableRawData($sql);
 
                 //$sql = 'SELECT d.*,p.Name,p.Mobile,e.description AS plan_name FROM MicroProposalInfo d INNER JOIN MicroClientInfo p ON p.Id=d.Client INNER JOIN planinfo e ON d."Plan"=e.plan_code WHERE d.Agent=15';
                 $Policies = array();
@@ -244,17 +245,17 @@ class parametersController extends Controller
                     left join paymentmodeinfo t3 on t1.plan_code = t3.plan_code and t1.pay_mode=t3.id 
                     left join clientinfo T4 on T1.client_number = T4.client_number
                     INNER JOIN statuscodeinfo d ON d.status_code=T1.status_code";
-                    
+
                     $agentId = DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_no, 'id');
                     $sql .= " WHERE T1.agent_no=$agentId ORDER BY T1.id DESC";
-                    $Policies = array();//DbHelper::getTableRawData($sql);
+                    $Policies = array(); //DbHelper::getTableRawData($sql);
                 }
 
 
                 //ClientPolicies, ClaimType, PartialWithdrawalPurposes, ClaimCause
 
                 //$sql = "SELECT * FROM polinfo d WHERE d.client_number='C00300142'";
-                $ClientPolicies = array();//DbHelper::getTableRawData($sql);
+                $ClientPolicies = array(); //DbHelper::getTableRawData($sql);
 
                 //$sql = "SELECT * FROM claims_types d WHERE d.ShowInClientPortal=1"; 
                 //d.AffectGroupLife=0 and WHERE 
@@ -316,28 +317,28 @@ class parametersController extends Controller
                 $DiseaseGroup = array(); //DbHelper::getTableRawData($sql);
 
                 $sql = "SELECT * FROM GlifeLoanTypesinfo WHERE LoanTypeDesc IS NOT NULL";
-                $GlifeLoanTypesinfo = [];//DbHelper::getTableRawData($sql);
+                $GlifeLoanTypesinfo = []; //DbHelper::getTableRawData($sql);
 
                 $sql = "SELECT id,[name] FROM Intermediaryinfo WHERE [name] IS NOT NULL";
                 $Brokers = DbHelper::getTableRawData($sql);
 
                 $sql = "SELECT * FROM glifeclass t WHERE (t.IsGroupLifeCover=1 OR t.IsTravelInsurance=1 OR t.IsWelfare=1) AND t.IsActive=1";
-                $GLPlan = [];//DbHelper::getTableRawData($sql);
+                $GLPlan = []; //DbHelper::getTableRawData($sql);
 
                 $sql = "SELECT doctor_code,[name] FROM doctor_info WHERE [name] IS NOT NULL";
                 $Doctors = DbHelper::getTableRawData($sql);
 
                 $sql = "SELECT * from glifeOccupClassInfo t WHERE t.IsGrp=0 AND [Industry] IS NOT NULL";
-                $GLOccup = [];//DbHelper::getTableRawData($sql);
+                $GLOccup = []; //DbHelper::getTableRawData($sql);
 
                 $sql = "SELECT * FROM glifetravelcategories WHERE [Description] IS NOT NULL";
-                $GLTravelCat = [];//DbHelper::getTableRawData($sql);
+                $GLTravelCat = []; //DbHelper::getTableRawData($sql);
 
                 $sql = "SELECT * FROM PyPayrollCategory WHERE [Description] IS NOT NULL";
                 $PyPayrollCategory = DbHelper::getTableRawData($sql);
 
                 $sql = "SELECT * FROM POSComplaintType WHERE [description] IS NOT NULL";
-                $POSComplaintType = [];//DbHelper::getTableRawData($sql);
+                $POSComplaintType = []; //DbHelper::getTableRawData($sql);
 
                 $sql = "SELECT * FROM AMLSourceOfIncomeInfo WHERE [Description] IS NOT NULL";
                 $AMLSourceOfIncomeInfo = DbHelper::getTableRawData($sql);
@@ -347,13 +348,13 @@ class parametersController extends Controller
 
                 //query mob_health_info
                 $MobIntermediary = $this->smartlife_db->table('mob_health_info as p')
-                ->select(
-                    'p.id as disease_id',
-                    DB::raw('CAST(0 AS bit) as isYesChecked'),
-                    DB::raw('CAST(0 AS bit) as isNoChecked'),
-                    DB::raw("'' as comments")
-                )
-                ->get();
+                    ->select(
+                        'p.id as disease_id',
+                        DB::raw('CAST(0 AS bit) as isYesChecked'),
+                        DB::raw('CAST(0 AS bit) as isNoChecked'),
+                        DB::raw("'' as comments")
+                    )
+                    ->get();
 
                 $sql = "SELECT * FROM mob_HazardQuestions WHERE [description] IS NOT NULL";
                 $HazardQuestions = DbHelper::getTableRawData($sql);
@@ -442,47 +443,54 @@ class parametersController extends Controller
                 $sql = "SELECT * FROM EmploymentStatus WHERE [Description] IS NOT NULL";
                 $EmploymentStatus = DbHelper::getTableRawData($sql);
 
-                $sql = "SELECT * FROM funeralcateginfo WHERE [Relationship] IS NOT NULL";
-                $FuneralCatInfo = DbHelper::getTableRawData($sql);
+                /*$sql = "SELECT * FROM funeralcateginfo WHERE [Relationship] IS NOT NULL";
+                $FuneralCatInfo = DbHelper::getTableRawData($sql);*/
+
+                $sql = "SELECT * FROM PremRateTableCode";
+                $PremRateTableCode = DbHelper::getTableRawData($sql);
+
+                $sql = "SELECT * FROM RateTableHistory";
+                $RateTableHistory = DbHelper::getTableRawData($sql);
+
+                //plan_prop_category
+                $sql = "SELECT * FROM plan_prop_category";
+                $plan_prop_category = DbHelper::getTableRawData($sql);
+
+                //commission_rates
+                $sql = "SELECT * FROM commission_rates";
+                $commission_rates = DbHelper::getTableRawData($sql);
 
                 return response()->json(
                     array(
                         "success" => true,
                         "Planinfo" => $plan_info_rows,
                         "Riderinfo" => $rider_info_rows,
-                        "PlanRiderinfo" => $plan_rider_info_rows
-                        ,
+                        "PlanRiderinfo" => $plan_rider_info_rows,
                         "Relationshipinfo" => $relationship_info_rows,
                         "Maritalinfo" => $maritalinfo_rows,
-                        "Genderinfo" => $gender_info_rows
-                        ,
+                        "Genderinfo" => $gender_info_rows,
                         "Employerinfo" => $employer_info_rows,
                         "Paclassinfo" => $paclass_info_rows,
-                        "Occupationinfo" => $Occupationinfo_rows
-                        ,
+                        "Occupationinfo" => $Occupationinfo_rows,
                         "Countryinfo" => $countryinfo_rows,
                         "Healthinfo" => $healthinfo_rows,
                         "Bankinfo" => $bankinfo_rows,
                         //"BankCodes" => $bankcodes_rows,
                         "Paymentinfo" => $paymentmeth_rows,
-                        "AgentsPaymethodInfo"=> $AgentsPaymethodInfo 
-                        ,
+                        "AgentsPaymethodInfo" => $AgentsPaymethodInfo,
                         "Paymentmodeinfo" => $paymentmodeinfo_rows,
                         "Defaultsinfo" => $defaultsinfo_rows,
                         "Premrateinfo" => $premrateinfo_rows,
-                        "Paymentmode" => $paymentmode_rows
-                        ,
+                        "Paymentmode" => $paymentmode_rows,
                         "Riderpremuimrate" => $riderpremuimrate_rows,
                         "Funeralratesinfo" => $Funeralratesinfo_rows,
                         "Paysourcebr" => $paysourcebr_rows,
                         "LifeAgents" => $life_agents_rows,
                         "Premdistribinfo" => $premdistribinfo_rows,
-                        "BaPackages" => $bapackages_rows
-                        ,
-                        "FuneralCat" => $funeralcat_rows,
+                        "BaPackages" => $bapackages_rows,
+                        //"FuneralCat" => $funeralcat_rows,
                         "ParentsPrem" => $parentspremrates_rows,
-                        "FamDisease" => $familydisease_rows
-                        ,
+                        "FamDisease" => $familydisease_rows,
                         "Clients" => $Clients,
                         "Policies" => $Policies,
                         "ClientPolicies" => $ClientPolicies,
@@ -527,6 +535,7 @@ class parametersController extends Controller
                         "SourceOfFunds" => $SourceOfFunds,
                         "FamilyStateInfo" => $FamilyStateInfo,
                         "YesNoOptions" => $YesNoOptions,
+                        "Confirmations" => $YesNoOptions,
                         "clientDocuments" => $clientDocuments,
                         "ClientRiskRating" => $ClientRiskRating,
                         "ClaimReqDocuments" => $ClaimReqDocuments,
@@ -535,13 +544,16 @@ class parametersController extends Controller
                         "PlanTermOptions" => $PlanTermOptions,
                         "PlanSumAssuredOptions" => $PlanSumAssuredOptions,
                         "EmploymentStatus" => $EmploymentStatus,
+                        "IncomeTypes" => $EmploymentStatus,
                         "EndorseCheckListDetails" => $EndorseCheckListDetails,
-                        "FuneralCatInfo" => $FuneralCatInfo
+                        "FuneralCatInfo" => $FuneralCatInfo,
+                        "PremRateTableCode" => $PremRateTableCode,
+                        "RateTableHistory" => $RateTableHistory,
+                        "plan_prop_category" => $plan_prop_category,
+                        "commission_rates" => $commission_rates
                     )
                 );
-
             }
-
         } catch (\Exception $exception) {
             $res = array(
                 'success' => false,
@@ -556,7 +568,7 @@ class parametersController extends Controller
             return response()->json($res);
         }
         //return response()->json($res);
-    
+
     }
 
     public function getBankPlans(Request $request)
@@ -567,7 +579,7 @@ class parametersController extends Controller
             $agent_code = $request->input('agent_code');
 
             //from the agentcode get the bank code
-            $bank_code = "NIB";//DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_code, 'BancassuranceBankLink');
+            $bank_code = "NIB"; //DbHelper::getColumnValue('agents_info', 'AgentNoCode', $agent_code, 'BancassuranceBankLink');
 
             $where_arr = array(
                 'BankCode' => $bank_code
