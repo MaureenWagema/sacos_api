@@ -1710,6 +1710,43 @@ class syncController extends Controller
         return response()->json($res);
     }
 
+    /**
+     * Convert a date coming from the mobile app into a value SQL Server can store.
+     * Handles JS Date.toString() values like
+     * "Sat Oct 10 2026 00:00:00 GMT+0300 (East Africa Time)" as well as
+     * ISO / dd-mm-yyyy strings. Returns null when nothing usable was sent.
+     */
+    public function normalizeDate($value)
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d H:i:s');
+        }
+        if (!isset($value) || is_array($value)) {
+            return null;
+        }
+        $value = trim((string) $value);
+        if ($value === '' || in_array(strtolower($value), array('null', 'undefined', 'nan', '0'))) {
+            return null;
+        }
+        //drop the trailing timezone name JS appends, e.g. "(East Africa Time)"
+        $value = trim(preg_replace('/\s*\([^)]*\)\s*$/', '', $value));
+        try {
+            //keep the offset that was sent so the calendar date does not shift
+            $date = new \DateTime($value);
+            return $date->format('Y-m-d H:i:s');
+        } catch (\Exception $e) {
+            //fall through to the explicit formats below
+        }
+        foreach (array('d/m/Y', 'd-m-Y', 'd/m/Y H:i:s', 'd-m-Y H:i:s') as $format) {
+            $date = \DateTime::createFromFormat($format, $value);
+            if ($date !== false) {
+                return $date->format('Y-m-d H:i:s');
+            }
+        }
+        \Illuminate\Support\Facades\Log::warning('normalizeDate - unparsable date value', array('value' => $value));
+        return null;
+    }
+
     public function savePhysicalFile($file, $category_id, $policy_no, $proposal_id, $file_type, $expiry_date = null)
     {
         $fileName = $file->getClientOriginalName();
@@ -1748,7 +1785,7 @@ class syncController extends Controller
             'Description' => $fileName,
             //'Doc_id' => $Doc_id,
             'DocumentName' => $Doc_id,
-            'ExpiryDate' => $expiry_date
+            'ExpiryDate' => $this->normalizeDate($expiry_date)
         );
         $record_id = $this->smartlife_db->table('mob_proposalFileAttachment')->insertGetId($table_data);
         //insert into Mob_ProposalStoreObject
