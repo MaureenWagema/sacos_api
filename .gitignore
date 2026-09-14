@@ -1,16 +1,87 @@
+# Dependencies
 /node_modules
+/vendor
+composer.phar
+
+# Build output
 /public/build
 /public/hot
 /public/storage
-/storage/*.key
-/vendor
-.env
-.env.backup
+/dist
+/build
+*.js.map
+*.css.map
+
+# Caches
+/bootstrap/cache/*.php
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+/storage/framework/cache/data/*
+!/storage/framework/cache/data/.gitignore
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitignore
+/storage/framework/testing/*
+!/storage/framework/testing/.gitignore
+/storage/framework/views/*
+!/storage/framework/views/.gitignore
+/storage/app/public/*
+!/storage/app/public/.gitignore
+/storage/debugbar
+/storage/clockwork
 .phpunit.result.cache
-Homestead.json
-Homestead.yaml
-auth.json
+.phpunit.cache
+/.php-cs-fixer.cache
+/.php_cs.cache
+/.vite
+/.cache
+/.parcel-cache
+
+# Logs
+/storage/logs/*
+!/storage/logs/.gitignore
+*.log
 npm-debug.log
 yarn-error.log
+pnpm-debug.log
+
+# Archives / backups / dumps
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.bak
+*.sql
+*.sqlite
+*.sqlite-journal
+*.dump
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+.env.backup
+/storage/*.key
+auth.json
+oauth-private.key
+oauth-public.key
+*.pem
+.rnd
+
+# Local dev
+Homestead.json
+Homestead.yaml
+/.vagrant
+
+# Editors & OS
 /.idea
 /.vscode
+/.fleet
+/.nova
+/.zed
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
