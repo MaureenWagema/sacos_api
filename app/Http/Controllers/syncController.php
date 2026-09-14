@@ -880,6 +880,13 @@ class syncController extends Controller
                     'IsForSecondLife' => $IsForSecondLife,
                     'MobileSecondary2' => $request->input('MobileSecondary2'),
                     'MobileSecondary3' => $request->input('MobileSecondary3'),
+
+                    'PremRateTable' => $request->input('PremRateTable'),
+                    'SupplimentaryAmount' => $request->input('SupplimentaryAmount'),
+                    'IsMorgtageSecondLife' => $request->input('IsMorgtageSecondLife'),
+                    'FirstLifeID' => $request->input('FirstLifeID'),
+                    'CommPayable' => $request->input('CommPayable'),
+
                 );
 
 
