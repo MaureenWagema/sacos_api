@@ -530,11 +530,23 @@ class syncController extends Controller
                 // }
 
                 $ProposerId = $request->input('ProposerId');
+                //0 / "0" / empty string all mean no proposer is linked to this record
+                $HasProposer = isset($ProposerId) && trim($ProposerId) != "" && (int)$ProposerId != 0;
 
-                $proposal_no = null;
-                if (isset($plan_code)) {
+                //use the proposal_no sent in the payload if it has a value
+                $proposal_no = $request->input('proposal_no');
+                if (isset($proposal_no) && trim($proposal_no) == "") {
+                    $proposal_no = null;
+                }
+
+                if (!isset($proposal_no)) {
+                    //fall back to the proposal_no already saved against this record
                     $proposal_no = DbHelper::getColumnValue('mob_prop_info', 'ID', $record_id, 'proposal_no');
-                    if (!isset($proposal_no) && !isset($ProposerId)) {
+                    if (isset($proposal_no) && trim($proposal_no) == "") {
+                        $proposal_no = null;
+                    }
+                    //payload proposal_no is null/empty, so generate one as long as we have the plan
+                    if (!isset($proposal_no) && isset($plan_code) && trim($plan_code) != "" && !$HasProposer) {
                         $proposal_no = $this->generate_policyno($plan_code, $agent_code);
                     }
                 }

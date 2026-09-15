@@ -169,11 +169,12 @@ class policyController extends Controller
                 derived.bank_account_no, derived.BankaccountName, derived.momo_no ";
 
 
-                $sql_inject = " AND ProductTypeDetails.mortgage = 0 AND ProductTypeDetails.is_keyman=0 AND ProductTypeDetails.IsLoanProtection=0 ";
-                $IsCreditLifeUser = $request->input('IsCreditLifeUser');
+                //$sql_inject = " AND ISNULL(ProductTypeDetails.mortgage,0) = 0 AND ISNULL(ProductTypeDetails.is_keyman,0) = 0 AND ISNULL(ProductTypeDetails.IsLoanProtection,0) = 0 ";
+                $sql_inject = "";
+                /*$IsCreditLifeUser = $request->input('IsCreditLifeUser');
                 if (isset($IsCreditLifeUser) && $IsCreditLifeUser == 1) {
                     $sql_inject = " AND (ProductTypeDetails.mortgage = 1 OR ProductTypeDetails.is_keyman=1 OR ProductTypeDetails.IsLoanProtection=1) ";
-                }
+                }*/
 
                 //TODO get data from mob_prop_info...  ,'' AS uw_reason
                 if (isset($record_id) && $record_id > 0) {
@@ -227,10 +228,10 @@ class policyController extends Controller
                             FROM mob_prop_info 
                             LEFT JOIN agents_info ON agents_info.id = mob_prop_info.agent_code 
                             LEFT  JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code
-                            LEFT JOIN ProductTypeDetails ON mob_prop_info.plan_code = planinfo.plan_code " . $sql_inject . "
+                            LEFT JOIN ProductTypeDetails ON ProductTypeDetails.id = planinfo.ProductType
                             LEFT JOIN proposalinfo ON proposalinfo.MproposalNumber=mob_prop_info.ID
                             LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
-                            WHERE mob_prop_info.agent_code = $agentId AND mob_prop_info.ProposerId IS NULL
+                            WHERE mob_prop_info.agent_code = $agentId AND mob_prop_info.ProposerId IS NULL $sql_inject
                             ORDER BY mob_prop_info.ID DESC'
                             EXEC (@sql)";
 
@@ -326,10 +327,10 @@ class policyController extends Controller
                             FROM mob_prop_info 
                             LEFT JOIN agents_info ON agents_info.id = mob_prop_info.agent_code 
                             LEFT JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code
-                            LEFT JOIN ProductTypeDetails ON mob_prop_info.plan_code = planinfo.plan_code " . $sql_inject . "
+                            LEFT JOIN ProductTypeDetails ON ProductTypeDetails.id = planinfo.ProductType
                             LEFT JOIN proposalinfo ON proposalinfo.MproposalNumber=mob_prop_info.ID
                             LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
-                            WHERE mob_prop_info.ProposerId IS NULL
+                            WHERE mob_prop_info.ProposerId IS NULL $sql_inject
                             ORDER BY mob_prop_info.ID DESC'
                             EXEC (@sql)";
                     }
@@ -345,12 +346,12 @@ class policyController extends Controller
                             null AS agent_name
                             FROM mob_prop_info 
                             INNER JOIN agents_info ON agents_info.id = mob_prop_info.agent_code 
-                            INNER JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code " . $sql_inject . "
+                            INNER JOIN planinfo ON mob_prop_info.plan_code = planinfo.plan_code
+                            LEFT JOIN ProductTypeDetails ON ProductTypeDetails.id = planinfo.ProductType
                             LEFT JOIN proposalinfo ON proposalinfo.MproposalNumber=mob_prop_info.ID
                             LEFT JOIN uwcodesinfo ON uwcodesinfo.uw_code = proposalinfo.UwCode
-                            LEFT JOIN AppraisalHistory ON AppraisalHistory.proposal_no = proposalinfo.proposal_no
-                            LEFT JOIN agents_info ON agents_info.id=mob_prop_info.agent_code 
-                            WHERE (mob_prop_info.HasBeenPicked=0 OR mob_prop_info.isWebCompleted=0 AND mob_prop_info.ProposerId IS NULL) ORDER BY AppraisalHistory.id DESC,mob_prop_info.ID DESC'
+                            LEFT JOIN AppraisalHistory ON (AppraisalHistory.proposal_no = proposalinfo.proposal_no AND AppraisalHistory.IsCurrentRecord = 1)
+                            WHERE (mob_prop_info.HasBeenPicked=0 OR mob_prop_info.isWebCompleted=0 AND mob_prop_info.ProposerId IS NULL) $sql_inject ORDER BY AppraisalHistory.id DESC,mob_prop_info.ID DESC'
                             
                             EXEC (@sql)";
 
@@ -360,9 +361,9 @@ class policyController extends Controller
 
 
                 $organised_arr = array();
-                $pep_details = array();
 
                 foreach ($row_arr as $results) {
+                    $pep_details = array();
                     //print_r($results);
                     $momo_no = $results->momo_no;
                     $telco = "";
@@ -377,10 +378,10 @@ class policyController extends Controller
                             )
                         );
 
-                    $row_arr = $qry->get();
+                    $pep_rows = $qry->get();
 
-                    for ($i = 0; $i < sizeof($row_arr); $i++) {
-                        $pep_details[] = $row_arr[$i]->ReasonsForExposure;
+                    for ($i = 0; $i < sizeof($pep_rows); $i++) {
+                        $pep_details[] = $pep_rows[$i]->ReasonsForExposure;
                     }
 
                     $agentId = $results->agent_code;
@@ -578,8 +579,17 @@ class policyController extends Controller
 
                         'RiskRating' => $results->RiskRating,
                         'MobileSecondary3' => $results->MobileSecondary3,
-                        'MobileSecondary2' => $results->MobileSecondary2
+                        'MobileSecondary2' => $results->MobileSecondary2,
 
+                        'PremRateTable' => $results->PremRateTable,
+                        'SupplimentaryAmount' => $results->SupplimentaryAmount,
+                        'IsMorgtageSecondLife' => $results->IsMorgtageSecondLife,
+                        'FirstLifeID' => $results->FirstLifeID,
+                        'CommPayable' => $results->CommPayable,
+                        'CommissionRate' => $results->CommissionRate,
+                        'IncludePTD' => $results->IncludePTD,
+                        'MortgageOption' => $results->MortgageOption,
+                        'LoanRate' => $results->LoanRate,
                     );
                 }
 
