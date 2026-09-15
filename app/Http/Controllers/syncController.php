@@ -898,6 +898,8 @@ class syncController extends Controller
                     'IsMorgtageSecondLife' => $request->input('IsMorgtageSecondLife'),
                     'FirstLifeID' => $request->input('FirstLifeID'),
                     'CommPayable' => $request->input('CommPayable'),
+                    'MortgageOption' => $request->input('MortgageOption'),
+                    'LoanRate' => $request->input('LoanRate')
 
                 );
 
