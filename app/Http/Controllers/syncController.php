@@ -719,6 +719,21 @@ class syncController extends Controller
 
                 $IsForSecondLife = (bool)$request->input('IsForSecondLife');
 
+                //cast payload values to the column types; null/""/"null" become a real NULL
+                $castValue = function ($value, $type) {
+                    if (!isset($value) || in_array(strtolower(trim((string)$value)), array('', 'null', 'undefined'), true)) {
+                        return null;
+                    }
+                    switch ($type) {
+                        case 'bit':
+                            return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                        case 'int':
+                            return is_numeric($value) ? (int)$value : null;
+                        case 'float':
+                            return is_numeric($value) ? (float)$value : null;
+                    }
+                    return $value;
+                };
 
                 $table_data = array(
                     //'confirmed_otp_date' => $confirmed_otp_date,
@@ -893,13 +908,17 @@ class syncController extends Controller
                     'MobileSecondary2' => $request->input('MobileSecondary2'),
                     'MobileSecondary3' => $request->input('MobileSecondary3'),
 
-                    'PremRateTable' => $request->input('PremRateTable'),
-                    'SupplimentaryAmount' => $request->input('SupplimentaryAmount'),
-                    'IsMorgtageSecondLife' => $request->input('IsMorgtageSecondLife'),
-                    'FirstLifeID' => $request->input('FirstLifeID'),
-                    'CommPayable' => $request->input('CommPayable'),
-                    'MortgageOption' => $request->input('MortgageOption'),
-                    'LoanRate' => $request->input('LoanRate')
+                    'PremRateTable' => $request->input('PremRateTable') ? $castValue($request->input('PremRateTable'), 'int') : null,
+                    'SupplimentaryAmount' => $castValue($request->input('SupplimentaryAmount'), 'float'),
+                    'IsMorgtageSecondLife' => $castValue($request->input('IsMorgtageSecondLife'), 'bit'),
+                    'FirstLifeID' => $castValue($request->input('FirstLifeID'), 'int'),
+                    'CommPayable' => $castValue($request->input('CommPayable'), 'float'),
+                    'CommissionRate' => $castValue($request->input('CommissionRate'), 'float'),
+                    'MortgageOption' => $castValue($request->input('MortgageOption'), 'int'),
+                    'LoanRate' => $castValue($request->input('LoanRate'), 'float'),
+                    'SDBOption' => $castValue($request->input('SDBOption'), 'int'),
+                    //always send these: their DB defaults are the string 'NULL', which fails the bit/int conversion
+                    'IncludePTD' => (bool)$castValue($request->input('IncludePTD'), 'bit')
 
                 );
 
@@ -1158,13 +1177,13 @@ class syncController extends Controller
                         $beneficiaries_array[$i]['prop_id'] = $record_id;
                         $beneficiaries_array[$i]['Names'] = strtoupper($beneficiaries_embb[$i]['b_name']);
                         $beneficiaries_array[$i]['relationship'] = $beneficiaries_embb[$i]['b_relationship'];
-                        $beneficiaries_array[$i]['birth_date'] = $beneficiaries_embb[$i]['b_dob'];
+                        $beneficiaries_array[$i]['birth_date'] = $beneficiaries_embb[$i]['b_dob'] ?? null;
                         if ($beneficiaries_array[$i]['birth_date'] == "null") {
                             $beneficiaries_array[$i]['birth_date'] = null;
                         }
                         $beneficiaries_array[$i]['perc_alloc'] = $beneficiaries_embb[$i]['b_percentage_allocated'];
 
-                        $beneficiaries_array[$i]['telephone'] = $beneficiaries_embb[$i]['b_mobile_no'];
+                        $beneficiaries_array[$i]['telephone'] = $beneficiaries_embb[$i]['b_mobile_no'] ?? null;
                         if (empty($beneficiaries_array[$i]['relationship'])) {
                             $beneficiaries_array[$i]['relationship'] = null;
                         }

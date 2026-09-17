@@ -590,6 +590,7 @@ class policyController extends Controller
                         'IncludePTD' => $results->IncludePTD,
                         'MortgageOption' => $results->MortgageOption,
                         'LoanRate' => $results->LoanRate,
+                        'SDBOption' => $results->SDBOption
                     );
                 }
 

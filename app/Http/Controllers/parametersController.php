@@ -83,7 +83,7 @@ class parametersController extends Controller
                 if (isset($_GET['is_micro']) && $_GET['is_micro'] == "1") {
                     $sql = "SELECT p.*,p.plan_code as plan_id,p.maxMatAge AS maturity_age,p.MinAgeParents AS min_age_parents,
                     p.MaxAgeParents AS max_age_parents,p.isBancAssurance AS isbancassurance,0 AS istr,p.MinSum AS min_sum,p.CategoryCode+1 as CategoryCode,
-                    p.PlanOldName as plan_code,e.mortgage from planinfo p 
+                    p.PlanOldName as plan_code,e.* from planinfo p 
                     INNER JOIN ProductTypeDetails e ON e.id = p.ProductType
                     LEFT JOIN plan_prop_category d 
                         ON (p.CategoryCode=d.prop_code) WHERE isForMportal = 1";
@@ -97,14 +97,14 @@ class parametersController extends Controller
                         OR p.OrdinaryLife=1) AND p.isBancAssurance = 0 AND isForMportal = 1";*/
                         $sql = "SELECT p.*,p.plan_code as plan_id,p.maxMatAge AS maturity_age,p.MinAgeParents AS min_age_parents,
                         p.MaxAgeParents AS max_age_parents,0 AS istr,p.MinSum AS min_sum,p.CategoryCode+1 as CategoryCode,
-                        p.PlanOldName as plan_code,e.mortgage from planinfo p 
+                        p.PlanOldName as plan_code,e.* from planinfo p 
                         INNER JOIN ProductTypeDetails e ON e.id = p.ProductType
                         LEFT JOIN plan_prop_category d 
                         ON (p.CategoryCode=d.prop_code)";
                     } else {
                         $sql = "SELECT p.*,p.plan_code as plan_id,p.maxMatAge AS maturity_age,p.MinAgeParents AS min_age_parents,
                         p.MaxAgeParents AS max_age_parents,0 AS istr,p.MinSum AS min_sum,p.CategoryCode+1 as CategoryCode,
-                        p.PlanOldName as plan_code,e.mortgage from planinfo p 
+                        p.PlanOldName as plan_code,e.* from planinfo p 
                         INNER JOIN ProductTypeDetails e ON e.id = p.ProductType
                         LEFT JOIN plan_prop_category d 
                         ON (p.CategoryCode=d.prop_code)";
@@ -174,7 +174,8 @@ class parametersController extends Controller
                 $sql = "select Code,Name from countryinfo WHERE [Name] IS NOT NULL";
                 $countryinfo_rows = DbHelper::getTableRawData($sql);
 
-                $sql = "select p.*,p.id as disease_id FROM mob_health_info p 
+                $sql = "select p.*,p.id as disease_id,d.* FROM mob_health_info p 
+                INNER JOIN HealthQuestionCategory d ON d.id=p.CategoryCode
                 WHERE p.[description] IS NOT NULL";
                 $healthinfo_rows = DbHelper::getTableRawData($sql);
 
@@ -465,6 +466,10 @@ class parametersController extends Controller
                 INNER JOIN RateTableHistory d ON d.table_code=p.id";
                 $RateTableHistory = DbHelper::getTableRawData($sql);
 
+                //PlanSBDOptions
+                $sql = "SELECT * FROM PlanSBDOptions";
+                $PlanSBDOptions = DbHelper::getTableRawData($sql);
+
                 return response()->json(
                     array(
                         "success" => true,
@@ -555,7 +560,8 @@ class parametersController extends Controller
                         "PremRateTableCode" => $PremRateTableCode,
                         "plan_prop_category" => $plan_prop_category,
                         "commission_rates" => $commission_rates,
-                        "RateTableHistory" => $RateTableHistory
+                        "RateTableHistory" => $RateTableHistory,
+                        "PlanSBDOptions" => $PlanSBDOptions
                     )
                 );
             }

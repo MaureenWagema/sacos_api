@@ -763,12 +763,13 @@ class premCalController extends Controller
                         ]);
                     }
 
-                    $relCategoryCode = DbHelper::getColumnValue(
+                    /*$relCategoryCode = DbHelper::getColumnValue(
                         'relationship_mainteinance',
                         'code',
                         $relationship_code,
                         'CategoryCode'
-                    );
+                    );*/
+                    $relCategoryCode = $relationship_code;
                     if ($relCategoryCode === null) {
                         return response()->json([
                             'success' => false,
